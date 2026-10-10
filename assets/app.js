@@ -158,11 +158,7 @@
         '<div class="sk-ctl"><label>आवाज़</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>" +
         '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>' +
-        '<div class="marks-bar">' +
-          '<button class="sk-btn" id="mkDl">GitHub के लिए भेजें</button>' +
-          '<label class="sk-btn" style="cursor:pointer">लोड करें<input id="mkFile" type="file" accept="application/json,.json" style="display:none"></label>' +
-          '<span class="mk-msg" id="mkMsg"></span>' +
-        "</div>";
+        '<div class="marks-bar"><span class="mk-msg" id="mkMsg"></span></div>';
     }
     s.innerHTML = html;
 
@@ -319,32 +315,6 @@
       if (state.audio) state.audio.pause();
       renderNotation(lesson(state.lessonId));
     };
-    var md = $("#mkDl");
-    if (md) md.onclick = function () {
-      var blob = new Blob([JSON.stringify(allMarks(), null, 1)], { type: "application/json" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "marks.json";
-      document.body.appendChild(a); a.click(); a.remove();
-      mkMsg("फ़ाइल डाउनलोड हुई — इसे चैट में भेज दें, मैं GitHub पर डाल दूँगा");
-    };
-    var mf = $("#mkFile");
-    if (mf) mf.onchange = function () {
-      var f = this.files && this.files[0]; if (!f) return;
-      var fr = new FileReader();
-      fr.onload = function () {
-        try {
-          var j = JSON.parse(fr.result) || {};
-          Object.keys(j).forEach(function (k) {
-            state.segments[k] = state.segments[k] || {};
-            Object.keys(j[k]).forEach(function (i) { state.segments[k][i] = j[k][i]; });
-          });
-          saveAllLocal();
-          renderStage(lesson(state.lessonId));
-          mkMsg("चिह्न लोड हो गए");
-        } catch (e) { mkMsg("फ़ाइल पढ़ी नहीं गई"); }
-      };
-      fr.readAsText(f);
-    };
     updateMarksMsg();
     $("#rngSpeed").oninput = function () {
       state.speed = +this.value;
@@ -437,6 +407,7 @@
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
     updateMarksMsg();
+    schedulePush();
   }
   function clearLineHL() { state.lineRows.forEach(function (r) { if (r) r.classList.remove("playing"); }); }
   function highlightLine(li) {
@@ -466,6 +437,7 @@
   }
 
   function mkMsg(t) { var e = $("#mkMsg"); if (e) e.textContent = t || ""; }
+  function getToken() { try { return localStorage.getItem("sk_gh_token") || ""; } catch (e) { return ""; } }
   function saveAllLocal() {
     Object.keys(state.segments).forEach(function (k) {
       try { localStorage.setItem("sk_seg_" + k, JSON.stringify(state.segments[k])); } catch (e) {}
@@ -478,11 +450,107 @@
     return n;
   }
   function updateMarksMsg() {
-    var t = 0; try { t = +localStorage.getItem("sk_marks_saved") || 0; } catch (e) {}
+    var t = 0, p = 0;
+    try { t = +localStorage.getItem("sk_marks_saved") || 0; p = +localStorage.getItem("sk_marks_pushed") || 0; } catch (e) {}
     var when = t ? new Date(t).toLocaleTimeString() : "—";
     mkMsg(marksCount() + " पंक्तियाँ चिह्नित · सहेजा गया " + when);
+    var s = $("#setStatus");
+    if (s) s.textContent = marksCount() + " पंक्तियाँ · " + when +
+      (getToken() ? (" · GitHub जुड़ा" + (p ? " (" + new Date(p).toLocaleTimeString() + ")" : "")) : " · टोकन नहीं डाला");
   }
-  function autoSaveTick() { saveAllLocal(); updateMarksMsg(); }
+  function pushMarks(cb) {
+    var tok = getToken();
+    if (!tok) { if (cb) cb("no-token"); return; }
+    var api = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json";
+    var hdr = { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json" };
+    fetch(api, { headers: hdr, cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var payload = { message: "Update line marks", branch: "main", content: btoa(unescape(encodeURIComponent(JSON.stringify(allMarks(), null, 1)))) };
+        if (j && j.sha) payload.sha = j.sha;
+        return fetch(api, { method: "PUT", headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json", "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      })
+      .then(function (r) { if (r && r.ok) { try { localStorage.setItem("sk_marks_pushed", String(Date.now())); } catch (e) {} if (cb) cb("ok"); } else if (cb) cb("fail"); })
+      .catch(function () { if (cb) cb("net"); });
+  }
+  var pushTimer = 0;
+  function schedulePush() {
+    if (!getToken() || pushTimer) return;
+    pushTimer = setTimeout(function () { pushTimer = 0; pushMarks(); updateMarksMsg(); }, 15000);
+  }
+  function autoSaveTick() {
+    saveAllLocal(); updateMarksMsg();
+    if (getToken()) pushMarks(function () { updateMarksMsg(); });
+  }
+  function downloadMarks() {
+    var blob = new Blob([JSON.stringify(allMarks(), null, 1)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "marks.json";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function importMarks() {
+    var inp = this, f = inp.files && inp.files[0]; if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var j = JSON.parse(fr.result) || {};
+        Object.keys(j).forEach(function (k) {
+          state.segments[k] = state.segments[k] || {};
+          Object.keys(j[k]).forEach(function (i) { state.segments[k][i] = j[k][i]; });
+        });
+        saveAllLocal();
+        var m = $("#setMsg"); if (m) m.textContent = "चिह्न लोड हो गए";
+        updateMarksMsg();
+        if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
+      } catch (e) { var m2 = $("#setMsg"); if (m2) m2.textContent = "फ़ाइल पढ़ी नहीं गई"; }
+    };
+    fr.readAsText(f);
+  }
+  function closeSettings() { var m = $("#skModal"); if (m) m.classList.remove("on"); }
+  function openSettings() {
+    var box = $("#skModalBox"); if (!box) return;
+    box.innerHTML =
+      '<div class="set-h">सेटिंग</div>' +
+      '<div class="set-lab">GitHub token</div>' +
+      '<input id="setToken" class="set-input" type="password" autocomplete="off" placeholder="github_pat_…">' +
+      '<div class="set-actions">' +
+        '<button class="sk-btn" id="setSave">सहेजें</button>' +
+        '<button class="sk-btn" id="setClear">हटाएँ</button>' +
+        '<button class="sk-btn" id="setSync">अभी सिंक करें</button>' +
+      '</div>' +
+      '<div class="set-msg" id="setMsg"></div>' +
+      '<p class="set-note">टोकन सिर्फ़ इस ब्राउज़र में रहता है — GitHub के अलावा कहीं नहीं भेजा जाता। स्कोप रखें: केवल <b>riyaz</b> रेपो, अनुमति <b>Contents: Read and write</b>।</p>' +
+      '<p class="set-note">चिह्न स्थिति: <span id="setStatus"></span></p>' +
+      '<div class="set-actions">' +
+        '<button class="sk-btn" id="setDl">चिह्न डाउनलोड</button>' +
+        '<label class="sk-btn" style="cursor:pointer">चिह्न लोड<input id="setFile" type="file" accept="application/json,.json" style="display:none"></label>' +
+        '<button class="sk-btn" id="setClose">बंद करें</button>' +
+      '</div>';
+    var m = $("#skModal"); if (m) m.classList.add("on");
+    var ti = $("#setToken");
+    if (getToken()) ti.placeholder = "टोकन सहेजा हुआ है (बदलने के लिए नया डालें)";
+    $("#setSave").onclick = function () {
+      var v = (ti.value || "").trim();
+      if (!v) { $("#setMsg").textContent = "पहले टोकन डालें"; return; }
+      try { localStorage.setItem("sk_gh_token", v); } catch (e) {}
+      ti.value = ""; ti.placeholder = "टोकन सहेजा हुआ है";
+      $("#setMsg").textContent = "जाँचा जा रहा है…";
+      pushMarks(function (r) {
+        $("#setMsg").textContent = r === "ok" ? "टोकन ठीक — चिह्न GitHub पर सहेजे गए"
+          : (r === "no-token" ? "टोकन डालें" : "सिंक असफल — टोकन की अनुमति (Contents: Read and write) जाँचें");
+        updateMarksMsg();
+      });
+    };
+    $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "टोकन हटा दिया"; updateMarksMsg(); };
+    $("#setSync").onclick = function () {
+      $("#setMsg").textContent = "सिंक हो रहा है…";
+      pushMarks(function (r) { $("#setMsg").textContent = r === "ok" ? "सिंक हो गया" : (r === "no-token" ? "पहले टोकन डालें" : "सिंक असफल"); updateMarksMsg(); });
+    };
+    $("#setDl").onclick = downloadMarks;
+    $("#setFile").onchange = importMarks;
+    $("#setClose").onclick = closeSettings;
+    updateMarksMsg();
+  }
 
   function ensureLoop() { if (!state.raf) loop(); }
   function startFollowBase() {
@@ -525,6 +593,9 @@
   loadSharedMarks();
   setInterval(autoSaveTick, 300000);   // background save every 5 minutes
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") autoSaveTick(); });
+  var gear = $("#btnSettings"); if (gear) gear.onclick = openSettings;
+  if (location.hash === "#settings") openSettings();
+  var modal = $("#skModal"); if (modal) modal.onclick = function (e) { if (e.target === this) closeSettings(); };
   if (isTool(state.group)) {
     showTool(state.group);
   } else {
