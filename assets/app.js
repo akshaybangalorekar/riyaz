@@ -5,6 +5,9 @@
   "use strict";
   var D = window.SANGEET || { lessons: [] };
   var GROUPS = ["अलंकार", "ताल", "राग"];
+  var TOOLS = (window.RIYAZ && window.RIYAZ.tools) || [];
+  var TABS = GROUPS.concat(TOOLS.map(function (t) { return t.name; }));
+  function isTool(g) { return TOOLS.some(function (t) { return t.name === g; }); }
 
   var state = {
     group: localStorage.getItem("sk_group") || "अलंकार",
@@ -18,7 +21,8 @@
     baseI: 0,
     tap: [],
     raf: 0,
-    audio: null
+    audio: null,
+    toolCleanup: null
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -48,14 +52,16 @@
   /* ---------- chrome ---------- */
   function renderTabs() {
     var el = $("#tabs");
-    el.innerHTML = GROUPS.map(function (g) {
+    el.innerHTML = TABS.map(function (g) {
       return '<button class="sk-tab' + (g === state.group ? " on" : "") + '" data-g="' + g + '">' + g + "</button>";
     }).join("");
     Array.prototype.forEach.call(el.children, function (b) {
       b.onclick = function () {
         state.group = b.dataset.g;
         localStorage.setItem("sk_group", state.group);
-        renderTabs(); renderList();
+        renderTabs();
+        if (isTool(state.group)) { showTool(state.group); return; }
+        renderList();
         var first = lessonsOf(state.group)[0];
         if (first) open(first.id);
       };
@@ -81,6 +87,7 @@
     if (state.raf) cancelAnimationFrame(state.raf);
     state.raf = 0;
     if (state.audio) { try { state.audio.pause(); } catch (e) {} state.audio = null; }
+    if (state.toolCleanup) { try { state.toolCleanup(); } catch (e) {} state.toolCleanup = null; }
     state.follow = false; state.swaras = []; state.cur = -1; state.tap = [];
   }
 
@@ -88,10 +95,21 @@
     var l = lesson(id);
     if (!l) return;
     stopAll();
+    $(".sk-main").classList.remove("tool-mode");
     state.lessonId = id; state.mediaIdx = 0;
     localStorage.setItem("sk_lesson", id);
     renderList();
     renderStage(l);
+  }
+
+  function showTool(name) {
+    stopAll();
+    var t = TOOLS.filter(function (x) { return x.name === name; })[0];
+    if (!t) return;
+    $(".sk-main").classList.add("tool-mode");
+    var stage = $("#stage");
+    stage.innerHTML = "";
+    state.toolCleanup = t.mount(stage);
   }
 
   function renderStage(l) {
@@ -274,8 +292,15 @@
     var m = /[?&]lesson=([^&#]+)/.exec(location.search);
     var id = m ? decodeURIComponent(m[1]) : (location.hash ? location.hash.slice(1) : "");
     if (id && lesson(id)) { state.lessonId = id; state.group = lesson(id).group; }
+    var tm = /[?&]tool=([^&#]+)/.exec(location.search);
+    if (tm) { var tn = decodeURIComponent(tm[1]); var tl = TOOLS.filter(function (x) { return x.id === tn || x.name === tn; })[0]; if (tl) state.group = tl.name; }
   })();
-  renderTabs(); renderList();
-  var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
-  if (start) open(start);
+  renderTabs();
+  if (isTool(state.group)) {
+    showTool(state.group);
+  } else {
+    renderList();
+    var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
+    if (start) open(start);
+  }
 })();
