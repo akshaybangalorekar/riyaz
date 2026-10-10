@@ -108,6 +108,13 @@
     }
     html += '<div class="sk-player" id="player"></div>';
 
+    // notation (shown right under the player, so it is visible while listening)
+    if (l.lines && l.lines.length) {
+      html += '<div class="sk-notation" id="notation"></div>';
+    } else {
+      html += '<div class="sk-dim" style="margin-top:10px">इस पाठ की लिखित स्वरलिपि नहीं है — वीडियो देखें।</div>';
+    }
+
     // controls (only if there is notation)
     if (l.lines && l.lines.length) {
       html += '<div class="sk-controls">' +
@@ -117,13 +124,6 @@
         '<div class="sk-ctl"><label>गति</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' स्वर/से.</span></div>' +
         '<div class="sk-ctl"><label>आवाज़</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>";
-    }
-
-    // notation
-    if (l.lines && l.lines.length) {
-      html += '<div class="sk-notation" id="notation"></div>';
-    } else {
-      html += '<div class="sk-dim" style="margin-top:10px">इस पाठ की लिखित स्वरलिपि नहीं है — वीडियो देखें।</div>';
     }
     s.innerHTML = html;
 
