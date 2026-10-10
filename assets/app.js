@@ -184,7 +184,15 @@
       p.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>' +
         '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";
     } else {
-      p.innerHTML = '<audio class="sk-audio" id="au" controls preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
+      p.innerHTML =
+        '<div class="pl">' +
+          '<button class="pl-btn" id="plPlay" type="button" aria-label="play">▶</button>' +
+          '<button class="pl-btn sm" id="plBack" type="button">−५</button>' +
+          '<div class="pl-track" id="plTrack"><div class="pl-bar"><div class="pl-fill" id="plFill"></div></div></div>' +
+          '<span class="pl-time" id="plTime">0:00 / 0:00</span>' +
+          '<button class="pl-btn sm" id="plFwd" type="button">+५</button>' +
+        "</div>" +
+        '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
         '<div class="sk-dim">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
@@ -196,6 +204,32 @@
       au.addEventListener("play", function () { ensureLoop(); startFollowBase(); });
       au.addEventListener("seeked", function () { startFollowBase(); });
       au.addEventListener("ended", function () { state.follow = false; state.segPlay = null; clearLineHL(); syncBtn(); });
+      /* compact player */
+      var playBtn = $("#plPlay"), fill = $("#plFill"), timeEl = $("#plTime"), track = $("#plTrack"), bar = track.firstChild;
+      function upd() {
+        var d = au.duration;
+        fill.style.width = (d ? (au.currentTime / d * 100) : 0) + "%";
+        timeEl.textContent = fmtTime(au.currentTime) + " / " + fmtTime(d);
+      }
+      playBtn.onclick = function () { if (au.paused) au.play().catch(function () {}); else au.pause(); };
+      au.addEventListener("play", function () { playBtn.textContent = "❚❚"; });
+      au.addEventListener("pause", function () { playBtn.textContent = "▶"; });
+      au.addEventListener("timeupdate", upd);
+      au.addEventListener("loadedmetadata", upd);
+      au.addEventListener("durationchange", upd);
+      $("#plBack").onclick = function () { au.currentTime = Math.max(0, au.currentTime - 5); upd(); };
+      $("#plFwd").onclick = function () { var d = au.duration || (au.currentTime + 5); au.currentTime = Math.min(d, au.currentTime + 5); upd(); };
+      var dragging = false;
+      function seekAt(e) {
+        var r = bar.getBoundingClientRect();
+        var f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        if (au.duration) au.currentTime = f * au.duration;
+        upd();
+      }
+      track.addEventListener("pointerdown", function (e) { dragging = true; try { this.setPointerCapture(e.pointerId); } catch (x) {} seekAt(e); });
+      track.addEventListener("pointermove", function (e) { if (dragging) seekAt(e); });
+      track.addEventListener("pointerup", function () { dragging = false; });
+      track.addEventListener("pointercancel", function () { dragging = false; });
     }
   }
 

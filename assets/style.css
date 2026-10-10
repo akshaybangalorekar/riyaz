@@ -210,3 +210,19 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .mk-token{flex:1 1 240px;min-width:180px;background:var(--bg2);border:1px solid var(--line);color:var(--ink);
   border-radius:9px;padding:9px 11px;font-family:inherit;font-size:14px;min-height:42px}
 .mk-msg{color:var(--saffron);font-size:13px}
+
+/* ---------- compact audio player ---------- */
+.pl{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;padding:8px 10px;width:100%;box-sizing:border-box}
+.pl-btn{flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:1px solid var(--saffron);
+  background:transparent;color:var(--saffron);font-size:16px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
+.pl-btn:active{transform:scale(.95)}
+.pl-btn.sm{width:40px;height:40px;border-radius:11px;font-size:12.5px;border-color:var(--line);color:var(--ink)}
+.pl-track{flex:1 1 auto;min-width:64px;height:34px;display:flex;align-items:center;cursor:pointer;touch-action:none}
+.pl-bar{position:relative;width:100%;height:8px;background:#3a2f27;border-radius:6px;overflow:hidden}
+.pl-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--saffron);border-radius:6px}
+.pl-time{flex:0 0 auto;font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums;min-width:76px;text-align:center}
+@media(max-width:430px){ .pl{gap:6px;padding:7px 8px}
+  .pl-btn{width:42px;height:42px} .pl-btn.sm{width:36px;height:36px;font-size:11.5px}
+  .pl-time{min-width:70px;font-size:12px} }
