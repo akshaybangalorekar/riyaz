@@ -46,7 +46,9 @@
   /* ---------- media url ---------- */
   function mediaURL(m) {
     if (m.kind === "video") return "https://drive.google.com/file/d/" + m.id + "/preview";
-    return "https://drive.google.com/uc?export=download&id=" + m.id;
+    // NOTE: drive.google.com/uc?export=download is blocked for third-party origins (403).
+    // drive.usercontent.google.com serves the same file without the origin block.
+    return "https://drive.usercontent.google.com/download?id=" + m.id + "&export=download&confirm=t";
   }
 
   /* ---------- chrome ---------- */
@@ -162,7 +164,7 @@
       p.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>' +
         '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";
     } else {
-      p.innerHTML = '<audio class="sk-audio" id="au" controls preload="none" src="' + mediaURL(m) + '"></audio>' +
+      p.innerHTML = '<audio class="sk-audio" id="au" controls preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
         '<div class="sk-dim">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
