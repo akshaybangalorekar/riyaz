@@ -23,10 +23,11 @@
     raf: 0,
     audio: null,
     toolCleanup: null,
-    segments: {},      // lessonId -> { lineIndex: {track, t} }
+    segments: {},      // lessonId -> { lineIndex: {track, t} }   (local overrides)
     segPlay: null,     // {line, start, end, loop}
     segLoop: true,
-    lineRows: []
+    lineRows: [],
+    sharedMarks: null  // marks.json loaded from the repo (shared across devices)
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -48,11 +49,16 @@
   }
 
   /* ---------- media url ---------- */
+  function audioSources(m) {
+    return [
+      "audio/" + m.id + ".mp3",  // self-hosted in this repo (same origin on GitHub Pages)
+      "https://raw.githubusercontent.com/akshaybangalorekar/riyaz/main/audio/" + m.id + ".mp3",
+      "https://drive.usercontent.google.com/download?id=" + m.id + "&export=download&confirm=t"
+    ];
+  }
   function mediaURL(m) {
     if (m.kind === "video") return "https://drive.google.com/file/d/" + m.id + "/preview";
-    // NOTE: drive.google.com/uc?export=download is blocked for third-party origins (403).
-    // drive.usercontent.google.com serves the same file without the origin block.
-    return "https://drive.usercontent.google.com/download?id=" + m.id + "&export=download&confirm=t";
+    return audioSources(m)[0];
   }
 
   /* ---------- chrome ---------- */
@@ -151,7 +157,13 @@
         '<div class="sk-ctl"><label>गति</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' स्वर/से.</span></div>' +
         '<div class="sk-ctl"><label>आवाज़</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>" +
-        '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>';
+        '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>' +
+        '<div class="marks-bar">' +
+          '<button class="sk-btn" id="mkSave">GitHub पर सहेजें</button>' +
+          '<button class="sk-btn" id="mkDl">डाउनलोड</button>' +
+          '<input id="mkToken" class="mk-token" type="password" autocomplete="off" placeholder="GitHub token (सिर्फ़ इस ब्राउज़र में रहेगा)">' +
+          '<span class="mk-msg" id="mkMsg"></span>' +
+        "</div>";
     }
     s.innerHTML = html;
 
@@ -176,6 +188,11 @@
         '<div class="sk-dim">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
+      var srcs = audioSources(m), si = 0;
+      au.addEventListener("error", function () {
+        si++;
+        if (si < srcs.length) { au.src = srcs[si]; au.load(); }
+      });
       au.addEventListener("play", function () { ensureLoop(); startFollowBase(); });
       au.addEventListener("seeked", function () { startFollowBase(); });
       au.addEventListener("ended", function () { state.follow = false; state.segPlay = null; clearLineHL(); syncBtn(); });
@@ -269,6 +286,15 @@
       if (state.audio) state.audio.pause();
       renderNotation(lesson(state.lessonId));
     };
+    var ms = $("#mkSave");
+    if (ms) ms.onclick = saveMarksToGitHub;
+    var md = $("#mkDl");
+    if (md) md.onclick = function () {
+      var blob = new Blob([JSON.stringify(allMarks(), null, 1)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "marks.json";
+      document.body.appendChild(a); a.click(); a.remove();
+    };
     $("#rngSpeed").oninput = function () {
       state.speed = +this.value;
       $("#lblSpeed").textContent = state.speed.toFixed(1) + " स्वर/से.";
@@ -308,7 +334,7 @@
     }
   }  /* ---------- per-line segments (listen to one line at a time) ---------- */
   function fmtTime(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
-  function segsOf() {
+  function localSegs() {
     var k = state.lessonId;
     if (!state.segments[k]) {
       try { state.segments[k] = JSON.parse(localStorage.getItem("sk_seg_" + k) || "{}") || {}; }
@@ -316,7 +342,31 @@
     }
     return state.segments[k];
   }
-  function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(segsOf())); } catch (e) {} }
+  function segsOf() {
+    var k = state.lessonId, base = {};
+    if (state.sharedMarks && state.sharedMarks[k]) {
+      try { base = JSON.parse(JSON.stringify(state.sharedMarks[k])); } catch (e) { base = {}; }
+    }
+    var loc = localSegs();
+    Object.keys(loc).forEach(function (i) { base[i] = loc[i]; });
+    return base;
+  }
+  function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(localSegs())); } catch (e) {} }
+  function allMarks() {
+    var out = {};
+    if (state.sharedMarks) Object.keys(state.sharedMarks).forEach(function (k) { try { out[k] = JSON.parse(JSON.stringify(state.sharedMarks[k])); } catch (e) { out[k] = {}; } });
+    Object.keys(state.segments).forEach(function (k) {
+      out[k] = out[k] || {};
+      Object.keys(state.segments[k]).forEach(function (i) { out[k][i] = state.segments[k][i]; });
+    });
+    return out;
+  }
+  function loadSharedMarks() {
+    fetch("marks.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { state.sharedMarks = j || {}; if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId)); })
+      .catch(function () { state.sharedMarks = {}; });
+  }
   function lineEnds() {
     var segs = segsOf(), l = lesson(state.lessonId), n = l && l.lines ? l.lines.length : 0, ends = [];
     for (var i = 0; i < n; i++) {
@@ -331,7 +381,7 @@
   }
   function markLine(li) {
     if (!state.audio) return;
-    segsOf()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2) };
+    localSegs()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2) };
     saveSegs();
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
@@ -361,6 +411,26 @@
     ensureLoop();
     au.play().catch(function () {});
     highlightLine(li);
+  }
+
+  function mkMsg(t) { var e = $("#mkMsg"); if (e) e.textContent = t || ""; }
+  function saveMarksToGitHub() {
+    var inp = $("#mkToken");
+    var tok = (inp && inp.value.trim()) || localStorage.getItem("sk_gh_token") || "";
+    if (!tok) { mkMsg("GitHub token डालें (एक बार)"); return; }
+    try { localStorage.setItem("sk_gh_token", tok); } catch (e) {}
+    mkMsg("सहेजा जा रहा है…");
+    var api = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json";
+    var hdr = { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json" };
+    fetch(api, { headers: hdr, cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var payload = { message: "Update line marks", branch: "main", content: btoa(unescape(encodeURIComponent(JSON.stringify(allMarks(), null, 1)))) };
+        if (j && j.sha) payload.sha = j.sha;
+        return fetch(api, { method: "PUT", headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json", "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      })
+      .then(function (r) { mkMsg(r && r.ok ? "सहेज लिया — सब डिवाइस पर दिखेगा" : "सहेजना असफल (token की अनुमति जाँचें)"); })
+      .catch(function () { mkMsg("नेटवर्क समस्या"); });
   }
 
   function ensureLoop() { if (!state.raf) loop(); }
@@ -401,6 +471,7 @@
     if (tm) { var tn = decodeURIComponent(tm[1]); var tl = TOOLS.filter(function (x) { return x.id === tn || x.name === tn; })[0]; if (tl) state.group = tl.name; }
   })();
   renderTabs();
+  loadSharedMarks();
   if (isTool(state.group)) {
     showTool(state.group);
   } else {
