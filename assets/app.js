@@ -159,9 +159,8 @@
         "</div>" +
         '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>' +
         '<div class="marks-bar">' +
-          '<button class="sk-btn" id="mkSave">GitHub पर सहेजें</button>' +
-          '<button class="sk-btn" id="mkDl">डाउनलोड</button>' +
-          '<input id="mkToken" class="mk-token" type="password" autocomplete="off" placeholder="GitHub token (सिर्फ़ इस ब्राउज़र में रहेगा)">' +
+          '<button class="sk-btn" id="mkDl">GitHub के लिए भेजें</button>' +
+          '<label class="sk-btn" style="cursor:pointer">लोड करें<input id="mkFile" type="file" accept="application/json,.json" style="display:none"></label>' +
           '<span class="mk-msg" id="mkMsg"></span>' +
         "</div>";
     }
@@ -320,15 +319,33 @@
       if (state.audio) state.audio.pause();
       renderNotation(lesson(state.lessonId));
     };
-    var ms = $("#mkSave");
-    if (ms) ms.onclick = saveMarksToGitHub;
     var md = $("#mkDl");
     if (md) md.onclick = function () {
       var blob = new Blob([JSON.stringify(allMarks(), null, 1)], { type: "application/json" });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = "marks.json";
       document.body.appendChild(a); a.click(); a.remove();
+      mkMsg("फ़ाइल डाउनलोड हुई — इसे चैट में भेज दें, मैं GitHub पर डाल दूँगा");
     };
+    var mf = $("#mkFile");
+    if (mf) mf.onchange = function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var j = JSON.parse(fr.result) || {};
+          Object.keys(j).forEach(function (k) {
+            state.segments[k] = state.segments[k] || {};
+            Object.keys(j[k]).forEach(function (i) { state.segments[k][i] = j[k][i]; });
+          });
+          saveAllLocal();
+          renderStage(lesson(state.lessonId));
+          mkMsg("चिह्न लोड हो गए");
+        } catch (e) { mkMsg("फ़ाइल पढ़ी नहीं गई"); }
+      };
+      fr.readAsText(f);
+    };
+    updateMarksMsg();
     $("#rngSpeed").oninput = function () {
       state.speed = +this.value;
       $("#lblSpeed").textContent = state.speed.toFixed(1) + " स्वर/से.";
@@ -416,9 +433,10 @@
   function markLine(li) {
     if (!state.audio) return;
     localSegs()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2) };
-    saveSegs();
+    saveAllLocal();
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
+    updateMarksMsg();
   }
   function clearLineHL() { state.lineRows.forEach(function (r) { if (r) r.classList.remove("playing"); }); }
   function highlightLine(li) {
@@ -448,24 +466,23 @@
   }
 
   function mkMsg(t) { var e = $("#mkMsg"); if (e) e.textContent = t || ""; }
-  function saveMarksToGitHub() {
-    var inp = $("#mkToken");
-    var tok = (inp && inp.value.trim()) || localStorage.getItem("sk_gh_token") || "";
-    if (!tok) { mkMsg("GitHub token डालें (एक बार)"); return; }
-    try { localStorage.setItem("sk_gh_token", tok); } catch (e) {}
-    mkMsg("सहेजा जा रहा है…");
-    var api = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json";
-    var hdr = { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json" };
-    fetch(api, { headers: hdr, cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) {
-        var payload = { message: "Update line marks", branch: "main", content: btoa(unescape(encodeURIComponent(JSON.stringify(allMarks(), null, 1)))) };
-        if (j && j.sha) payload.sha = j.sha;
-        return fetch(api, { method: "PUT", headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json", "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      })
-      .then(function (r) { mkMsg(r && r.ok ? "सहेज लिया — सब डिवाइस पर दिखेगा" : "सहेजना असफल (token की अनुमति जाँचें)"); })
-      .catch(function () { mkMsg("नेटवर्क समस्या"); });
+  function saveAllLocal() {
+    Object.keys(state.segments).forEach(function (k) {
+      try { localStorage.setItem("sk_seg_" + k, JSON.stringify(state.segments[k])); } catch (e) {}
+    });
+    try { localStorage.setItem("sk_marks_saved", String(Date.now())); } catch (e) {}
   }
+  function marksCount() {
+    var m = allMarks(), n = 0;
+    Object.keys(m).forEach(function (k) { n += Object.keys(m[k] || {}).length; });
+    return n;
+  }
+  function updateMarksMsg() {
+    var t = 0; try { t = +localStorage.getItem("sk_marks_saved") || 0; } catch (e) {}
+    var when = t ? new Date(t).toLocaleTimeString() : "—";
+    mkMsg(marksCount() + " पंक्तियाँ चिह्नित · सहेजा गया " + when);
+  }
+  function autoSaveTick() { saveAllLocal(); updateMarksMsg(); }
 
   function ensureLoop() { if (!state.raf) loop(); }
   function startFollowBase() {
@@ -506,6 +523,8 @@
   })();
   renderTabs();
   loadSharedMarks();
+  setInterval(autoSaveTick, 300000);   // background save every 5 minutes
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") autoSaveTick(); });
   if (isTool(state.group)) {
     showTool(state.group);
   } else {
