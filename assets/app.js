@@ -22,7 +22,11 @@
     tap: [],
     raf: 0,
     audio: null,
-    toolCleanup: null
+    toolCleanup: null,
+    segments: {},      // lessonId -> { lineIndex: {track, t} }
+    segPlay: null,     // {line, start, end, loop}
+    segLoop: true,
+    lineRows: []
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -91,6 +95,7 @@
     if (state.audio) { try { state.audio.pause(); } catch (e) {} state.audio = null; }
     if (state.toolCleanup) { try { state.toolCleanup(); } catch (e) {} state.toolCleanup = null; }
     state.follow = false; state.swaras = []; state.cur = -1; state.tap = [];
+    state.segPlay = null; state.lineRows = [];
   }
 
   function open(id) {
@@ -141,9 +146,12 @@
         '<button class="sk-btn" id="btnFollow">▶ रेखा चलाओ</button>' +
         '<button class="sk-btn tap" id="btnTap">ताल दबाएँ</button>' +
         '<button class="sk-btn" id="btnNext">अगला ›</button>' +
+        '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">दोहराएँ</button>' +
+        '<button class="sk-btn" id="btnClear">चिह्न हटाएँ</button>' +
         '<div class="sk-ctl"><label>गति</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' स्वर/से.</span></div>' +
         '<div class="sk-ctl"><label>आवाज़</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
-        "</div>";
+        "</div>" +
+        '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>';
     }
     s.innerHTML = html;
 
@@ -168,9 +176,9 @@
         '<div class="sk-dim">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
-      au.addEventListener("play", function () { startFollowBase(); });
+      au.addEventListener("play", function () { ensureLoop(); startFollowBase(); });
       au.addEventListener("seeked", function () { startFollowBase(); });
-      au.addEventListener("ended", function () { state.follow = false; syncBtn(); });
+      au.addEventListener("ended", function () { state.follow = false; state.segPlay = null; clearLineHL(); syncBtn(); });
     }
   }
 
@@ -181,6 +189,25 @@
     l.lines.forEach(function (line, li) {
       var row = document.createElement("div");
       row.className = "sk-line";
+      state.lineRows[li] = row;
+      var ctl = document.createElement("span");
+      ctl.className = "ln-ctl";
+      var pb = document.createElement("button");
+      pb.className = "ln-btn"; pb.type = "button"; pb.textContent = "▶";
+      pb.title = "सिर्फ़ यह पंक्ति सुनें";
+      pb.onclick = function () { playLine(li); };
+      var mb = document.createElement("button");
+      mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
+      mb.title = "अभी की जगह = इस पंक्ति की शुरुआत";
+      mb.onclick = function () { markLine(li); };
+      ctl.appendChild(pb); ctl.appendChild(mb);
+      var seg = segsOf()[li];
+      if (seg) {
+        var tm = document.createElement("span");
+        tm.className = "ln-time"; tm.textContent = fmtTime(seg.t);
+        ctl.appendChild(tm);
+      }
+      row.appendChild(ctl);
       if (line.label) {
         var lb = document.createElement("span");
         lb.className = "sk-lbl"; lb.textContent = line.label;
@@ -231,6 +258,17 @@
       }
     };
     $("#btnNext").onclick = function () { setCur(state.cur + 1); startFollowBase(); };
+    var bl = $("#btnLoop");
+    if (bl) bl.onclick = function () {
+      state.segLoop = !state.segLoop; this.classList.toggle("on", state.segLoop);
+      if (state.segPlay) state.segPlay.loop = state.segLoop;
+    };
+    var bc = $("#btnClear");
+    if (bc) bc.onclick = function () {
+      state.segments[state.lessonId] = {}; saveSegs(); state.segPlay = null;
+      if (state.audio) state.audio.pause();
+      renderNotation(lesson(state.lessonId));
+    };
     $("#rngSpeed").oninput = function () {
       state.speed = +this.value;
       $("#lblSpeed").textContent = state.speed.toFixed(1) + " स्वर/से.";
@@ -268,24 +306,89 @@
       if (r.top < 80 || r.bottom > window.innerHeight - 60)
         cur.scrollIntoView({ block: "center", behavior: "smooth" });
     }
+  }  /* ---------- per-line segments (listen to one line at a time) ---------- */
+  function fmtTime(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
+  function segsOf() {
+    var k = state.lessonId;
+    if (!state.segments[k]) {
+      try { state.segments[k] = JSON.parse(localStorage.getItem("sk_seg_" + k) || "{}") || {}; }
+      catch (e) { state.segments[k] = {}; }
+    }
+    return state.segments[k];
+  }
+  function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(segsOf())); } catch (e) {} }
+  function lineEnds() {
+    var segs = segsOf(), l = lesson(state.lessonId), n = l && l.lines ? l.lines.length : 0, ends = [];
+    for (var i = 0; i < n; i++) {
+      var s = segs[i]; ends[i] = null;
+      if (!s) continue;
+      for (var j = 0; j < n; j++) {
+        var o = segs[j];
+        if (o && o.track === s.track && o.t > s.t + 0.05 && (ends[i] === null || o.t < ends[i])) ends[i] = o.t;
+      }
+    }
+    return ends;
+  }
+  function markLine(li) {
+    if (!state.audio) return;
+    segsOf()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2) };
+    saveSegs();
+    renderNotation(lesson(state.lessonId));
+    var r = state.lineRows[li]; if (r) r.classList.add("marked");
+  }
+  function clearLineHL() { state.lineRows.forEach(function (r) { if (r) r.classList.remove("playing"); }); }
+  function highlightLine(li) {
+    clearLineHL();
+    var r = state.lineRows[li];
+    if (r) { r.classList.add("playing"); if (r.scrollIntoView) r.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  }
+  function playLine(li) {
+    var l = lesson(state.lessonId); if (!l) return;
+    var s = segsOf()[li];
+    if (!s) {  // not marked yet -> play the whole current track
+      if (state.audio) { state.segPlay = null; state.audio.currentTime = 0; ensureLoop(); state.audio.play().catch(function () {}); }
+      highlightLine(li);
+      return;
+    }
+    if (s.track !== state.mediaIdx) { state.mediaIdx = s.track; renderStage(l); setTimeout(function () { startSeg(li); }, 90); }
+    else startSeg(li);
+  }
+  function startSeg(li) {
+    var au = state.audio, s = segsOf()[li]; if (!au || !s) return;
+    var ends = lineEnds();
+    au.currentTime = s.t;
+    state.segPlay = { line: li, start: s.t, end: (ends[li] != null ? ends[li] : 1e9), loop: state.segLoop };
+    ensureLoop();
+    au.play().catch(function () {});
+    highlightLine(li);
   }
 
+  function ensureLoop() { if (!state.raf) loop(); }
   function startFollowBase() {
     if (!state.audio) return;
     state.baseT = state.audio.currentTime;
     state.baseI = state.cur < 0 ? 0 : state.cur;
-    if (!state.raf) loop();
+    ensureLoop();
   }
-
   function loop() {
     state.raf = requestAnimationFrame(loop);
-    if (!state.follow || !state.audio) return;
-    var t = state.audio.currentTime;
-    var n = state.swaras.length;
-    if (!n) return;
-    var adv = Math.floor((t - state.baseT) * state.speed);
-    var idx = ((state.baseI + adv) % n + n) % n;
-    if (idx !== state.cur) setCur(idx);
+    var au = state.audio; if (!au) return;
+    var t = au.currentTime;
+    // per-line segment: loop it, or stop at its end
+    if (state.segPlay) {
+      var sp = state.segPlay;
+      if (t >= sp.end - 0.03) {
+        if (sp.loop) { try { au.currentTime = sp.start; } catch (e) {} }
+        else { au.pause(); state.segPlay = null; clearLineHL(); }
+      }
+    }
+    // follow underline
+    if (state.follow && state.swaras.length) {
+      var n = state.swaras.length;
+      var adv = Math.floor((t - state.baseT) * state.speed);
+      var idx = ((state.baseI + adv) % n + n) % n;
+      if (idx !== state.cur) setCur(idx);
+    }
   }
 
   /* ---------- boot ---------- */
