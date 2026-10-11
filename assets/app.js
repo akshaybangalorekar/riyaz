@@ -118,7 +118,7 @@
         esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
     }).join("");
     Array.prototype.forEach.call(el.children, function (b) {
-      b.onclick = function () { open(b.dataset.id); };
+      b.onclick = function () { open(b.dataset.id); setRail(true); };
     });
   }
 
