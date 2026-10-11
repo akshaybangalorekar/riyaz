@@ -247,6 +247,7 @@
         lb.className = "sk-lbl"; lb.textContent = line.label;
         row.appendChild(lb);
       }
+      var unit = line.unit || 0, noteN = 0;
       tokenize(line.text).forEach(function (tk) {
         if (tk.sep) {
           var sp = document.createElement("span");
@@ -255,6 +256,11 @@
         } else {
           var sw = document.createElement("span");
           sw.className = "sk-sw" + (tk.oct === 1 ? " oct1" : tk.oct === -1 ? " octm" : "");
+          if (unit > 1) {
+            var g = Math.floor(noteN / unit);
+            sw.className += (g % 2 ? " grpB" : " grpA") + (noteN % unit === 0 ? " gstart" : "");
+          }
+          noteN++;
           sw.textContent = tk.t;
           var idx = state.swaras.length;
           sw.dataset.i = idx;
