@@ -767,6 +767,21 @@
     Object.keys(m || {}).forEach(function (les) { out[les] = normalizeLesson(m[les]); });
     return out;
   }
+  function saveSharedCache() {
+    try {
+      localStorage.setItem("sk_shared_marks", JSON.stringify(state.sharedMarks || {}));
+      localStorage.setItem("sk_shared_at", String(Date.now()));
+    } catch (e) {}
+  }
+  function loadSharedCache() {
+    try {
+      var raw = localStorage.getItem("sk_shared_marks");
+      if (!raw) return;
+      var j = JSON.parse(raw);
+      if (j && typeof j === "object") state.sharedMarks = normalizeAll(j);
+    } catch (e) {}
+  }
+  function sharedCachedAt() { try { return +localStorage.getItem("sk_shared_at") || 0; } catch (e) { return 0; } }
   function loadAllLocal() {
     try {
       Object.keys(localStorage).forEach(function (kk) {
@@ -936,6 +951,7 @@
     var el = $("#setStatus");
     if (!el) return;
     var bits = [marksCount() + " lines marked", "loaded " + T(l), "saved " + T(p), getToken() ? "GitHub connected" : "no token"];
+    if (state.pullFailed) bits.push("\u26a0 could not reach GitHub \u2014 showing the copy saved on this device" + (sharedCachedAt() ? " on " + new Date(sharedCachedAt()).toLocaleString() : ""));
     if (res === "fail") bits.push("\u26a0 save failed" + (st ? " (HTTP " + st + ")" : ""));
     else if (res === "net") bits.push("\u26a0 save failed (offline?)");
     else if (res === "unreadable") bits.push("\u26a0 save blocked \u2014 could not read the server copy, so nothing was overwritten. Your marks are safe; retrying.");
@@ -1028,13 +1044,21 @@
           return marksFreshness(a) >= marksFreshness(b) ? a : b;
         });
     p.then(function (j) {
-      if (j === null || typeof j !== "object") { updateMarksMsg(); if (cb) cb("fail"); return; }
+      if (j === null || typeof j !== "object") { state.pullFailed = true; updateMarksMsg(); if (cb) cb("fail"); retryPull(); return; }
       state.sharedMarks = normalizeAll(j);
+      saveSharedCache();
+      state.pullFailed = false;
       try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
       if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
       updateMarksMsg();
       if (cb) cb("ok");
-    }).catch(function () { updateMarksMsg(); if (cb) cb("fail"); });
+    }).catch(function () { state.pullFailed = true; updateMarksMsg(); if (cb) cb("fail"); retryPull(); });
+  }
+  var pullTries = 0;
+  function retryPull() {
+    if (pullTries >= 3) return;
+    pullTries++;
+    setTimeout(function () { pullMarks(); }, 3000 * pullTries);
   }
   function closeSettings() { var m = $("#skSettings"); if (m) m.classList.remove("on"); }
   function openSettings() {
@@ -1131,6 +1155,7 @@
   favLoad();
   favLoad();
   loadAllLocal();
+  loadSharedCache();
   renderTabs();
   pullMarks();
   favPull();
