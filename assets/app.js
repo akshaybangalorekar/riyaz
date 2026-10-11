@@ -248,8 +248,8 @@
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>';
-    } else if (l.group === "Alankar" || l.group === "Raag") {
-      // no on-screen player here: the per-line ▶ buttons drive playback
+    } else if (l.group === "Alankar") {
+      // alankar pages have no on-screen player: the per-line ▶ buttons drive playback
       p.classList.add("bare");
       p.innerHTML = '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>';
       var au0 = $("#au");
