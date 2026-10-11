@@ -180,19 +180,23 @@
       html += '<div class="sk-dim" style="margin-top:10px">No written notation for this lesson — watch the video.</div>';
     }
 
-    // controls (audio only — a video lesson keeps video + notation, nothing else)
+    // controls: audio lessons only. Alankar lessons get none of them —
+    // they keep just the per-line ▶ (play) and ⏱ (mark) buttons.
     var curVideo = (l.media[state.mediaIdx] || {}).kind === "video";
+    var bareLesson = l.group === "Alankar";
     if (l.lines && l.lines.length && !curVideo) {
-      html += '<div class="sk-controls">' +
-        '<button class="sk-btn" id="btnFollow">▶ Follow line</button>' +
-        '<button class="sk-btn tap" id="btnTap">Tap tempo</button>' +
-        '<button class="sk-btn" id="btnNext">Next ›</button>' +
-        '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat</button>' +
-        '<button class="sk-btn" id="btnClear">Clear marks</button>' +
-        '<div class="sk-ctl"><label>Speed</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' notes/s</span></div>' +
-        '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
-        "</div>" +
-        '<div class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</div>';
+      if (!bareLesson) {
+        html += '<div class="sk-controls">' +
+          '<button class="sk-btn" id="btnFollow">▶ Follow line</button>' +
+          '<button class="sk-btn tap" id="btnTap">Tap tempo</button>' +
+          '<button class="sk-btn" id="btnNext">Next ›</button>' +
+          '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat</button>' +
+          '<button class="sk-btn" id="btnClear">Clear marks</button>' +
+          '<div class="sk-ctl"><label>Speed</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' notes/s</span></div>' +
+          '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
+          "</div>";
+      }
+      html += '<div class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</div>';
     }
     s.innerHTML = html;
 
@@ -202,7 +206,7 @@
     });
 
     renderPlayer(l);
-    if (l.lines && l.lines.length) { renderNotation(l); if (!curVideo) wireControls(l); }
+    if (l.lines && l.lines.length) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
   }
 
   function renderPlayer(l) {
