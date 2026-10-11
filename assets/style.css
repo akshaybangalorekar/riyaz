@@ -301,3 +301,6 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-sw.grpA:not(.cur){color:var(--ink)}
 .sk-sw.grpB:not(.cur){color:var(--alt)}
 .sk-sw.gstart{margin-left:5px}
+
+/* keep a video lesson on one screen: cap the player by viewport height */
+.vidwrap{width:100%; max-width:calc(38vh * 16 / 9); margin:0 auto}

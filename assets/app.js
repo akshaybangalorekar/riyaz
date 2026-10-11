@@ -145,7 +145,7 @@
         '<div class="sk-ctl"><label>Speed</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' notes/s</span></div>' +
         '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>" +
-        '<div class="sk-hint">Line practice: tap a line&rsquo;s <b>▶</b> to hear just that line. The first time, play the audio and tap <b>⏱</b> on each line as it begins — after that every line plays on its own.</div>';
+        '<div class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</div>';
     }
     s.innerHTML = html;
 
@@ -164,7 +164,7 @@
     if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
-      p.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>' +
+      p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>' +
         '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";
     } else {
       p.innerHTML =
