@@ -19,7 +19,8 @@
     segLoop: true,
     lineRows: [],
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
-    cleared: {}        // lessons whose marks were cleared in this session
+    cleared: {},       // lessons whose marks were cleared in this session
+    raagSect: null     // which part of a raag is showing (aaroh / mukt / …)
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -73,6 +74,40 @@
   }
   function lessonsOf(g) { return D.lessons.filter(function (l) { return l.group === g; }); }
 
+  /* ---------- raag parts ---------- */
+  var RAAG_SECS = [
+    { k: "aaroh",   t: "आरोह · अवरोह · पकड़" },
+    { k: "mukt",    t: "मुक्त आलाप" },
+    { k: "bada",    t: "बड़ा ख्याल" },
+    { k: "bandish", t: "बंदिश" },
+    { k: "laikari", t: "लयकारी" },
+    { k: "tana",    t: "तान" },
+    { k: "other",   t: "अन्य" }
+  ];
+  function raagSect(x) {
+    var t = (x || "").toLowerCase();
+    if (/aaroh|avroh|pakad|आरोह|अवरोह|पकड/.test(t)) return "aaroh";
+    if (/mukt aalap|मुक्त आलाप/.test(t)) return "mukt";
+    if (/bada khayal|badakhyal|बड़ा ख्याल/.test(t)) return "bada";
+    if (/laikari|लयकारी/.test(t)) return "laikari";
+    if (/tana|तान/.test(t)) return "tana";
+    if (/chhota khayal|bandish|antara|sthayi|बंदिश|अंतरा|स्थायी/.test(t)) return "bandish";
+    return "other";
+  }
+  function raagSectParts(l, k) {
+    var lines = [], media = [];
+    (l.lines || []).forEach(function (ln, i) { if (raagSect(ln.label) === k) lines.push(i); });
+    (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === k) media.push(i); });
+    return { lines: lines, media: media };
+  }
+  function raagSections(l) {
+    return RAAG_SECS.filter(function (x) { var p = raagSectParts(l, x.k); return p.lines.length || p.media.length; });
+  }
+  function raagSectLabel(k) {
+    var hit = RAAG_SECS.filter(function (x) { return x.k === k; })[0];
+    return hit ? hit.t : "";
+  }
+
   function alNumber(l) { var m = /(\d+)/.exec(l.title || ""); return m ? +m[1] : 0; }
   function mediaIdxFor(l, kind) {
     var ms = l.media || [];
@@ -108,21 +143,32 @@
     }
     if (state.group === "Taal") {
       el.classList.add("sections");
-      var order = [], groups = {};
-      lessonsOf("Taal").forEach(function (l) {
+      var tl = lessonsOf("Taal"), count = {};
+      tl.forEach(function (l) { var k = l.taal || "Taal"; count[k] = (count[k] || 0) + 1; });
+      el.innerHTML = '<div class="sk-sec">' + tl.map(function (l) {
         var k = l.taal || "Taal";
-        if (!groups[k]) { groups[k] = []; order.push(k); }
-        groups[k].push(l);
+        var extra = count[k] > 1 && l.title ? l.title + (l.sub ? " \u00b7 " : "") : "";
+        return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
+          '<span class="sk-big">' + esc(k) + '</span>' +
+          '<span class="sk-dash">\u2013</span>' +
+          '<span class="sk-small">' + esc(extra + (l.sub || "")) + "</span></button>";
+      }).join("") + "</div>";
+      Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
+        b.onclick = function () { open(b.dataset.id); setRail(true); };
       });
-      el.innerHTML = order.map(function (k) {
-        return '<div class="sk-sec"><div class="sk-sec-h">' + esc(k) + '</div>' +
-          groups[k].map(function (l) {
-            return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
-              esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
+      return;
+    }
+    if (state.group === "Raag") {
+      el.classList.add("sections");
+      el.innerHTML = lessonsOf("Raag").map(function (l) {
+        return '<div class="sk-sec"><div class="sk-sec-h raag">' + esc(l.title) + "</div>" +
+          raagSections(l).map(function (x) {
+            var on = (l.id === state.lessonId && state.raagSect === x.k) ? " on" : "";
+            return '<button class="sk-item' + on + '" data-id="' + l.id + '" data-s="' + x.k + '">' + esc(x.t) + "</button>";
           }).join("") + "</div>";
       }).join("");
       Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
-        b.onclick = function () { open(b.dataset.id); setRail(true); };
+        b.onclick = function () { open(b.dataset.id, -1, b.dataset.s); setRail(true); };
       });
       return;
     }
@@ -158,12 +204,17 @@
     setRail(!(m && m.classList.contains("rail-hidden")));
   }
 
-  function open(id, mIdx) {
+  function open(id, mIdx, sect) {
     var l = lesson(id);
     if (!l) return;
     stopAll();
-    state.lessonId = id; state.mediaIdx = 0;
+    state.lessonId = id;
+    state.raagSect = sect || null;
+    state.mediaIdx = 0;
+    var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
     if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
+    else if (part && part.media.length) state.mediaIdx = part.media[0];
+    else if (part) state.mediaIdx = -1;
     else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
     renderList();
@@ -174,10 +225,16 @@
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
     var curVideo = mcur.kind === "video";
+    var secHasLines = !(l.group === "Raag" && state.raagSect) ||
+      raagSectParts(l, state.raagSect).lines.length > 0;
     var fname = (mcur.name || "").replace(/\.[a-z0-9]+$/i, "");
     if (l.title) {   // "Raag दुर्गा - Aaroh..." -> "Aaroh..." (the name is already in the heading)
-      var pre = new RegExp("^" + l.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*[-\u2013\u2014]\\s*");
-      fname = fname.replace(pre, "");
+      var names = [l.title], bare = l.title.replace(/^Raag\s+/i, "");
+      if (bare !== l.title) names.push(bare);
+      names.forEach(function (nm) {
+        var pre = new RegExp("^" + nm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*[-\u2013\u2014]\\s*");
+        fname = fname.replace(pre, "");
+      });
     }
     var head = l.title, meta = [];
     if (l.group === "Taal" && l.taal) {          // taal name big, matras + file name small
@@ -185,6 +242,7 @@
       if (l.sub) meta.push(l.sub);
       if (fname) meta.push(fname);
     } else if (l.group === "Alankar" || l.group === "Raag") {
+      if (l.group === "Raag" && state.raagSect) { var sl = raagSectLabel(state.raagSect); if (sl) meta.push(sl); }
       if (fname) meta.push(fname);
     }
     var html = '<div class="sk-h1">' + esc(head) +
@@ -193,7 +251,11 @@
 
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
     var tabMs = [];
-    l.media.forEach(function (m, i) { if (!(l.group === "Alankar" && m.kind !== "video")) tabMs.push({ m: m, i: i }); });
+    l.media.forEach(function (m, i) {
+      if (l.group === "Alankar" && m.kind !== "video") return;
+      if (l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
+      tabMs.push({ m: m, i: i });
+    });
     if (tabMs.length > 1) {
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
@@ -208,15 +270,15 @@
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
         '<button class="sk-btn stop" id="btnStop" type="button">■ Stop</button>' +
-        (curVideo ? "" : '<span class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</span>') +
+        (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</span>') +
         "</div>";
     }
 
     // notation (shown right under the player, so it is visible while listening)
-    if (l.lines && l.lines.length) {
+    if (l.lines && l.lines.length && secHasLines) {
       html += '<div class="sk-notation" id="notation"></div>';
     } else {
-      html += '<div class="sk-dim" style="margin-top:10px">No written notation for this lesson — watch the video.</div>';
+      html += '<div class="sk-dim" style="margin-top:10px">No written notation for this part — listen to the recording.</div>';
     }
 
     // controls: audio lessons only, and never on Alankar (just the per-line buttons there)
@@ -237,7 +299,7 @@
 
     renderPlayer(l);
     var sb = $("#btnStop"); if (sb) sb.onclick = stopPlayback;
-    if (l.lines && l.lines.length) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
+    if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
   }
 
   function renderPlayer(l) {
@@ -309,10 +371,13 @@
 
   function renderNotation(l) {
     var box = $("#notation");
+    if (!box) return;
     box.innerHTML = "";
     var curIsVideo = (l.media[state.mediaIdx] || {}).kind === "video";
+    var secKey = (l.group === "Raag" && state.raagSect) ? state.raagSect : null;
     l.lines.forEach(function (line, li) {
       if (line.onlyVideo && !curIsVideo) return;
+      if (secKey && raagSect(line.label) !== secKey) return;
       var row = document.createElement("div");
       row.className = "sk-line";
       state.lineRows[li] = row;

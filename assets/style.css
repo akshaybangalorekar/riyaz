@@ -348,3 +348,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-btn.stop{background:var(--panel2); border-color:var(--line); color:var(--ink)}
 .sk-btn.stop:hover, .sk-btn.stop:active{background:var(--maroon); color:#fff; border-color:var(--maroon)}
 .sk-stoprow .sk-hint{margin:0}
+
+/* ---------- rail: big names, taal/raag typography ---------- */
+.sk-big{font-family:'Baloo 2',sans-serif; font-size:17px; font-weight:800; color:var(--ink);
+  letter-spacing:.2px}
+.sk-dash{color:var(--dim); margin:0 5px}
+.sk-small{font-size:12.5px; color:var(--dim)}
+.sk-sec-h.raag{font-family:'Baloo 2',sans-serif; font-size:17px; font-weight:800; color:var(--ink);
+  text-transform:none; letter-spacing:.2px; margin:4px 4px 7px}
