@@ -24,7 +24,8 @@
     segPlay: null,     // {line, start, end, loop}
     segLoop: true,
     lineRows: [],
-    sharedMarks: null  // marks.json loaded from the repo (shared across devices)
+    sharedMarks: null, // marks.json loaded from the repo (shared across devices)
+    cleared: {}        // lessons whose marks were cleared in this session
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -299,8 +300,10 @@
     var bc = $("#btnClear");
     if (bc) bc.onclick = function () {
       state.segments[state.lessonId] = {}; saveSegs(); state.segPlay = null;
+      state.cleared[state.lessonId] = true;
       if (state.audio) state.audio.pause();
       renderNotation(lesson(state.lessonId));
+      schedulePush();
     };
     updateMarksMsg();
     $("#rngSpeed").oninput = function () {
@@ -350,13 +353,15 @@
     }
     return state.segments[k];
   }
+  function newer(a, b) { return (((b && b.at) || 0) >= ((a && a.at) || 0)) ? b : a; }
   function segsOf() {
     var k = state.lessonId, base = {};
+    if (state.cleared[k]) return base;
     if (state.sharedMarks && state.sharedMarks[k]) {
       try { base = JSON.parse(JSON.stringify(state.sharedMarks[k])); } catch (e) { base = {}; }
     }
     var loc = localSegs();
-    Object.keys(loc).forEach(function (i) { base[i] = loc[i]; });
+    Object.keys(loc).forEach(function (i) { base[i] = newer(base[i], loc[i]); });
     return base;
   }
   function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(localSegs())); } catch (e) {} }
@@ -389,7 +394,8 @@
   }
   function markLine(li) {
     if (!state.audio) return;
-    localSegs()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2) };
+    delete state.cleared[state.lessonId];
+    localSegs()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2), at: Date.now() };
     saveAllLocal();
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
@@ -424,82 +430,153 @@
   }
 
   function mkMsg(t) { var e = $("#mkMsg"); if (e) e.textContent = t || ""; }
+
+  /* ---------- marks: local storage + GitHub sync ---------- */
+  var GH = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json";
+  var APP_VER = "2026-10-11a";
+
   function getToken() { try { return localStorage.getItem("sk_gh_token") || ""; } catch (e) { return ""; } }
+  function storageOK() {
+    try { localStorage.setItem("sk_t", "1"); localStorage.removeItem("sk_t"); return true; } catch (e) { return false; }
+  }
+  function b64(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function unb64(b) { try { return decodeURIComponent(escape(atob((b || "").replace(/\s/g, "")))); } catch (e) { return ""; } }
+  function ghHdr(tok) {
+    var h = { "Accept": "application/vnd.github+json" };
+    if (tok) h["Authorization"] = "Bearer " + tok;
+    return h;
+  }
   function saveAllLocal() {
     Object.keys(state.segments).forEach(function (k) {
       try { localStorage.setItem("sk_seg_" + k, JSON.stringify(state.segments[k])); } catch (e) {}
     });
     try { localStorage.setItem("sk_marks_saved", String(Date.now())); } catch (e) {}
   }
+  function localMarks() {
+    var out = {};
+    Object.keys(state.segments).forEach(function (k) {
+      if (state.cleared[k]) return;
+      out[k] = out[k] || {};
+      var src = state.segments[k] || {};
+      Object.keys(src).forEach(function (i) { out[k][i] = src[i]; });
+    });
+    return out;
+  }
+  function mergeMarks() {
+    var out = {};
+    for (var a = 0; a < arguments.length; a++) {
+      var src = arguments[a] || {};
+      Object.keys(src).forEach(function (k) {
+        if (state.cleared[k]) return;
+        out[k] = out[k] || {};
+        var rows = src[k] || {};
+        Object.keys(rows).forEach(function (i) { out[k][i] = newer(out[k][i], rows[i]); });
+      });
+    }
+    return out;
+  }
+  function allMarks() { return mergeMarks(state.sharedMarks || {}, localMarks()); }
   function marksCount() {
     var m = allMarks(), n = 0;
     Object.keys(m).forEach(function (k) { n += Object.keys(m[k] || {}).length; });
     return n;
   }
-  function updateMarksMsg() {
-    var t = 0, p = 0, l = 0;
-    try { t = +localStorage.getItem("sk_marks_saved") || 0; p = +localStorage.getItem("sk_marks_pushed") || 0; l = +localStorage.getItem("sk_marks_pulled") || 0; } catch (e) {}
-    function T(x) { return x ? new Date(x).toLocaleTimeString() : "—"; }
-    var s = $("#setStatus");
-    if (s) s.textContent = marksCount() + " lines · last load " + T(l) + " · last save " + T(p) + " · " + (getToken() ? "GitHub connected" : "no token");
+  function updateMarksMsg(res, st) {
+    var p = 0, l = 0;
+    try { p = +localStorage.getItem("sk_marks_pushed") || 0; l = +localStorage.getItem("sk_marks_pulled") || 0; } catch (e) {}
+    function T(x) { return x ? new Date(x).toLocaleTimeString() : "\u2014"; }
+    var el = $("#setStatus");
+    if (!el) return;
+    var bits = [marksCount() + " lines marked", "loaded " + T(l), "saved " + T(p), getToken() ? "GitHub connected" : "no token"];
+    if (res === "fail") bits.push("\u26a0 save failed" + (st ? " (HTTP " + st + ")" : ""));
+    else if (res === "net") bits.push("\u26a0 save failed (offline?)");
+    el.textContent = bits.join(" \u00b7 ");
   }
+
+  // GET marks.json from GitHub -> { sha, data }
+  function ghGet(tok) {
+    return fetch(GH + "?t=" + Date.now(), { cache: "no-store", headers: ghHdr(tok) }).then(function (r) {
+      if (r.status === 404) return { sha: null, data: {} };
+      if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; }
+      return r.json().then(function (j) {
+        var data = {};
+        try { data = JSON.parse(unb64(j.content || "")) || {}; } catch (e) { data = {}; }
+        return { sha: j.sha || null, data: data };
+      });
+    });
+  }
+
   function pushMarks(cb) {
     var tok = getToken();
     if (!tok) { if (cb) cb("no-token"); return; }
-    var api = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json";
-    var hdr = { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json" };
-    fetch(api, { headers: hdr, cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) {
-        var payload = { message: "Update line marks", branch: "main", content: btoa(unescape(encodeURIComponent(JSON.stringify(allMarks(), null, 1)))) };
-        if (j && j.sha) payload.sha = j.sha;
-        return fetch(api, { method: "PUT", headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json", "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      })
-      .then(function (r) { if (r && r.ok) { try { localStorage.setItem("sk_marks_pushed", String(Date.now())); } catch (e) {} if (cb) cb("ok"); } else if (cb) cb("fail"); })
-      .catch(function () { if (cb) cb("net"); });
+    ghGet(tok).then(function (cur) {
+      // start from the remote copy so we never drop marks written on another device,
+      // then overlay the local edits (newest stamp wins)
+      var merged = mergeMarks(cur.data || {}, localMarks());
+      var body = { message: "Update line marks", branch: "main", content: b64(JSON.stringify(merged, null, 1)) };
+      if (cur.sha) body.sha = cur.sha;
+      var h = ghHdr(tok); h["Content-Type"] = "application/json";
+      return fetch(GH, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
+    }).then(function (r) {
+      if (r && r.ok) { try { localStorage.setItem("sk_marks_pushed", String(Date.now())); } catch (e) {} if (cb) cb("ok"); }
+      else if (cb) cb("fail", r && r.status);
+    }).catch(function (e) { if (cb) cb(e && e.status ? "fail" : "net", e && e.status); });
   }
-  var pushTimer = 0;
-  function schedulePush() {
-    if (!getToken() || pushTimer) return;
-    pushTimer = setTimeout(function () { pushTimer = 0; pushMarks(); updateMarksMsg(); }, 15000);
+
+  var pushTimer = 0, pushing = false, dirty = false;
+  function schedulePush(delay) {
+    if (!getToken()) return;
+    dirty = true;
+    if (pushTimer) return;
+    pushTimer = setTimeout(function () { pushTimer = 0; flushPush(); }, delay || 2000);
   }
-  function autoSaveTick() {
-    saveAllLocal(); updateMarksMsg();
-    if (getToken()) pushMarks(function () { updateMarksMsg(); });
+  function flushPush() {
+    if (!getToken()) { updateMarksMsg(); return; }
+    if (!dirty) { updateMarksMsg(); return; }
+    if (pushing) { schedulePush(1500); return; }
+    pushing = true;
+    pushMarks(function (r, st) {
+      pushing = false;
+      if (r === "ok") dirty = false; else schedulePush(8000);
+      updateMarksMsg(r, st);
+    });
   }
+  function autoSaveTick() { saveAllLocal(); updateMarksMsg(); flushPush(); }
+
   function pullMarks(cb) {
     var tok = getToken();
-    var opts = { cache: "no-store" };
-    var url;
-    if (tok) { url = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json?t=" + Date.now(); opts.headers = { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github.raw" }; }
-    else { url = "marks.json?t=" + Date.now(); }
-    fetch(url, opts)
-      .then(function (r) { if (!r.ok) throw new Error("http"); return r.text(); })
-      .then(function (txt) {
-        var j = {}; try { j = JSON.parse(txt) || {}; } catch (e) { j = {}; }
-        state.sharedMarks = j;
-        try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
-        if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
-        updateMarksMsg();
-        if (cb) cb("ok");
-      })
-      .catch(function () { updateMarksMsg(); if (cb) cb("fail"); });
+    var p = tok
+      ? ghGet(tok).then(function (cur) { return cur.data; })
+      : fetch("marks.json?t=" + Date.now(), { cache: "no-store" })
+          .then(function (r) { if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; } return r.json(); })
+          .catch(function () { return null; });
+    p.then(function (j) {
+      if (j === null) { updateMarksMsg(); if (cb) cb("fail"); return; }
+      state.sharedMarks = j || {};
+      try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
+      if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
+      updateMarksMsg();
+      if (cb) cb("ok");
+    }).catch(function () { updateMarksMsg(); if (cb) cb("fail"); });
   }
   function closeSettings() { var m = $("#skSettings"); if (m) m.classList.remove("on"); }
   function openSettings() {
     var box = $("#skSettingsBox"); if (!box) return;
     box.innerHTML =
       '<div class="set-h">Settings</div>' +
-      '<div class="set-lab">GitHub token — stored only in this browser</div>' +
-      '<input id="setToken" class="set-input" type="password" autocomplete="off" placeholder="github_pat_…">' +
+      '<div class="set-lab">GitHub token &mdash; stored only in this browser</div>' +
+      '<input id="setToken" class="set-input" type="password" autocomplete="off" placeholder="github_pat_\u2026">' +
       '<div class="set-actions">' +
         '<button class="sk-btn" id="setSave">Save</button>' +
+        '<button class="sk-btn" id="setSync">Sync now</button>' +
         '<button class="sk-btn" id="setClear">Remove</button>' +
         '<button class="sk-btn" id="setClose">Close</button>' +
       '</div>' +
       '<div class="set-msg" id="setMsg"></div>' +
-      '<p class="set-note">Scope: the <b>riyaz</b> repo only, permission <b>Contents: Read and write</b>. Loading and saving happen automatically — nothing else to do.</p>' +
-      '<p class="set-note">Status: <span id="setStatus"></span></p>';
+      '<p class="set-note">Scope: the <b>riyaz</b> repo only, permission <b>Contents: Read and write</b>. Marks load and save automatically.</p>' +
+      '<p class="set-note">Status: <span id="setStatus"></span></p>' +
+      (storageOK() ? '' : '<p class="set-warn">\u26a0 This browser is blocking local storage, so the token and your marks cannot be kept. Leave Private Browsing (or allow cookies for this site), then enter the token again.</p>') +
+      '<p class="set-note dim">Build ' + APP_VER + '</p>';
     var m = $("#skSettings"); if (m) m.classList.add("on");
     var ti = $("#setToken");
     if (getToken()) ti.placeholder = "Token saved (enter a new one to replace)";
@@ -507,13 +584,27 @@
       var v = (ti.value || "").trim();
       if (!v) { $("#setMsg").textContent = "Enter a token first"; return; }
       try { localStorage.setItem("sk_gh_token", v); } catch (e) {}
+      if (!getToken()) { $("#setMsg").textContent = "This browser will not store the token \u2014 local storage is blocked."; return; }
       ti.value = ""; ti.placeholder = "Token saved";
-      $("#setMsg").textContent = "Fetching the latest marks from GitHub…";
+      $("#setMsg").textContent = "Checking the token\u2026";
+      pullMarks(function (pr) {
+        if (pr !== "ok") { $("#setMsg").textContent = "Could not read marks with this token \u2014 check the token and its access to this repo."; updateMarksMsg("fail"); return; }
+        dirty = true;
+        pushMarks(function (r, st) {
+          $("#setMsg").textContent = r === "ok"
+            ? "Connected \u2014 marks now save automatically"
+            : "Save failed" + (st ? " (HTTP " + st + ")" : "") + " \u2014 the token needs Contents: Read and write on this repo.";
+          updateMarksMsg(r, st);
+        });
+      });
+    };
+    $("#setSync").onclick = function () {
+      $("#setMsg").textContent = "Syncing\u2026";
       pullMarks(function () {
-        pushMarks(function (r) {
-          $("#setMsg").textContent = r === "ok" ? "Connected — changes now save automatically"
-            : "Save failed — check the token permission (Contents: Read and write)";
-          updateMarksMsg();
+        dirty = true;
+        pushMarks(function (r, st) {
+          $("#setMsg").textContent = r === "ok" ? "Synced \u2014 marks are up to date." : "Sync failed" + (st ? " (HTTP " + st + ")" : "") + ".";
+          updateMarksMsg(r, st);
         });
       });
     };
@@ -561,8 +652,13 @@
   })();
   renderTabs();
   pullMarks();
-  setInterval(autoSaveTick, 300000);   // background save every 5 minutes
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") autoSaveTick(); });
+  setInterval(autoSaveTick, 60000);    // background save + push every minute
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") { saveAllLocal(); flushPush(); }
+    else { pullMarks(); }
+  });
+  window.addEventListener("pagehide", function () { saveAllLocal(); flushPush(); });
+  window.addEventListener("online", function () { flushPush(); });
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
     var b = $("#skSettings");
     if (b && b.classList.contains("on")) closeSettings(); else openSettings();

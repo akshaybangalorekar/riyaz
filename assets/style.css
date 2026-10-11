@@ -290,3 +290,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   background:rgba(232,166,62,.16);color:var(--saffron);border:1px solid rgba(232,166,62,.4)}
 .sk-missing{margin-top:8px;padding:11px 13px;border-radius:10px;font-size:14px;line-height:1.45;
   background:rgba(232,166,62,.10);border:1px solid rgba(232,166,62,.3);color:var(--gold)}
+
+/* ---------- settings: sync diagnostics ---------- */
+.set-warn{margin:8px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;line-height:1.45;
+  background:rgba(255,120,90,.12);border:1px solid rgba(255,120,90,.35);color:#ffb59c}
+.set-note.dim{opacity:.55}
