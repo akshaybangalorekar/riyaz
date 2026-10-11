@@ -660,19 +660,6 @@ window.SANGEET = {
    ]
   },
   {
-   "id": "al89",
-   "group": "Alankar",
-   "title": "Alankar 8–9 (together)",
-   "lines": [],
-   "media": [
-    {
-     "kind": "audio",
-     "id": "1b7uuZFJr_oVJQb7guyagATbp0QL5mdQc",
-     "name": "Alankar 8-9 together - Shuddha.mp3"
-    }
-   ]
-  },
-  {
    "id": "tl_दादरा",
    "group": "Taal",
    "title": "Taal — दादरा",
