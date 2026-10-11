@@ -47,16 +47,20 @@ body{
 
 /* ---------- layout ---------- */
 .sk-main{
-  display:grid; grid-template-columns:290px 1fr; gap:16px; align-items:start;
+  display:flex; gap:16px; align-items:flex-start;
   padding:14px calc(16px + var(--safe-r)) calc(40px + var(--safe-b)) calc(16px + var(--safe-l));
 }
-@media(max-width:780px){ .sk-main{grid-template-columns:1fr; gap:12px} }
+@media(max-width:780px){ .sk-main{flex-direction:column; gap:12px} }
 
-.sk-list{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:8px;
-  max-height:calc(100vh - 234px); overflow:auto; -webkit-overflow-scrolling:touch}
+.sk-list{flex:0 0 290px; width:290px; background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:8px; max-height:calc(100vh - 234px); overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  transition:flex-basis .38s ease, width .38s ease, opacity .3s ease,
+             padding .38s ease, border-width .38s ease}
 @media(max-width:780px){
-  .sk-list{display:flex; flex-direction:row; gap:8px; overflow-x:auto; overflow-y:hidden;
-    max-height:none; padding:8px; scroll-snap-type:x proximity; border-radius:12px}
+  .sk-list{flex:0 0 auto; width:100%; display:flex; flex-direction:row; gap:8px;
+    overflow-x:auto; overflow-y:hidden; max-height:120px; padding:8px;
+    scroll-snap-type:x proximity; border-radius:12px}
 }
 .sk-item{
   display:block; width:100%; text-align:right; background:none; border:0; cursor:pointer;
@@ -73,8 +77,8 @@ body{
   .sk-item.on{background:var(--saffron); color:#20160d; box-shadow:none}
 }
 
-.sk-stage{background:var(--panel); border:1px solid var(--line); border-radius:14px;
-  padding:18px 20px; min-height:300px}
+.sk-stage{flex:1 1 auto; min-width:0; background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:18px 20px; min-height:300px}
 @media(max-width:520px){ .sk-stage{padding:14px 14px} }
 .sk-empty{text-align:center; color:var(--dim); padding:50px 10px; font-size:17px}
 .sk-dim{color:var(--dim)}
@@ -147,7 +151,7 @@ body{
 ::selection{background:var(--saffron); color:#20160d}
 
 /* ---------- tool mode (sur peti / tabla) ---------- */
-.sk-main.tool-mode{grid-template-columns:1fr}
+.sk-main.tool-mode{gap:0}
 .sk-main.tool-mode .sk-list{display:none}
 select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;
   padding:8px 10px;font-family:inherit;font-size:15px;min-height:42px;max-width:100%}
@@ -315,3 +319,22 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-num{border:1px solid var(--line); background:var(--bg2); color:var(--ink); border-radius:9px;
   min-height:38px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; padding:0}
 .sk-num.on{background:var(--saffron); color:#20160d; border-color:var(--saffron)}
+
+/* ---------- collapsible left rail ---------- */
+.sk-main.rail-hidden .sk-list{
+  flex-basis:0; width:0; min-width:0; padding-left:0; padding-right:0;
+  border-width:0; opacity:0; pointer-events:none; overflow:hidden;
+}
+@media(max-width:780px){
+  .sk-main.rail-hidden .sk-list{max-height:0; height:0; padding-top:0; padding-bottom:0}
+}
+.rail-tab{
+  position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:35;
+  width:24px; height:80px; padding:0; border:1px solid var(--line); border-left:0;
+  border-radius:0 12px 12px 0; background:var(--panel2); color:var(--saffron);
+  font-family:inherit; font-size:17px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:2px 0 10px rgba(0,0,0,.35); transition:background .15s, color .15s;
+}
+.rail-tab:hover, .rail-tab:focus-visible{background:var(--saffron); color:#20160d}
+@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(18px + var(--safe-b)); transform:none} }

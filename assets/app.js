@@ -69,6 +69,7 @@
       b.onclick = function () {
         state.group = b.dataset.g;
         localStorage.setItem("sk_group", state.group);
+        setRail(false);
         renderTabs();
         renderList();
         var first = lessonsOf(state.group)[0];
@@ -107,7 +108,7 @@
       });
       el.innerHTML = html;
       Array.prototype.forEach.call(el.querySelectorAll(".sk-num"), function (b) {
-        b.onclick = function () { open(b.dataset.id, +b.dataset.m); };
+        b.onclick = function () { open(b.dataset.id, +b.dataset.m); setRail(true); };
       });
       return;
     }
@@ -130,6 +131,18 @@
     if (state.audio) { try { state.audio.pause(); } catch (e) {} state.audio = null; }
     state.follow = false; state.swaras = []; state.cur = -1; state.tap = [];
     state.segPlay = null; state.lineRows = [];
+  }
+
+  function setRail(hidden) {
+    var m = document.querySelector(".sk-main");
+    if (!m) return;
+    m.classList.toggle("rail-hidden", !!hidden);
+    var b = $("#btnRail");
+    if (b) { b.textContent = hidden ? "\u203a" : "\u2039"; b.setAttribute("aria-expanded", hidden ? "false" : "true"); }
+  }
+  function toggleRail() {
+    var m = document.querySelector(".sk-main");
+    setRail(!(m && m.classList.contains("rail-hidden")));
   }
 
   function open(id, mIdx) {
@@ -767,6 +780,7 @@
   });
   window.addEventListener("pagehide", function () { saveAllLocal(); flushPush(); });
   window.addEventListener("online", function () { flushPush(); });
+  var railBtn = $("#btnRail"); if (railBtn) railBtn.onclick = toggleRail;
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
     var b = $("#skSettings");
     if (b && b.classList.contains("on")) closeSettings(); else openSettings();
