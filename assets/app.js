@@ -106,6 +106,7 @@
     var tok = getToken();
     if (!tok) { if (cb) cb("no-token"); return; }
     ghGet(tok, FAVS).then(function (cur) {
+      if (!cur.ok) { if (cb) cb("unreadable"); return; }
       var body = { message: "Update favourites", branch: "main",
         content: b64(JSON.stringify({ at: state.favAt || Date.now(), list: state.fav }, null, 1)) };
       if (cur.sha) body.sha = cur.sha;
@@ -530,7 +531,7 @@
     if (l.lines && l.lines.length && !curVideo && !bareLesson) {
       html += '<div class="sk-controls">' +
         '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat line</button>' +
-        '<button class="sk-btn" id="btnClear">Clear marks</button>' +
+        
         '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>";
     }
@@ -724,14 +725,6 @@
       state.segLoop = !state.segLoop; this.classList.toggle("on", state.segLoop);
       if (state.segPlay) state.segPlay.loop = state.segLoop;
     };
-    var bc = $("#btnClear");
-    if (bc) bc.onclick = function () {
-      state.segments[state.lessonId] = {}; saveSegs(); state.segPlay = null;
-      state.cleared[state.lessonId] = true;
-      if (state.audio) state.audio.pause();
-      renderNotation(lesson(state.lessonId));
-      schedulePush();
-    };
     updateMarksMsg();
     var rr = $("#rngRate");
     if (rr) rr.oninput = function () {
@@ -916,8 +909,7 @@
     for (var a = 0; a < arguments.length; a++) {
       var src = normalizeAll(arguments[a] || {});   // never let a legacy shape pollute
       Object.keys(src).forEach(function (k) {
-        if (state.cleared[k]) return;
-        out[k] = out[k] || {};
+        out[k] = out[k] || {};          // never skip a lesson: it would drop it from the file
         var tracks = src[k] || {};
         Object.keys(tracks).forEach(function (tr) {
           out[k][tr] = out[k][tr] || {};
@@ -946,18 +938,21 @@
     var bits = [marksCount() + " lines marked", "loaded " + T(l), "saved " + T(p), getToken() ? "GitHub connected" : "no token"];
     if (res === "fail") bits.push("\u26a0 save failed" + (st ? " (HTTP " + st + ")" : ""));
     else if (res === "net") bits.push("\u26a0 save failed (offline?)");
+    else if (res === "unreadable") bits.push("\u26a0 save blocked \u2014 could not read the server copy, so nothing was overwritten. Your marks are safe; retrying.");
+    else if (res === "would-drop") bits.push("\u26a0 save blocked \u2014 it would have removed saved lines (" + st + "). Nothing was written; retrying.");
     el.textContent = bits.join(" \u00b7 ");
   }
 
   // GET marks.json from GitHub -> { sha, data }
   function ghGet(tok, url) {
     return fetch((url || GH) + "?t=" + Date.now(), { cache: "no-store", headers: ghHdr(tok) }).then(function (r) {
-      if (r.status === 404) return { sha: null, data: {} };
+      if (r.status === 404) return { sha: null, data: {}, ok: true };
       if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; }
       return r.json().then(function (j) {
-        var data = {};
-        try { data = JSON.parse(unb64(j.content || "")) || {}; } catch (e) { data = {}; }
-        return { sha: j.sha || null, data: data };
+        var data = null;
+        try { data = JSON.parse(unb64(j.content || "")); } catch (e) { data = null; }
+        if (!data || typeof data !== "object") return { sha: j.sha || null, data: null, ok: false };
+        return { sha: j.sha || null, data: data, ok: true };
       });
     });
   }
@@ -966,9 +961,13 @@
     var tok = getToken();
     if (!tok) { if (cb) cb("no-token"); return; }
     ghGet(tok).then(function (cur) {
-      // start from the remote copy so we never drop marks written on another device,
-      // then overlay the local edits (newest stamp wins)
+      // A push must always start from the server copy. If we could not read it,
+      // STOP: writing now would overwrite every mark this device does not hold.
+      if (!cur.ok) { if (cb) cb("unreadable"); return; }
       var merged = mergeMarks(cur.data || {}, localMarks());
+      // belt and braces: a push may add to the file, never remove a lesson from it
+      var lost = Object.keys(cur.data || {}).filter(function (k) { return !(k in merged); });
+      if (lost.length) { if (cb) cb("would-drop", lost.join(", ")); return; }
       var body = { message: "Update line marks", branch: "main", content: b64(JSON.stringify(merged, null, 1)) };
       if (cur.sha) body.sha = cur.sha;
       var h = ghHdr(tok); h["Content-Type"] = "application/json";
@@ -1029,8 +1028,8 @@
           return marksFreshness(a) >= marksFreshness(b) ? a : b;
         });
     p.then(function (j) {
-      if (j === null) { updateMarksMsg(); if (cb) cb("fail"); return; }
-      state.sharedMarks = normalizeAll(j || {});
+      if (j === null || typeof j !== "object") { updateMarksMsg(); if (cb) cb("fail"); return; }
+      state.sharedMarks = normalizeAll(j);
       try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
       if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
       updateMarksMsg();
