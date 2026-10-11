@@ -50,6 +50,9 @@
       "https://drive.usercontent.google.com/download?id=" + m.id + "&export=download&confirm=t"
     ];
   }
+  function videoSrc(m) {
+    return "https://drive.usercontent.google.com/download?id=" + m.id + "&export=download&confirm=t";
+  }
   function mediaURL(m) {
     if (m.kind === "video") return "https://drive.google.com/file/d/" + m.id + "/preview";
     return audioSources(m)[0];
@@ -98,6 +101,21 @@
   }
   function raagSections(l) {
     return RAAG_SECS.filter(function (x) { var p = raagSectParts(l, x.k); return p.lines.length || p.media.length; });
+  }
+  function raagOrderList() {
+    var ids = lessonsOf("Raag").map(function (l) { return l.id; });
+    var saved = [];
+    try { saved = JSON.parse(localStorage.getItem("sk_raag_order") || "[]") || []; } catch (e) {}
+    var out = saved.filter(function (id) { return ids.indexOf(id) >= 0; });
+    ids.forEach(function (id) { if (out.indexOf(id) < 0) out.push(id); });
+    return out;
+  }
+  function moveRaag(id, dir) {
+    var list = raagOrderList(), i = list.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    list.splice(j, 0, list.splice(i, 1)[0]);
+    try { localStorage.setItem("sk_raag_order", JSON.stringify(list)); } catch (e) {}
+    renderList();
   }
   function raagSectLabel(k) {
     var hit = RAAG_SECS.filter(function (x) { return x.k === k; })[0];
@@ -169,17 +187,25 @@
     }
     if (state.group === "Raag") {
       el.classList.add("sections");
-      el.innerHTML = lessonsOf("Raag").map(function (l) {
+      el.innerHTML = raagOrderList().map(function (id) { return lesson(id); }).filter(Boolean).map(function (l) {
         var open = state.raagOpen[l.id];
         if (open === undefined) open = (l.id === state.lessonId);
         return '<div class="sk-sec">' +
+          '<div class="sk-raagh">' +
           '<button class="sk-sec-h raag raagtoggle" data-r="' + l.id + '">' +
             '<span class="car">' + (open ? "\u25be" : "\u25b8") + "</span>" + esc(l.title) + "</button>" +
+          '<span class="sk-move">' +
+            '<button class="mv" data-r="' + l.id + '" data-d="-1" title="Move up">\u25b2</button>' +
+            '<button class="mv" data-r="' + l.id + '" data-d="1" title="Move down">\u25bc</button>' +
+          "</span></div>" +
           (open ? raagSections(l).map(function (x) {
             var on = (l.id === state.lessonId && state.raagSect === x.k) ? " on" : "";
             return '<button class="sk-item' + on + '" data-id="' + l.id + '" data-s="' + x.k + '">' + esc(x.t) + "</button>";
           }).join("") : "") + "</div>";
       }).join("");
+      Array.prototype.forEach.call(el.querySelectorAll(".mv"), function (b) {
+        b.onclick = function (e) { if (e) e.stopPropagation(); moveRaag(b.dataset.r, +b.dataset.d); };
+      });
       Array.prototype.forEach.call(el.querySelectorAll(".raagtoggle"), function (b) {
         b.onclick = function () {
           var id = b.dataset.r, cur = state.raagOpen[id];
@@ -267,7 +293,10 @@
       if (fname) meta.push(fname);
     }
     var html = '<div class="sk-h1">' + esc(head) +
-      (meta.length ? ' <span class="sk-file">' + esc(meta.join(" \u00b7 ")) + "</span>" : "") + "</div>";
+      (meta.length ? ' <span class="sk-file">' + esc(meta.join(" \u00b7 ")) + "</span>" : "") +
+      (mcur.id ? ' <a class="sk-drive" href="https://drive.google.com/file/d/' + mcur.id +
+        '/view" target="_blank" rel="noopener" title="Open this file in Google Drive">\u2197 Drive</a>' : "") +
+      "</div>";
     if (l.sub && l.group !== "Taal") html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";
 
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
@@ -330,7 +359,56 @@
     if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
-      p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>';
+      p.innerHTML =
+        '<div class="vidwrap">' +
+          '<video id="vid" class="sk-video" playsinline preload="metadata" src="' + videoSrc(m) + '"></video>' +
+          '<div class="vctl" id="vctl">' +
+            '<button class="vbtn" id="vPlay" type="button" aria-label="play">\u25b6</button>' +
+            '<div class="vtrack" id="vTrack"><div class="vfill" id="vFill"></div></div>' +
+            '<span class="vtime" id="vTime">0:00 / 0:00</span>' +
+          "</div>" +
+        "</div>";
+      var vd = $("#vid"), ctl = $("#vctl"), vfill = $("#vFill"), vtime = $("#vTime"), vtr = $("#vTrack");
+      function vupd() {
+        var d = vd.duration;
+        vfill.style.width = (d ? (vd.currentTime / d * 100) : 0) + "%";
+        vtime.textContent = fmtTime(vd.currentTime) + " / " + fmtTime(d);
+      }
+      var hideT = 0;
+      function showCtl() {
+        if (!ctl) return;
+        ctl.classList.add("on");
+        clearTimeout(hideT);
+        hideT = setTimeout(function () { ctl.classList.remove("on"); }, 5000);   // 5s after last activity
+      }
+      $("#vPlay").onclick = function () { if (vd.paused) vd.play().catch(function () {}); else vd.pause(); showCtl(); };
+      vd.addEventListener("play", function () { $("#vPlay").textContent = "\u275a\u275a"; vupd(); showCtl(); });
+      vd.addEventListener("pause", function () { $("#vPlay").textContent = "\u25b6"; showCtl(); });
+      vd.addEventListener("timeupdate", vupd);
+      vd.addEventListener("loadedmetadata", vupd);
+      vd.addEventListener("error", function () {      // can't play natively? fall back to Drive's player
+        var w = p.querySelector(".vidwrap");
+        if (w) w.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+      });
+      var dragv = false;
+      function vseek(e) {
+        var r = vtr.getBoundingClientRect();
+        var f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        if (vd.duration) vd.currentTime = f * vd.duration;
+        vupd();
+      }
+      vtr.addEventListener("pointerdown", function (e) { dragv = true; try { this.setPointerCapture(e.pointerId); } catch (x) {} vseek(e); showCtl(); });
+      vtr.addEventListener("pointermove", function (e) { if (dragv) vseek(e); });
+      vtr.addEventListener("pointerup", function () { dragv = false; });
+      vtr.addEventListener("pointercancel", function () { dragv = false; });
+      var wrap = p.querySelector(".vidwrap");
+      if (wrap) {
+        ["pointerenter", "pointermove", "pointerdown", "pointerleave"].forEach(function (ev) {
+          wrap.addEventListener(ev, showCtl);
+        });
+      }
+      vupd();
+      showCtl();
     } else {
       p.innerHTML =
         '<div class="pl">' +
@@ -554,6 +632,8 @@
     if (state.audio) { try { state.audio.pause(); } catch (e) {} }
     state.segPlay = null;
     clearLineHL();
+    var vv = document.getElementById("vid");
+    if (vv) { try { vv.pause(); vv.currentTime = 0; } catch (e) {} }
     var f = document.querySelector(".sk-iframe");
     if (f) { try { f.src = f.src; } catch (e) {} }   // reloading the frame halts the video
   }

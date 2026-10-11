@@ -368,3 +368,34 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-sec-h.raag{display:flex; align-items:center; gap:6px; width:100%; text-align:left;
   background:none; border:0; padding:0; cursor:pointer}
 .sk-sec-h.raag .car{font-size:11px; color:var(--saffron); line-height:1}
+
+/* ---------- file-name chip links to Drive ---------- */
+.sk-drive{display:inline-block; margin-left:6px; padding:2px 8px; border-radius:999px;
+  font-size:12px; font-weight:700; color:var(--saffron); text-decoration:none;
+  border:1px solid rgba(232,166,62,.4); background:rgba(232,166,62,.10); vertical-align:middle}
+.sk-drive:hover{background:var(--saffron); color:#20160d}
+
+/* ---------- raag heading: yellow, with reorder arrows ---------- */
+.sk-sec-h.raag{color:var(--saffron) !important}
+.sk-raagh{display:flex; align-items:center; gap:6px}
+.sk-raagh .sk-sec-h{flex:1 1 auto; margin:4px 0 7px 4px}
+.sk-move{display:flex; gap:3px; flex:0 0 auto}
+.sk-move .mv{border:1px solid var(--line); background:var(--bg2); color:var(--dim);
+  border-radius:6px; font-size:9px; line-height:1; padding:4px 5px; cursor:pointer; font-family:inherit}
+.sk-move .mv:hover{background:var(--saffron); color:#20160d; border-color:var(--saffron)}
+
+/* ---------- native video + self-hiding controls ---------- */
+.sk-video{width:100%; aspect-ratio:16/9; background:#000; border-radius:12px; display:block}
+.vctl{position:absolute; left:0; right:0; bottom:0; display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:0 0 12px 12px;
+  background:linear-gradient(transparent, rgba(0,0,0,.78)); opacity:0;
+  transition:opacity .25s ease; pointer-events:none}
+.vctl.on{opacity:1; pointer-events:auto}
+.vbtn{border:0; background:rgba(255,255,255,.16); color:#fff; border-radius:8px;
+  min-height:34px; min-width:44px; padding:0 10px; cursor:pointer; font-family:inherit; font-size:14px}
+.vbtn:hover{background:rgba(255,255,255,.3)}
+.vtrack{flex:1 1 auto; height:8px; background:rgba(255,255,255,.28); border-radius:4px;
+  position:relative; cursor:pointer; touch-action:none}
+.vfill{height:100%; background:var(--saffron); border-radius:4px; width:0}
+.vtime{color:#fff; font-size:12px; white-space:nowrap}
+.vidwrap{position:relative}
