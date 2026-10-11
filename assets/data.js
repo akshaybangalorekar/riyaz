@@ -894,7 +894,8 @@ window.SANGEET = {
   {
    "id": "tl_दादरा",
    "group": "Taal",
-   "title": "Taal — दादरा",
+   "taal": "दादरा",
+   "title": "Theka",
    "sub": "6 matra",
    "lines": [
     {
@@ -913,7 +914,8 @@ window.SANGEET = {
   {
    "id": "tl_एक ताल",
    "group": "Taal",
-   "title": "Taal — एक ताल",
+   "taal": "एक ताल",
+   "title": "Theka",
    "sub": "12 matra",
    "lines": [
     {
@@ -932,7 +934,8 @@ window.SANGEET = {
   {
    "id": "tl_रूपक",
    "group": "Taal",
-   "title": "Taal — रूपक",
+   "taal": "रूपक",
+   "title": "Theka",
    "sub": "7 matra",
    "lines": [
     {
@@ -951,7 +954,8 @@ window.SANGEET = {
   {
    "id": "tl_केहेरवा",
    "group": "Taal",
-   "title": "Taal — केहेरवा",
+   "taal": "केहेरवा",
+   "title": "Theka",
    "sub": "8 matra",
    "lines": [
     {
@@ -970,7 +974,8 @@ window.SANGEET = {
   {
    "id": "tl_चौ ताल",
    "group": "Taal",
-   "title": "Taal — चौ ताल",
+   "taal": "चौ ताल",
+   "title": "Theka",
    "sub": "12 matra",
    "lines": [
     {
@@ -989,8 +994,9 @@ window.SANGEET = {
   {
    "id": "tl3_44780",
    "group": "Taal",
-   "title": "In 3 taal — 20250723 - Alankar in 3 taal",
-   "sub": "Teen taal (16 matra)",
+   "taal": "तीन ताल",
+   "title": "Alankar in 3 taal",
+   "sub": "16 matra · 4 khand",
    "lines": [
     {
      "label": "Common theka",
@@ -1008,8 +1014,9 @@ window.SANGEET = {
   {
    "id": "tl3_26523",
    "group": "Taal",
-   "title": "In 3 taal — 20250709 - 3 ताल - 16 मात्रा - 4 खण्ड",
-   "sub": "Teen taal (16 matra)",
+   "taal": "तीन ताल",
+   "title": "Theka",
+   "sub": "16 matra · 4 khand",
    "lines": [
     {
      "label": "Common theka",
@@ -1027,8 +1034,8 @@ window.SANGEET = {
   {
    "id": "jha_92886",
    "group": "Taal",
-   "title": "Jhap taal — 05 - ताल - झप ताल",
-   "sub": "Jhap taal",
+   "taal": "झप ताल",
+   "title": "Theka",
    "lines": [
     {
      "label": "Common theka",
@@ -1040,25 +1047,6 @@ window.SANGEET = {
      "kind": "video",
      "id": "1kcknucNXJDNWKruvXTIkcFsZFz7GkHWp",
      "name": "05 - Taal - झप ताल.mp4"
-    }
-   ]
-  },
-  {
-   "id": "jha_29836",
-   "group": "Taal",
-   "title": "Jhap taal — 20260628 - राग दुर्गा - झप ताल",
-   "sub": "Jhap taal",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धिं ना | धिं धिं ना | ति ना | धिं ना"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "10TfU6PCFLTtFnuftM2wwrMuSYl8_vXbh",
-     "name": "Raag दुर्गा - झप ताल.MOV"
     }
    ]
   },
@@ -1181,6 +1169,11 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1HKV7PEIuPPn_T8ne3zE2Mb0qK_bfcMow",
      "name": "Raag दुर्गा - Mukt Aalap - 6 - 11.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "10TfU6PCFLTtFnuftM2wwrMuSYl8_vXbh",
+     "name": "Raag दुर्गा - झप ताल.MOV"
     }
    ]
   },

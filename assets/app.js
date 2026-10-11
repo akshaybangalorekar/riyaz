@@ -20,7 +20,8 @@
     lineRows: [],
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
     cleared: {},       // lessons whose marks were cleared in this session
-    raagSect: null     // which part of a raag is showing (aaroh / mukt / …)
+    raagSect: null,    // which part of a raag is showing (aaroh / mukt / …)
+    raagOpen: {}       // which raags are expanded in the rail
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -64,7 +65,6 @@
       b.onclick = function () {
         state.group = b.dataset.g;
         localStorage.setItem("sk_group", state.group);
-        setRail(false);
         renderTabs();
         renderList();
         var first = lessonsOf(state.group)[0];
@@ -78,21 +78,17 @@
   var RAAG_SECS = [
     { k: "aaroh",   t: "आरोह · अवरोह · पकड़" },
     { k: "mukt",    t: "मुक्त आलाप" },
-    { k: "bada",    t: "बड़ा ख्याल" },
-    { k: "bandish", t: "बंदिश" },
     { k: "laikari", t: "लयकारी" },
     { k: "tana",    t: "तान" },
-    { k: "other",   t: "अन्य" }
+    { k: "bandish", t: "बंदिश" }
   ];
   function raagSect(x) {
     var t = (x || "").toLowerCase();
     if (/aaroh|avroh|pakad|आरोह|अवरोह|पकड/.test(t)) return "aaroh";
     if (/mukt aalap|मुक्त आलाप/.test(t)) return "mukt";
-    if (/bada khayal|badakhyal|बड़ा ख्याल/.test(t)) return "bada";
     if (/laikari|लयकारी/.test(t)) return "laikari";
     if (/tana|तान/.test(t)) return "tana";
-    if (/chhota khayal|bandish|antara|sthayi|बंदिश|अंतरा|स्थायी/.test(t)) return "bandish";
-    return "other";
+    return "bandish";   // bandish, khayal, antara, sthayi, taal and anything else
   }
   function raagSectParts(l, k) {
     var lines = [], media = [];
@@ -137,7 +133,7 @@
       });
       el.innerHTML = html;
       Array.prototype.forEach.call(el.querySelectorAll(".sk-num"), function (b) {
-        b.onclick = function () { open(b.dataset.id, +b.dataset.m); setRail(true); };
+        b.onclick = function () { open(b.dataset.id, +b.dataset.m); };
       });
       return;
     }
@@ -145,30 +141,55 @@
       el.classList.add("sections");
       var tl = lessonsOf("Taal"), count = {};
       tl.forEach(function (l) { var k = l.taal || "Taal"; count[k] = (count[k] || 0) + 1; });
-      el.innerHTML = '<div class="sk-sec">' + tl.map(function (l) {
+      var order = [], groups = {};
+      tl.forEach(function (l) {
         var k = l.taal || "Taal";
-        var extra = count[k] > 1 && l.title ? l.title + (l.sub ? " \u00b7 " : "") : "";
-        return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
-          '<span class="sk-big">' + esc(k) + '</span>' +
-          '<span class="sk-dash">\u2013</span>' +
-          '<span class="sk-small">' + esc(extra + (l.sub || "")) + "</span></button>";
-      }).join("") + "</div>";
+        if (!groups[k]) { groups[k] = []; order.push(k); }
+        groups[k].push(l);
+      });
+      el.innerHTML = order.map(function (k) {
+        var g = groups[k];
+        if (g.length === 1) {                       // single file: name – matras on one row
+          var l = g[0];
+          return '<div class="sk-sec"><button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
+            '<span class="sk-big">' + esc(k) + '</span>' +
+            (l.sub ? '<span class="sk-dash">\u2013</span><span class="sk-small">' + esc(l.sub) + "</span>" : "") +
+            "</button></div>";
+        }
+        return '<div class="sk-sec"><div class="sk-sec-h raag">' + esc(k) + "</div>" +   // several: one heading
+          g.map(function (l) {
+            return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
+              esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
+          }).join("") + "</div>";
+      }).join("");
       Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
-        b.onclick = function () { open(b.dataset.id); setRail(true); };
+        b.onclick = function () { open(b.dataset.id); };
       });
       return;
     }
     if (state.group === "Raag") {
       el.classList.add("sections");
       el.innerHTML = lessonsOf("Raag").map(function (l) {
-        return '<div class="sk-sec"><div class="sk-sec-h raag">' + esc(l.title) + "</div>" +
-          raagSections(l).map(function (x) {
+        var open = state.raagOpen[l.id];
+        if (open === undefined) open = (l.id === state.lessonId);
+        return '<div class="sk-sec">' +
+          '<button class="sk-sec-h raag raagtoggle" data-r="' + l.id + '">' +
+            '<span class="car">' + (open ? "\u25be" : "\u25b8") + "</span>" + esc(l.title) + "</button>" +
+          (open ? raagSections(l).map(function (x) {
             var on = (l.id === state.lessonId && state.raagSect === x.k) ? " on" : "";
             return '<button class="sk-item' + on + '" data-id="' + l.id + '" data-s="' + x.k + '">' + esc(x.t) + "</button>";
-          }).join("") + "</div>";
+          }).join("") : "") + "</div>";
       }).join("");
+      Array.prototype.forEach.call(el.querySelectorAll(".raagtoggle"), function (b) {
+        b.onclick = function () {
+          var id = b.dataset.r, cur = state.raagOpen[id];
+          if (cur === undefined) cur = (id === state.lessonId);
+          state.raagOpen[id] = !cur;
+          renderList();
+        };
+      });
       Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
-        b.onclick = function () { open(b.dataset.id, -1, b.dataset.s); setRail(true); };
+        b.onclick = function () { open(b.dataset.id, -1, b.dataset.s); };
       });
       return;
     }
@@ -178,7 +199,7 @@
         esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
     }).join("");
     Array.prototype.forEach.call(el.children, function (b) {
-      b.onclick = function () { open(b.dataset.id); setRail(true); };
+      b.onclick = function () { open(b.dataset.id); };
     });
   }
 
@@ -310,16 +331,6 @@
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>';
-    } else if (l.group === "Alankar") {
-      // alankar pages have no on-screen player: the per-line ▶ buttons drive playback
-      p.classList.add("bare");
-      p.innerHTML = '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>';
-      var au0 = $("#au");
-      state.audio = au0;
-      var srcs0 = audioSources(m), si0 = 0;
-      au0.addEventListener("error", function () { si0++; if (si0 < srcs0.length) { au0.src = srcs0[si0]; au0.load(); } });
-      au0.addEventListener("play", function () { ensureLoop(); });
-      au0.addEventListener("ended", function () { state.segPlay = null; clearLineHL(); });
     } else {
       p.innerHTML =
         '<div class="pl">' +
@@ -462,22 +473,26 @@
   /* Marks are stored per audio file, because every recording has its own
      timeline:  marks[lesson][track][line] = { t, at }   (track 0 = Komal, 1 = Shuddha …)
      Older saves were marks[lesson][line] = { track, t } and are migrated here. */
+  function isLine(k) { return /^\d+$/.test(k); }
   function normalizeLesson(src) {
     var dst = {};
+    function put(tr, ln, e) {
+      if (tr == null || ln == null) return;
+      dst[tr] = dst[tr] || {};
+      var cur = dst[tr][ln];
+      dst[tr][ln] = (cur && ((cur.at || 0) > (e.at || 0))) ? cur : e;
+    }
     Object.keys(src || {}).forEach(function (key) {
       var v = src[key];
       if (!v || typeof v !== "object") return;
-      if (typeof v.t === "number") {                       // legacy entry
-        var tr = String(v.track || 0);
-        dst[tr] = dst[tr] || {};
-        dst[tr][key] = { t: v.t, at: v.at || 0 };
-      } else {                                             // already per-track
-        dst[key] = dst[key] || {};
-        Object.keys(v).forEach(function (ln) {
-          var e = v[ln];
-          if (e && typeof e.t === "number") dst[key][ln] = { t: e.t, at: e.at || 0 };
-        });
-      }
+      // per-track shape: the value holds line entries (key = track)
+      Object.keys(v).forEach(function (k2) {
+        var e = v[k2];
+        if (isLine(k2) && e && typeof e === "object" && typeof e.t === "number")
+          put(key, k2, { t: e.t, at: e.at || 0 });
+      });
+      // legacy shape: the value is itself one line's mark (key = line)
+      if (typeof v.t === "number") put(String(v.track || 0), key, { t: v.t, at: v.at || 0 });
     });
     return dst;
   }
@@ -595,20 +610,14 @@
     var out = {};
     Object.keys(state.segments).forEach(function (k) {
       if (state.cleared[k]) return;
-      out[k] = out[k] || {};
-      var tracks = state.segments[k] || {};
-      Object.keys(tracks).forEach(function (tr) {
-        out[k][tr] = out[k][tr] || {};
-        var lines = tracks[tr] || {};
-        Object.keys(lines).forEach(function (ln) { out[k][tr][ln] = lines[ln]; });
-      });
+      out[k] = normalizeLesson(state.segments[k] || {});
     });
     return out;
   }
   function mergeMarks() {
     var out = {};
     for (var a = 0; a < arguments.length; a++) {
-      var src = arguments[a] || {};
+      var src = normalizeAll(arguments[a] || {});   // never let a legacy shape pollute
       Object.keys(src).forEach(function (k) {
         if (state.cleared[k]) return;
         out[k] = out[k] || {};

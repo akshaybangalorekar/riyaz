@@ -363,3 +363,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-file{font-size:14px; font-weight:700; color:var(--gold); background:rgba(217,164,65,.12);
   border:1px solid rgba(217,164,65,.3); border-radius:999px; padding:2px 9px;
   margin-left:9px; letter-spacing:.2px; white-space:nowrap; vertical-align:middle}
+
+/* ---------- collapsible raag heading ---------- */
+.sk-sec-h.raag{display:flex; align-items:center; gap:6px; width:100%; text-align:left;
+  background:none; border:0; padding:0; cursor:pointer}
+.sk-sec-h.raag .car{font-size:11px; color:var(--saffron); line-height:1}
