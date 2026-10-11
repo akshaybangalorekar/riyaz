@@ -399,3 +399,18 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .vfill{height:100%; background:var(--saffron); border-radius:4px; width:0}
 .vtime{color:#fff; font-size:12px; white-space:nowrap}
 .vidwrap{position:relative}
+
+/* ---------- favourites: sun buttons + programme list ---------- */
+.sk-sec-h{display:flex; align-items:center; justify-content:space-between; gap:6px}
+.sk-sec-h.raag{justify-content:flex-start}
+.sk-row{display:flex; align-items:stretch; gap:6px; margin-bottom:4px}
+.sk-row .sk-item{flex:1 1 auto; margin-bottom:0}
+.sun{border:1px solid var(--line); background:var(--bg2); color:var(--dim); border-radius:8px;
+  min-width:30px; min-height:32px; font-size:13px; line-height:1; cursor:pointer;
+  font-family:inherit; padding:0 6px; flex:0 0 auto}
+.sun.on{background:var(--saffron); color:#20160d; border-color:var(--saffron)}
+.sun.rail{align-self:center}
+.sk-favbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 8px}
+.sk-favbar .sk-btn{min-height:34px; padding:0 12px; font-size:13px}
+.ln-btn.sunb{color:var(--dim)}
+.ln-btn.sunb.on{color:var(--saffron); border-color:var(--saffron)}

@@ -5,7 +5,7 @@
   "use strict";
   var D = window.SANGEET || { lessons: [] };
   var GROUPS = ["Alankar", "Taal", "Raag"];
-  var TABS = GROUPS;
+  var TABS = ["Favourites"].concat(GROUPS);
 
   var state = {
     group: localStorage.getItem("sk_group") || "Alankar",
@@ -21,7 +21,8 @@
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
     cleared: {},       // lessons whose marks were cleared in this session
     raagSect: null,    // which part of a raag is showing (aaroh / mukt / …)
-    raagOpen: {}       // which raags are expanded in the rail
+    raagOpen: {},      // which raags are expanded in the rail
+    fav: []            // favourites: { id, m, sect, line } in the order you lined them up
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -70,12 +71,90 @@
         localStorage.setItem("sk_group", state.group);
         renderTabs();
         renderList();
+        if (state.group === "Favourites") { renderFavStage(); return; }
         var first = lessonsOf(state.group)[0];
         if (first) open(first.id);
       };
     });
   }
   function lessonsOf(g) { return D.lessons.filter(function (l) { return l.group === g; }); }
+
+  /* ---------- favourites (the programme line-up) ---------- */
+  function favKey(e) { return e.id + "|" + (e.sect || "") + "|" + e.line; }
+  function favLoad() {
+    try { state.fav = JSON.parse(localStorage.getItem("sk_fav") || "[]") || []; } catch (e) { state.fav = []; }
+  }
+  function favSave() { try { localStorage.setItem("sk_fav", JSON.stringify(state.fav)); } catch (e) {} }
+  function favIdx(id, sect, line) {
+    var k = id + "|" + (sect || "") + "|" + line;
+    for (var i = 0; i < state.fav.length; i++) if (favKey(state.fav[i]) === k) return i;
+    return -1;
+  }
+  function favHas(id, sect, line) { return favIdx(id, sect, line) >= 0; }
+  function favLine(l, li) { return (l.lines && l.lines[li] ? l.lines[li].label : "") || ""; }
+  function favLabel(e) {
+    var l = lesson(e.id); if (!l) return e.id;
+    var bits = [l.title];
+    if (e.sect) bits.push(raagSectLabel(e.sect));
+    var ln = favLine(l, e.line);
+    if (ln) bits.push(ln);
+    return bits.join(" \u00b7 ");
+  }
+  function favFirstAudio(l, sect) {
+    if (sect) { var p = raagSectParts(l, sect); if (p.media.length) return p.media[0]; }
+    var ms = l.media || [];
+    for (var i = 0; i < ms.length; i++) if (ms[i].kind === "audio") return i;
+    return ms.length ? 0 : -1;
+  }
+  function favToggle(id, sect, line, m) {
+    var i = favIdx(id, sect, line);
+    if (i >= 0) state.fav.splice(i, 1);
+    else state.fav.push({ id: id, m: m, sect: sect || null, line: line });
+    favSave(); renderList();
+  }
+  function favClear() { state.fav = []; favSave(); renderList(); }
+  // every line under a rail heading
+  function scopeLines(scope) {
+    var out = [];
+    function addLines(l, sect, m) {
+      var idxs = [];
+      if (sect) idxs = raagSectParts(l, sect).lines;
+      else (l.lines || []).forEach(function (_, i) { idxs.push(i); });
+      idxs.forEach(function (li) { out.push({ id: l.id, m: m, sect: sect || null, line: li }); });
+    }
+    if (scope.kind === "raag") {
+      var l = lesson(scope.id);
+      raagSections(l).forEach(function (x) { addLines(l, x.k, favFirstAudio(l, x.k)); });
+    } else if (scope.kind === "part") {
+      var l2 = lesson(scope.id);
+      addLines(l2, scope.sect, favFirstAudio(l2, scope.sect));
+    } else if (scope.kind === "taal") {
+      lessonsOf("Taal").filter(function (x) { return (x.taal || "Taal") === scope.key; })
+        .forEach(function (x) { addLines(x, null, favFirstAudio(x, null)); });
+    } else if (scope.kind === "alankarSec") {
+      lessonsOf("Alankar").forEach(function (x) {
+        var m = mediaIdxFor(x, scope.key);
+        if (m >= 0) addLines(x, null, m);
+      });
+    }
+    return out;
+  }
+  function scopeAllFav(scope) {
+    var list = scopeLines(scope);
+    if (!list.length) return false;
+    return list.every(function (e) { return favHas(e.id, e.sect, e.line); });
+  }
+  function favToggleScope(scope) {
+    var list = scopeLines(scope), all = scopeAllFav(scope);
+    if (all) {
+      state.fav = state.fav.filter(function (e) {
+        return !list.some(function (x) { return x.id === e.id && x.sect === (e.sect || null) && x.line === e.line; });
+      });
+    } else {
+      list.forEach(function (e) { if (!favHas(e.id, e.sect, e.line)) state.fav.push(e); });
+    }
+    favSave(); renderList();
+  }
 
   /* ---------- raag parts ---------- */
   var RAAG_SECS = [
@@ -122,6 +201,10 @@
     return hit ? hit.t : "";
   }
 
+  function sunHTML(on, cls, attrs) {
+    return '<button class="sun' + (on ? " on" : "") + (cls ? " " + cls : "") + '" type="button" ' + (attrs || "") +
+      ' title="' + (on ? "Remove from favourites" : "Add to favourites") + '">\u2600</button>';
+  }
   function alNumber(l) { var m = /(\d+)/.exec(l.title || ""); return m ? +m[1] : 0; }
   function mediaIdxFor(l, kind) {
     var ms = l.media || [];
@@ -134,6 +217,30 @@
   }
   function renderList() {
     var el = $("#list");
+    if (state.group === "Favourites") {
+      el.classList.add("sections");
+      if (!state.fav.length) {
+        el.innerHTML = '<div class="sk-sec"><div class="sk-empty" style="padding:24px 8px">Nothing lined up yet.<br>' +
+          '<span class="sk-dim">Tap a \u2600 beside a heading in the rail, or beside a line on the page.</span></div></div>';
+      } else {
+        el.innerHTML = '<div class="sk-sec">' +
+          '<div class="sk-favbar"><span class="sk-sec-h" style="margin:0">Programme (' + state.fav.length + ')</span>' +
+          '<button class="sk-btn" id="favClear">Clear all</button></div>' +
+          state.fav.map(function (e, i) {
+            var on = (e.id === state.lessonId && (e.sect || null) === (state.raagSect || null)) ? " on" : "";
+            return '<div class="sk-row"><button class="sk-item' + on + '" data-fi="' + i + '">' + esc(favLabel(e)) + "</button>" +
+              sunHTML(true, "rail", 'data-fi="' + i + '"') + "</div>";
+          }).join("") + "</div>";
+        var cb = $("#favClear"); if (cb) cb.onclick = favClear;
+        Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
+          b.onclick = function () { openFav(+b.dataset.fi); };
+        });
+        Array.prototype.forEach.call(el.querySelectorAll(".sun"), function (b) {
+          b.onclick = function (ev) { ev.stopPropagation(); state.fav.splice(+b.dataset.fi, 1); favSave(); renderList(); };
+        });
+      }
+      return;
+    }
     if (state.group === "Alankar") {
       el.classList.add("sections");
       var secs = [{ k: "komal", h: "Komal" }, { k: "shuddha", h: "Shuddha" }, { k: "video", h: "Alankar + Taal" }];
@@ -142,7 +249,9 @@
         var items = lessonsOf("Alankar").filter(function (l) { return mediaIdxFor(l, sec.k) >= 0; })
           .sort(function (a, b) { return alNumber(a) - alNumber(b); });
         if (!items.length) return;
-        html += '<div class="sk-sec"><div class="sk-sec-h">' + sec.h + '</div><div class="sk-grid">' +
+        var sc = { kind: "alankarSec", key: sec.k };
+        html += '<div class="sk-sec"><div class="sk-sec-h"><span>' + sec.h + "</span>" +
+          sunHTML(scopeAllFav(sc), "rail", 'data-scope="' + sec.k + '" data-kind="alankarSec"') + '</div><div class="sk-grid">' +
           items.map(function (l) {
             var i = mediaIdxFor(l, sec.k);
             var on = (l.id === state.lessonId && state.mediaIdx === i) ? " on" : "";
@@ -152,6 +261,9 @@
       el.innerHTML = html;
       Array.prototype.forEach.call(el.querySelectorAll(".sk-num"), function (b) {
         b.onclick = function () { open(b.dataset.id, +b.dataset.m); };
+      });
+      Array.prototype.forEach.call(el.querySelectorAll(".sun"), function (b) {
+        b.onclick = function (e) { e.stopPropagation(); favToggleScope({ kind: b.dataset.kind, key: b.dataset.scope }); };
       });
       return;
     }
@@ -174,7 +286,9 @@
             (l.sub ? '<span class="sk-dash">\u2013</span><span class="sk-small">' + esc(l.sub) + "</span>" : "") +
             "</button></div>";
         }
-        return '<div class="sk-sec"><div class="sk-sec-h raag">' + esc(k) + "</div>" +   // several: one heading
+        var sc2 = { kind: "taal", key: k };
+        return '<div class="sk-sec"><div class="sk-sec-h"><span>' + esc(k) + "</span>" +
+          sunHTML(scopeAllFav(sc2), "rail", 'data-scope="' + esc(k) + '" data-kind="taal"') + "</div>" +   // several: one heading
           g.map(function (l) {
             return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
               esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
@@ -182,6 +296,9 @@
       }).join("");
       Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
         b.onclick = function () { open(b.dataset.id); };
+      });
+      Array.prototype.forEach.call(el.querySelectorAll(".sun"), function (b) {
+        b.onclick = function (e) { e.stopPropagation(); favToggleScope({ kind: "taal", key: b.dataset.scope }); };
       });
       return;
     }
@@ -194,13 +311,17 @@
           '<div class="sk-raagh">' +
           '<button class="sk-sec-h raag raagtoggle" data-r="' + l.id + '">' +
             '<span class="car">' + (open ? "\u25be" : "\u25b8") + "</span>" + esc(l.title) + "</button>" +
+          sunHTML(scopeAllFav({ kind: "raag", id: l.id }), "rail", 'data-scope="' + l.id + '" data-kind="raag"') +
           '<span class="sk-move">' +
             '<button class="mv" data-r="' + l.id + '" data-d="-1" title="Move up">\u25b2</button>' +
             '<button class="mv" data-r="' + l.id + '" data-d="1" title="Move down">\u25bc</button>' +
           "</span></div>" +
           (open ? raagSections(l).map(function (x) {
             var on = (l.id === state.lessonId && state.raagSect === x.k) ? " on" : "";
-            return '<button class="sk-item' + on + '" data-id="' + l.id + '" data-s="' + x.k + '">' + esc(x.t) + "</button>";
+            return '<div class="sk-row"><button class="sk-item' + on + '" data-id="' + l.id + '" data-s="' + x.k + '">' +
+              esc(x.t) + "</button>" +
+              sunHTML(scopeAllFav({ kind: "part", id: l.id, sect: x.k }), "rail",
+                'data-scope="' + l.id + '" data-sect="' + x.k + '" data-kind="part"') + "</div>";
           }).join("") : "") + "</div>";
       }).join("");
       Array.prototype.forEach.call(el.querySelectorAll(".mv"), function (b) {
@@ -216,6 +337,12 @@
       });
       Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
         b.onclick = function () { open(b.dataset.id, -1, b.dataset.s); };
+      });
+      Array.prototype.forEach.call(el.querySelectorAll(".sun"), function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          favToggleScope({ kind: b.dataset.kind, id: b.dataset.scope, sect: b.dataset.sect, key: b.dataset.scope });
+        };
       });
       return;
     }
@@ -251,12 +378,35 @@
     setRail(!(m && m.classList.contains("rail-hidden")));
   }
 
+  function renderFavStage() {
+    var st = $("#stage");
+    if (!st) return;
+    st.innerHTML = '<div class="sk-h1">Favourites</div>' +
+      '<div class="sk-dim" style="margin-top:6px">' +
+      (state.fav.length
+        ? state.fav.length + " item" + (state.fav.length > 1 ? "s" : "") +
+          " lined up. Tap one in the rail to open it and play it straight away."
+        : "Nothing lined up yet \u2014 tap a \u2600 beside a heading in the rail, or beside a line on the page.") +
+      "</div>";
+  }
+
+  function openFav(i) {
+    var e = state.fav[i];
+    if (!e) return;
+    open(e.id, e.m, e.sect);
+    setTimeout(function () { playLine(e.line); }, 120);
+  }
+
   function open(id, mIdx, sect) {
     var l = lesson(id);
     if (!l) return;
     stopAll();
     state.lessonId = id;
     state.raagSect = sect || null;
+    if (l.group === "Raag" && !state.raagSect) {      // one part per page, never the whole raag
+      var rs = raagSections(l);
+      if (rs.length) state.raagSect = rs[0].k;
+    }
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
     if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
@@ -489,6 +639,12 @@
         ctl.appendChild(sb2);
       }
       ctl.appendChild(mb);
+      var sunb = document.createElement("button");
+      sunb.className = "ln-btn sunb" + (favHas(l.id, secKey, li) ? " on" : "");
+      sunb.type = "button"; sunb.textContent = "\u2600";
+      sunb.title = "Add this line to favourites";
+      sunb.onclick = function () { favToggle(l.id, secKey, li, state.mediaIdx); renderNotation(l); };
+      ctl.appendChild(sunb);
       var seg = segsOf()[li];
       if (seg) {
         var tm = document.createElement("span");
@@ -912,6 +1068,7 @@
     var tm = /[?&]tool=([^&#]+)/.exec(location.search);
     if (tm) { state.vadyaOpen = true; }
   })();
+  favLoad();
   loadAllLocal();
   renderTabs();
   pullMarks();
@@ -942,6 +1099,9 @@
   if (/[?&]vadya=1/.test(location.search)) toggleVadya();
   if (GROUPS.indexOf(state.group) < 0) { state.group = GROUPS[0]; }
   renderList();
-  var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
-  if (start) open(start);
+  if (state.group === "Favourites") { renderList(); renderFavStage(); }
+  else {
+    var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
+    if (start) open(start);
+  }
 })();
