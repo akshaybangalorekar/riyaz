@@ -112,9 +112,9 @@
   function mediaIdxFor(l, kind) {
     var ms = l.media || [];
     for (var i = 0; i < ms.length; i++) {
-      var m = ms[i], nm = (m.name || "").toLowerCase();
+      var m = ms[i];
       if (kind === "video") { if (m.kind === "video") return i; }
-      else if (m.kind === "audio" && nm.indexOf(kind) === 0) return i;
+      else if (m.kind === "audio" && m.tr === kind) return i;
     }
     return -1;
   }
@@ -227,7 +227,7 @@
     var curVideo = mcur.kind === "video";
     var secHasLines = !(l.group === "Raag" && state.raagSect) ||
       raagSectParts(l, state.raagSect).lines.length > 0;
-    var fname = (mcur.name || "").replace(/\.[a-z0-9]+$/i, "");
+    var fname = mcur.name || "";      // the real file name, extension and all
     if (l.title) {   // "Raag दुर्गा - Aaroh..." -> "Aaroh..." (the name is already in the heading)
       var names = [l.title], bare = l.title.replace(/^Raag\s+/i, "");
       if (bare !== l.title) names.push(bare);

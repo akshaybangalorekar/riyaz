@@ -22,12 +22,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1iKAMIMsrHMn7IA9meHzKaQxMXGJVfsNP",
-     "name": "Komal.mp3"
+     "name": "अलंकार १ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1lk4iEThS1jdeBt12Vjiuxj2R5Z3TloO0",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १ - शुद्ध.mp3",
+     "tr": "shuddha"
     }
    ]
   },
@@ -51,12 +53,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1KP4tdXKVaGbTjdSvaF-9-9Fx-Xq55bWF",
-     "name": "Komal.mp3"
+     "name": "अलंकार २ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1nckIlgAHBZfRqJKvvXwTaOxgGmHyMnMx",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार २ - शुद्ध.mp3",
+     "tr": "shuddha"
     }
    ]
   },
@@ -80,12 +84,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1iiHghWUYIEd48iRsmkND-HfNnwkcQUG0",
-     "name": "Komal.mp3"
+     "name": "अलंकार ३ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "15f3_cQnlps_3dZ8J0eaDNAuX1045ZtH0",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ३ - शुद्ध.mp3",
+     "tr": "shuddha"
     }
    ]
   },
@@ -109,12 +115,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1NCy43kY0B5AY5rtnInpHH43hBGv3NHFX",
-     "name": "Komal.mp3"
+     "name": "अलंकार ४ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1x-bedGP1ZZP9v9iaYMJA6dnoNuWIv3Dw",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ४ - शुद्ध.mp3",
+     "tr": "shuddha"
     }
    ]
   },
@@ -143,18 +151,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "14upO1riQ6yvwFKZ3oUtR9TJANNPQSa0y",
-     "name": "Komal.mp3"
+     "name": "अलंकार ५ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1kagZV-240w2_wdWqJ2O9WJ5QTdMuhG_U",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ५ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1g85qSwU9OBsYU2x5Qr6R8MS4IJ13leWX",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_73624"
+     "name": "अलंकार ५ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -183,23 +193,26 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1khkMroqdky9i-6E5u9YUjTGefydiw3ic",
-     "name": "Komal.mp3"
+     "name": "अलंकार ६ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1s4YojpO22ar27RjrcJb_9KMTjjka5VP8",
-     "name": "Shuddha scale A#.mp3"
+     "name": "अलंकार ६ - शुद्ध scale A#.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "audio",
      "id": "1UGloqU8K2MiZJcZbGY4kfdNN7pV4iLOU",
-     "name": "Shuddha scale C.mp3"
+     "name": "अलंकार ६ - शुद्ध scale C.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "17yNvuoAAz5DjJsRhi163xiRHihLHFOpo",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_71960"
+     "name": "अलंकार ६ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -228,23 +241,26 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1lhW1kp7DiO8TdBXBM1U3aI9JK8tefDCD",
-     "name": "Komal.mp3"
+     "name": "अलंकार ७ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1gtphVacFRQTj9PVCxT0rA1iuChi1BW_Y",
-     "name": "Shuddha scale A#.mp3"
+     "name": "अलंकार ७ - शुद्ध scale A#.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "audio",
      "id": "1kwOz5Jo_hFt1Kj2tbtbr-ljfdKIvEXny",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ७ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1B_CZyklKWaL5-sxHz6ThvETTafR3wsQZ",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_26052"
+     "name": "अलंकार ७ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -273,18 +289,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1bWhxNmA9GwnxviCxciqCOCw3KdQsHOd_",
-     "name": "Komal.mp3"
+     "name": "अलंकार ८ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1Sy3yGT9CPDT1tjvIyc4DDZlrJsGgxlaM",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ८ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1ukrizWjKFoISuXV_l5Iz3WsSYlH_5Q0X",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_75525"
+     "name": "अलंकार ८ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -313,18 +331,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1H-1OqzAFZGkFE4OyvcPdy7YhNTRMfC9l",
-     "name": "Komal.mp3"
+     "name": "अलंकार ९ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1cbtrcNfSfcZKw40gxfBJn_1sIMDVLE0W",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ९ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1qNeKUBOfYgDcztGuTPP-3dG6jhvdK6Wc",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_8121"
+     "name": "अलंकार ९ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -353,18 +373,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1bC7Hjlg0kIWXnjyB1EPBMMUHrUQ7aWgA",
-     "name": "Komal.mp3"
+     "name": "अलंकार १० - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1kzzPvFuLnNz2Wu3nX__q12Y3a0M-pEly",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १० - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "13uEsA3xiAiqFM-jb9vrrpSnuv_GbOfWP",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_10110"
+     "name": "अलंकार १० - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -393,18 +415,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1zHurDDw1HMCEYbaRIne-COLcjlRGXKMe",
-     "name": "Komal.mp3"
+     "name": "अलंकार ११ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1EJnK3Slwz5xgfC1TT0Uume-WOlqsy2e3",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार ११ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1MnGTb0r2PAuT6Qyx5kmc2aQsGPO8HFMs",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_77536"
+     "name": "अलंकार ११ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -433,18 +457,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1Xsx0dUwPIdrQwA0AyPThqVLVljLztLip",
-     "name": "Komal.mp3"
+     "name": "अलंकार १२ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1PHyiUjjOqL-FRZW9KxcbsugKjKwLN3Dp",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १२ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1ylks0z9y2hLFUeJHA0cCKEs7plSM6TgE",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_46334"
+     "name": "अलंकार १२ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -473,18 +499,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1QhSC_3JJduurp9rWcpiDdNKIsxVDaezD",
-     "name": "Komal.mp3"
+     "name": "अलंकार १३ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1IFM5Z5XyGbpccEBMq6P74fhTD6iJgMWZ",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १३ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "18AxhsWg2g4a8ypkfNuJKlstuIjiynkNi",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_62627"
+     "name": "अलंकार १३ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -513,18 +541,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1lrVZDIX5XCI8YHu2jBK8OqrmDBRI2Q0f",
-     "name": "Komal.mp3"
+     "name": "अलंकार १४ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1ZIGXW_zdOX-t3KO9UsWYKDWqWs1ZeC55",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १४ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1D_2NLjBZbCyyafNwOWRP3H9fhBlBjhws",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_74345"
+     "name": "अलंकार १४ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -553,18 +583,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1leUSR-FDT8SVrutjU3J3RPy4-QIM35FW",
-     "name": "Komal.mp3"
+     "name": "अलंकार १५ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1x6XsCuBS5sGw-RtfNBMkrwWU8o5e6x4S",
-     "name": "Shuddha.m4a"
+     "name": "अलंकार १५ - शुद्ध.m4a",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "14dhkTY2xo1TipMpHjX9hHbTmZ-YqCuzm",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_54023"
+     "name": "अलंकार १५ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -593,18 +625,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1izYkOxNBWY6yUhgq0QLd_y5NKGgX7fhr",
-     "name": "Komal.mp3"
+     "name": "अलंकार १६ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1xSClgDefEFadPi-EW8d39hKm3_whbbr2",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १६ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1pZu8e4OADWG7QqFiHBsZGccQ3v7e5ZsD",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_5448"
+     "name": "अलंकार १६ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -633,18 +667,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1iwRjYfCcyJxxyhDrsR81N1aYTGF2IyVr",
-     "name": "Komal.mp3"
+     "name": "अलंकार १७ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1CQuQso7ZCoGMvconZvRhB_iuIJgBen7-",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १७ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "10m7sGqLf4FMzMVEZWP6OMtkMznv1_Cgn",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_17559"
+     "name": "अलंकार १७ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -673,19 +709,21 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "",
-     "name": "Komal.mp3",
-     "missing": true
+     "name": "अलंकार १८ - कोमल.mp3",
+     "missing": true,
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1WHMrpxGgQ5lfBAIvvp6NFqNmq_W7Dqys",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १८ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1C9JkusvzbA7nBEkXqRykBETJavg6z8o8",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_9411"
+     "name": "अलंकार १८ - कोमल.mp4",
+     "tr": "komal"
     }
    ]
   },
@@ -714,18 +752,20 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1yDx6iBIcLXOY0HRiFU4uypfmPAbKB77L",
-     "name": "Komal.mp3"
+     "name": "अलंकार १९ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1PbF1WTjXETb68dXQxzfUzMz3NI0Rrozj",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार १९ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1kGcbvz1oJpfiv8sJ4KWfC1pR7gzH3gK0",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_73251"
+     "name": "अलंकार १९.mp4",
+     "tr": "video"
     }
    ]
   },
@@ -754,13 +794,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1gKW8-rpHgYgYddPql5J6crGgMrTAj0MI",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार २० - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1Lz9VylTiQRHx5aAxLjug2YtDVDDMTkDS",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_53705"
+     "name": "अलंकार २०.mp4",
+     "tr": "video"
     }
    ]
   },
@@ -789,13 +830,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1YPRPagxoS5kr7zBrBwWzYLM5gFmcY1-W",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार २१ - शुद्ध.mp3",
+     "tr": "shuddha"
     },
     {
      "kind": "video",
      "id": "1-8plJAHvqtwO2Yrk127GbfqAg6Wdit5c",
-     "name": "In 3 taal",
-     "fromLesson": "tl3_21331"
+     "name": "अलंकार २१.mp4",
+     "tr": "video"
     }
    ]
   },
@@ -819,7 +861,8 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1ZkhpzDalLkBh-_dmd9AKpRQd1WlK2C8t",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार २२ - शुद्ध.mp3",
+     "tr": "shuddha"
     }
    ]
   },
@@ -837,20 +880,21 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "14_uTHz8Ar5y14MGqIDkEqfnX3PFh5k__",
-     "name": "Komal.mp3"
+     "name": "अलंकार २३ - कोमल.mp3",
+     "tr": "komal"
     },
     {
      "kind": "audio",
      "id": "1xdm3cZzbuERZMwldIKS4MDJGJAoGjFJk",
-     "name": "Shuddha.mp3"
+     "name": "अलंकार २३ - शुद्ध.mp3",
+     "tr": "shuddha"
     }
    ]
   },
   {
    "id": "tl_दादरा",
    "group": "Taal",
-   "taal": "दादरा",
-   "title": "Theka",
+   "title": "Taal — दादरा",
    "sub": "6 matra",
    "lines": [
     {
@@ -869,8 +913,7 @@ window.SANGEET = {
   {
    "id": "tl_एक ताल",
    "group": "Taal",
-   "taal": "एक ताल",
-   "title": "Theka",
+   "title": "Taal — एक ताल",
    "sub": "12 matra",
    "lines": [
     {
@@ -889,8 +932,7 @@ window.SANGEET = {
   {
    "id": "tl_रूपक",
    "group": "Taal",
-   "taal": "रूपक",
-   "title": "Theka",
+   "title": "Taal — रूपक",
    "sub": "7 matra",
    "lines": [
     {
@@ -909,8 +951,7 @@ window.SANGEET = {
   {
    "id": "tl_केहेरवा",
    "group": "Taal",
-   "taal": "केहेरवा",
-   "title": "Theka",
+   "title": "Taal — केहेरवा",
    "sub": "8 matra",
    "lines": [
     {
@@ -929,8 +970,7 @@ window.SANGEET = {
   {
    "id": "tl_चौ ताल",
    "group": "Taal",
-   "taal": "चौ ताल",
-   "title": "Theka",
+   "title": "Taal — चौ ताल",
    "sub": "12 matra",
    "lines": [
     {
@@ -949,9 +989,8 @@ window.SANGEET = {
   {
    "id": "tl3_44780",
    "group": "Taal",
-   "taal": "तीन ताल",
-   "title": "Alankar in 3 taal",
-   "sub": "16 matra · 4 khand",
+   "title": "In 3 taal — 20250723 - Alankar in 3 taal",
+   "sub": "Teen taal (16 matra)",
    "lines": [
     {
      "label": "Common theka",
@@ -969,9 +1008,8 @@ window.SANGEET = {
   {
    "id": "tl3_26523",
    "group": "Taal",
-   "taal": "तीन ताल",
-   "title": "Theka",
-   "sub": "16 matra · 4 khand",
+   "title": "In 3 taal — 20250709 - 3 ताल - 16 मात्रा - 4 खण्ड",
+   "sub": "Teen taal (16 matra)",
    "lines": [
     {
      "label": "Common theka",
@@ -989,8 +1027,8 @@ window.SANGEET = {
   {
    "id": "jha_92886",
    "group": "Taal",
-   "taal": "झप ताल",
-   "title": "Theka",
+   "title": "Jhap taal — 05 - ताल - झप ताल",
+   "sub": "Jhap taal",
    "lines": [
     {
      "label": "Common theka",
@@ -1008,8 +1046,8 @@ window.SANGEET = {
   {
    "id": "jha_29836",
    "group": "Taal",
-   "taal": "झप ताल",
-   "title": "राग दुर्गा",
+   "title": "Jhap taal — 20260628 - राग दुर्गा - झप ताल",
+   "sub": "Jhap taal",
    "lines": [
     {
      "label": "Common theka",
