@@ -18,7 +18,13 @@
   }
   function vg() {
     var c = AC();
-    if (!vbus) { vbus = c.createGain(); vbus.gain.value = 1; vbus.connect(bus()); }
+    if (!vbus) {
+      vbus = c.createGain(); vbus.gain.value = 0.85;
+      var comp = c.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.knee.value = 26; comp.ratio.value = 4;
+      comp.attack.value = 0.004; comp.release.value = 0.25;
+      vbus.connect(comp); comp.connect(bus());
+    }
     return vbus;
   }
   function noise(t, dur, f, q, gain, type) {
@@ -49,7 +55,8 @@
   var S = {
     tanpura: { on: false, sa: 261.63, fourth: "Pa", vol: 0.75, next: 0, step: 0.95, idx: 0 },
     manjeera: { on: false, type: 1, every: 1, bpm: 80, vol: 0.5, next: 0 },
-    tabla: { on: false, taal: "teentaal", mode: 0, bpm: 80, sa: 261.63, vol: 0.7, next: 0, matra: 0, cycle: 0, liveV: 0 }
+    tabla: { on: false, taal: "teentaal", mode: 0, bpm: 80, sa: 261.63, vol: 0.7, next: 0, matra: 0, cycle: 0, liveV: 0 },
+    harm: { sa: 261.63, vol: 0.7, drone: false, voices: {}, droneVoices: [] }
   };
 
   /* ---------------- tanpura ---------------- */
@@ -86,7 +93,7 @@
     if (T.next < AC().currentTime) T.next = AC().currentTime + 0.1;
     while (T.next < horizon) {
       var strs = tanpuraStrings();
-      pluck(strs[T.idx % 4], T.next, T.vol * 0.5, 3.8);
+      pluck(strs[T.idx % 4], T.next, T.vol * 0.15, 4.2);
       T.idx++;
       T.next += T.step;
     }
@@ -265,6 +272,69 @@
     }, 25);
   }
 
+  /* ---------------- sur peti (harmonium) ---------------- */
+  var WHITES = [
+    { n: "सा", s: -12, oct: -1 }, { n: "रे", s: -10, oct: -1 }, { n: "ग", s: -8, oct: -1 }, { n: "म", s: -7, oct: -1 },
+    { n: "प", s: -5, oct: -1 }, { n: "ध", s: -2, oct: -1 }, { n: "नि", s: -1, oct: -1 },
+    { n: "सा", s: 0 }, { n: "रे", s: 2 }, { n: "ग", s: 4 }, { n: "म", s: 5 }, { n: "प", s: 7 }, { n: "ध", s: 9 }, { n: "नि", s: 11 },
+    { n: "सा", s: 12, oct: 1 }
+  ];
+  var BLACKS = [
+    { n: "रे", s: -11, k: 1, a: 0 }, { n: "ग", s: -9, k: 1, a: 1 }, { n: "म", s: -6, tv: 1, a: 3 }, { n: "ध", s: -4, k: 1, a: 4 }, { n: "नि", s: -3, k: 1, a: 5 },
+    { n: "रे", s: 1, k: 1, a: 7 }, { n: "ग", s: 3, k: 1, a: 8 }, { n: "म", s: 6, tv: 1, a: 10 }, { n: "ध", s: 8, k: 1, a: 11 }, { n: "नि", s: 10, k: 1, a: 12 }
+  ];
+  function labelHTML(k) {
+    var cls = [];
+    if (k.oct === 1) cls.push("up"); if (k.oct === -1) cls.push("dn");
+    if (k.k) cls.push("komal"); if (k.tv) cls.push("tivra");
+    return '<span class="' + cls.join(" ") + '">' + k.n + "</span>";
+  }
+  function reed(freq, gain) {
+    var c = AC(), t = c.currentTime;
+    var lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
+    var g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0004, gain), t + 0.05);
+    var oscs = [];
+    [[1, 0.60, "sawtooth"], [2, 0.30, "triangle"], [3, 0.16, "triangle"], [4, 0.09, "sine"], [6, 0.05, "sine"]].forEach(function (s) {
+      var o = c.createOscillator(); o.type = s[2]; o.frequency.value = freq * s[0];
+      var og = c.createGain(); og.gain.value = s[1];
+      o.connect(og); og.connect(lp); o.start(t); oscs.push(o);
+    });
+    var lfo = c.createOscillator(); lfo.frequency.value = 5.2;
+    var lg = c.createGain(); lg.gain.value = freq * 0.006;
+    lfo.connect(lg); oscs.forEach(function (o) { lg.connect(o.frequency); }); lfo.start(t);
+    lp.connect(g); g.connect(vg());
+    return {
+      stop: function () {
+        var e = AC().currentTime;
+        try { g.gain.cancelScheduledValues(e); g.gain.setValueAtTime(g.gain.value || 0.0004, e); } catch (x) {}
+        g.gain.exponentialRampToValueAtTime(0.0001, e + 0.18);
+        oscs.forEach(function (o) { try { o.stop(e + 0.2); } catch (x) {} });
+        try { lfo.stop(e + 0.2); } catch (x) {}
+      }
+    };
+  }
+  function harmNoteOn(semi) {
+    var H = S.harm;
+    if (H.voices[semi]) return;
+    H.voices[semi] = reed(H.sa * Math.pow(2, semi / 12), 0.30 * H.vol);
+  }
+  function harmNoteOff(semi) {
+    var H = S.harm;
+    if (H.voices[semi]) { H.voices[semi].stop(); delete H.voices[semi]; }
+  }
+  function harmDrone(on) {
+    var H = S.harm;
+    H.droneVoices.forEach(function (v) { v.stop(); });
+    H.droneVoices = [];
+    H.drone = on;
+    if (on) {
+      H.droneVoices.push(reed(H.sa / 2, 0.22 * H.vol));
+      H.droneVoices.push(reed((H.sa / 2) * Math.pow(2, 7 / 12), 0.22 * H.vol));
+    }
+  }
+
   /* ---------------- panel ---------------- */
   var NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   function scaleSelect(id, cur) {
@@ -320,6 +390,14 @@
         volRow("vTbVol", S.tabla.vol) +
       "</div>" +
 
+      '<div class="v-card v-card-wide">' +
+        '<div class="v-title">Sur Peti (harmonium)</div>' +
+        '<div class="v-row"><label>Scale</label>' + scaleSelect("vHmScale", S.harm.sa) + '</div>' +
+        '<div class="v-row"><button class="sk-btn" id="vHmDrone">▶ Drone (सा–प)</button></div>' +
+        '<div class="sp-scroll"><div class="sp-keys" id="vHmKeys"></div></div>' +
+        volRow("vHmVol", S.harm.vol) +
+      "</div>" +
+
       "</div>" +
       '<div class="v-note">Tip: the panel can be hidden — the instruments keep playing.</div>';
 
@@ -349,6 +427,33 @@
     el.querySelector("#vTbMode").onchange = function () { S.tabla.mode = parseInt(this.value, 10); S.tabla.cycle = 0; };
     el.querySelector("#vTbBpm").oninput = function () { S.tabla.bpm = parseInt(this.value, 10); el.querySelector("#vTbBpmLbl").textContent = this.value + " BPM"; };
     el.querySelector("#vTbVol").oninput = function () { S.tabla.vol = this.value / 100; el.querySelector("#vTbVolLbl").textContent = this.value + "%"; };
+
+    /* harmonium */
+    var keysBox = el.querySelector("#vHmKeys");
+    if (keysBox) {
+      var ww = 100 / WHITES.length, kh = "";
+      WHITES.forEach(function (k) { kh += '<div class="sp-key white" data-semi="' + k.s + '" style="width:' + ww + '%">' + labelHTML(k) + "</div>"; });
+      BLACKS.forEach(function (k) { var left = (k.a + 1) * ww - (ww * 0.62) / 2; kh += '<div class="sp-key black" data-semi="' + k.s + '" style="left:' + left + "%;width:" + (ww * 0.62) + '%">' + labelHTML(k) + "</div>"; });
+      keysBox.innerHTML = kh;
+      Array.prototype.forEach.call(keysBox.querySelectorAll(".sp-key"), function (k) {
+        var semi = parseInt(k.dataset.semi, 10);
+        k.addEventListener("pointerdown", function (e) { e.preventDefault(); try { k.setPointerCapture(e.pointerId); } catch (x) {} harmNoteOn(semi); k.classList.add("on"); });
+        k.addEventListener("pointerup", function () { harmNoteOff(semi); k.classList.remove("on"); });
+        k.addEventListener("pointercancel", function () { harmNoteOff(semi); k.classList.remove("on"); });
+        k.addEventListener("pointerleave", function () { harmNoteOff(semi); k.classList.remove("on"); });
+      });
+    }
+    var hd = el.querySelector("#vHmDrone");
+    if (hd) hd.onclick = function () {
+      var on = !S.harm.drone;
+      harmDrone(on);
+      this.textContent = on ? "⏸ Drone (सा–प)" : "▶ Drone (सा–प)";
+      this.classList.toggle("on", on);
+    };
+    var hsc = el.querySelector("#vHmScale");
+    if (hsc) hsc.onchange = function () { S.harm.sa = parseFloat(this.value); if (S.harm.drone) harmDrone(true); };
+    var hv = el.querySelector("#vHmVol");
+    if (hv) hv.oninput = function () { S.harm.vol = this.value / 100; el.querySelector("#vHmVolLbl").textContent = this.value + "%"; };
   }
 
   window.RIYAZ = { vadya: { mount: mount, state: S, ensureTick: ensureTick } };
