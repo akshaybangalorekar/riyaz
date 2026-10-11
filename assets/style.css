@@ -31,6 +31,14 @@ body{
 .sk-guru{font-size:13px;opacity:.9;flex:1 1 100%;order:3}
 @media(min-width:620px){.sk-guru{flex:0 1 auto;order:0;font-size:14px}}
 
+/* ---------- sync note (only appears when something is wrong) ---------- */
+.sk-syncnote{
+  background:linear-gradient(90deg,#4a2f12,#5a3a16);
+  color:#f7e2b6; border-bottom:1px solid #7a5320;
+  padding:10px calc(16px + var(--safe-r)) 10px calc(16px + var(--safe-l));
+  font-size:14px; line-height:1.45; text-align:center;
+}
+
 /* ---------- tabs ---------- */
 .sk-tabs{
   display:flex; gap:8px; padding:12px calc(16px + var(--safe-r)) 0 calc(16px + var(--safe-l));

@@ -944,19 +944,54 @@
     });
     return n;
   }
+  // Every message here is written to be understood by a child: say what happened,
+  // say whether anything was lost, say what happens next. No jargon, no codes alone.
+  function syncWords(key, st) {
+    if (key === "net") return "No internet right now. Your timings are safe on this device. I\u2019ll try again in a moment.";
+    if (key === "noreach") return "I can\u2019t reach the internet to check for new timings, so I\u2019m showing the timings saved on this device" +
+      (sharedCachedAt() ? " (from " + new Date(sharedCachedAt()).toLocaleString() + ")" : "") + ". I\u2019ll try again in a moment.";
+    if (key === "noread") return "I found the timings on the internet but couldn\u2019t read them, so I\u2019m showing the copy saved on this device" +
+      (sharedCachedAt() ? " (from " + new Date(sharedCachedAt()).toLocaleString() + ")" : "") + ". I\u2019ll try again in a moment.";
+    if (key === "unreadable") return "I couldn\u2019t read the timings on the internet, so I didn\u2019t save anything just now. Nothing was lost. I\u2019ll try again in a moment.";
+    if (key === "would-drop") return "I stopped saving because it would have erased some timings. Nothing was lost. I\u2019ll try again in a moment.";
+    if (key === "savefail") return "Saving didn\u2019t work" + (st ? " (error " + st + ")" : "") + ". Your timings are safe on this device. I\u2019ll try again in a moment.";
+    if (key === "notoken") return "This device can show the timings but can\u2019t save new ones.";
+    return "";
+  }
+  function activeProblem() { return state.pushProblem || state.pullProblem || null; }
+
+  // a slim note under the header, shown only when something is wrong
+  function renderSyncNote() {
+    var host = document.querySelector(".sk-head");
+    if (!host) return;
+    var el = document.getElementById("syncNote");
+    var key = activeProblem();
+    if (!key) { if (el && el.parentNode) el.parentNode.removeChild(el); return; }
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "syncNote"; el.className = "sk-syncnote"; el.setAttribute("role", "status");
+      host.parentNode.insertBefore(el, host.nextSibling);
+    }
+    var txt = syncWords(key, state.pushProblem === key ? state.pushProblemStatus : "");
+    if (el.textContent !== txt) el.textContent = txt;
+  }
+  function setSyncProblem(which, key, st) {
+    if (which === "push") { state.pushProblem = key || null; state.pushProblemStatus = key ? (st || "") : ""; }
+    else { state.pullProblem = key || null; }
+    renderSyncNote();
+    updateMarksMsg();
+  }
+
   function updateMarksMsg(res, st) {
     var p = 0, l = 0;
     try { p = +localStorage.getItem("sk_marks_pushed") || 0; l = +localStorage.getItem("sk_marks_pulled") || 0; } catch (e) {}
-    function T(x) { return x ? new Date(x).toLocaleTimeString() : "\u2014"; }
+    function T(x) { return x ? new Date(x).toLocaleTimeString() : "not yet"; }
     var el = $("#setStatus");
     if (!el) return;
-    var bits = [marksCount() + " lines marked", "loaded " + T(l), "saved " + T(p), getToken() ? "GitHub connected" : "no token"];
-    if (state.pullFailed) bits.push("\u26a0 could not reach GitHub \u2014 showing the copy saved on this device" + (sharedCachedAt() ? " on " + new Date(sharedCachedAt()).toLocaleString() : ""));
-    if (res === "fail") bits.push("\u26a0 save failed" + (st ? " (HTTP " + st + ")" : ""));
-    else if (res === "net") bits.push("\u26a0 save failed (offline?)");
-    else if (res === "unreadable") bits.push("\u26a0 save blocked \u2014 could not read the server copy, so nothing was overwritten. Your marks are safe; retrying.");
-    else if (res === "would-drop") bits.push("\u26a0 save blocked \u2014 it would have removed saved lines (" + st + "). Nothing was written; retrying.");
-    el.textContent = bits.join(" \u00b7 ");
+    var key = activeProblem();
+    if (key) { el.textContent = "\u26a0 " + syncWords(key, state.pushProblemStatus); return; }
+    if (!getToken()) { el.textContent = "This device can show the timings but can\u2019t save new ones. Last checked " + T(l) + "."; return; }
+    el.textContent = "\u2713 All good \u2014 " + marksCount() + " timings saved, and every device has them. Last checked " + T(l) + " \u00b7 last saved " + T(p) + ".";
   }
 
   // GET marks.json from GitHub -> { sha, data }
@@ -1009,7 +1044,12 @@
     pushMarks(function (r, st) {
       pushing = false;
       if (r === "ok") dirty = false; else schedulePush(8000);
-      updateMarksMsg(r, st);
+      setSyncProblem("push", r === "ok" ? null
+        : r === "net" ? "net"
+        : r === "unreadable" ? "unreadable"
+        : r === "would-drop" ? "would-drop"
+        : r === "fail" ? "savefail"
+        : null, st);
     });
   }
   function autoSaveTick() { saveAllLocal(); updateMarksMsg(); flushPush(); }
@@ -1032,8 +1072,9 @@
   }
   function pullMarks(cb) {
     var tok = getToken();
+    var badRead = false;
     var p = tok
-      ? ghGet(tok).then(function (cur) { return cur.data; })
+      ? ghGet(tok).then(function (cur) { if (!cur.ok) { badRead = true; return null; } return cur.data; })
       : Promise.all([
           fetchPublic("marks.json?t=" + Date.now()),
           fetchPublic("https://raw.githubusercontent.com/akshaybangalorekar/riyaz/main/marks.json?t=" + Date.now())
@@ -1044,15 +1085,22 @@
           return marksFreshness(a) >= marksFreshness(b) ? a : b;
         });
     p.then(function (j) {
-      if (j === null || typeof j !== "object") { state.pullFailed = true; updateMarksMsg(); if (cb) cb("fail"); retryPull(); return; }
+      if (j === null || typeof j !== "object") { state.pullFailed = true; setSyncProblem("pull", badRead ? "noread" : "noreach"); if (cb) cb("fail"); retryPull(); return; }
       state.sharedMarks = normalizeAll(j);
       saveSharedCache();
-      state.pullFailed = false;
       try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
-      if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
+      // Redraw the open lesson with the marks we just loaded. This used to call an
+      // undefined helper, which threw - so the marks arrived but the page was never
+      // redrawn (no timings on screen) and the failure was reported as "no internet".
+      try {
+        if (state.lessonId && GROUPS.indexOf(state.group) >= 0 && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
+      } catch (e) {}
+      state.pullFailed = false;
+      pullTries = 0;
+      setSyncProblem("pull", null);
       updateMarksMsg();
       if (cb) cb("ok");
-    }).catch(function () { state.pullFailed = true; updateMarksMsg(); if (cb) cb("fail"); retryPull(); });
+    }).catch(function () { state.pullFailed = true; setSyncProblem("pull", "noreach"); if (cb) cb("fail"); retryPull(); });
   }
   var pullTries = 0;
   function retryPull() {
@@ -1156,6 +1204,7 @@
   favLoad();
   loadAllLocal();
   loadSharedCache();
+  renderSyncNote();
   renderTabs();
   pullMarks();
   favPull();
