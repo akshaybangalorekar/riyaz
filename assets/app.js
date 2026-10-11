@@ -22,7 +22,10 @@
     cleared: {},       // lessons whose marks were cleared in this session
     raagSect: null,    // which part of a raag is showing (aaroh / mukt / …)
     raagOpen: {},      // which raags are expanded in the rail
-    fav: []            // favourites: { id, m, sect, line } in the order you lined them up
+    fav: [],           // favourites: { id, m, sect, line } in the order you lined them up
+    favAt: 0,          // when the list was last changed (for cross-device sync)
+    playingLine: -1,   // which line the play button is currently running
+    lineBtns: {}       // lineIndex -> its play button
   };
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -81,10 +84,51 @@
 
   /* ---------- favourites (the programme line-up) ---------- */
   function favKey(e) { return e.id + "|" + (e.sect || "") + "|" + e.line; }
+  var FAVS = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/favs.json";
   function favLoad() {
-    try { state.fav = JSON.parse(localStorage.getItem("sk_fav") || "[]") || []; } catch (e) { state.fav = []; }
+    try {
+      var raw = JSON.parse(localStorage.getItem("sk_fav") || "null");
+      if (raw && raw.list) { state.fav = raw.list || []; state.favAt = raw.at || 0; }
+      else if (Array.isArray(raw)) { state.fav = raw; state.favAt = 0; }
+      else { state.fav = []; state.favAt = 0; }
+    } catch (e) { state.fav = []; state.favAt = 0; }
   }
-  function favSave() { try { localStorage.setItem("sk_fav", JSON.stringify(state.fav)); } catch (e) {} }
+  function favWriteLocal() {
+    try { localStorage.setItem("sk_fav", JSON.stringify({ at: state.favAt, list: state.fav })); } catch (e) {}
+  }
+  function favSave() { state.favAt = Date.now(); favWriteLocal(); favSchedulePush(); }
+  var favTimer = 0;
+  function favSchedulePush() {
+    if (!getToken() || favTimer) return;
+    favTimer = setTimeout(function () { favTimer = 0; favPush(); }, 2500);
+  }
+  function favPush(cb) {
+    var tok = getToken();
+    if (!tok) { if (cb) cb("no-token"); return; }
+    ghGet(tok, FAVS).then(function (cur) {
+      var body = { message: "Update favourites", branch: "main",
+        content: b64(JSON.stringify({ at: state.favAt || Date.now(), list: state.fav }, null, 1)) };
+      if (cur.sha) body.sha = cur.sha;
+      var h = ghHdr(tok); h["Content-Type"] = "application/json";
+      return fetch(FAVS, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
+    }).then(function (r) { if (cb) cb(r && r.ok ? "ok" : "fail"); })
+      .catch(function () { if (cb) cb("net"); });
+  }
+  function favPull(cb) {
+    var tok = getToken();
+    var p = tok ? ghGet(tok, FAVS).then(function (c) { return c.data; })
+                : fetchPublic("favs.json?t=" + Date.now());
+    p.then(function (j) {
+      if (!j || typeof j !== "object" || !j.list) { if (cb) cb("fail"); return; }
+      if ((j.at || 0) > (state.favAt || 0)) {          // the other device has the newer list
+        state.fav = j.list || []; state.favAt = j.at || 0;
+        favWriteLocal();
+        renderList();
+        if (state.group === "Favourites") renderFavStage();
+      }
+      if (cb) cb("ok");
+    }).catch(function () { if (cb) cb("fail"); });
+  }
   function favIdx(id, sect, line) {
     var k = id + "|" + (sect || "") + "|" + line;
     for (var i = 0; i < state.fav.length; i++) if (favKey(state.fav[i]) === k) return i;
@@ -469,7 +513,7 @@
     // stop button — above the notation so it stays on screen even on long lessons
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
-        (l.group === "Alankar" ? "" : '<button class="sk-btn stop" id="btnStop" type="button">■ Stop</button>') +
+        
         (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>▶</b> to play a line · <b>■</b> to stop · <b>⏱</b> to set its start.</span>') +
         "</div>";
     }
@@ -498,7 +542,6 @@
     });
 
     renderPlayer(l);
-    var sb = $("#btnStop"); if (sb) sb.onclick = stopPlayback;
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
   }
 
@@ -577,8 +620,9 @@
         si++;
         if (si < srcs.length) { au.src = srcs[si]; au.load(); }
       });
-      au.addEventListener("play", function () { ensureLoop(); });
-      au.addEventListener("ended", function () { state.segPlay = null; clearLineHL(); });
+      au.addEventListener("play", function () { ensureLoop(); syncLineBtns(); });
+      au.addEventListener("pause", function () { syncLineBtns(); });
+      au.addEventListener("ended", function () { state.segPlay = null; clearLineHL(); state.playingLine = -1; syncLineBtns(); });
       /* compact player */
       var playBtn = $("#plPlay"), fill = $("#plFill"), timeEl = $("#plTime"), track = $("#plTrack"), bar = track.firstChild;
       function upd() {
@@ -612,6 +656,7 @@
     var box = $("#notation");
     if (!box) return;
     box.innerHTML = "";
+    state.lineBtns = {};
     var curIsVideo = (l.media[state.mediaIdx] || {}).kind === "video";
     var secKey = (l.group === "Raag" && state.raagSect) ? state.raagSect : null;
     l.lines.forEach(function (line, li) {
@@ -623,21 +668,15 @@
       var ctl = document.createElement("span");
       ctl.className = "ln-ctl";
       var pb = document.createElement("button");
-      pb.className = "ln-btn"; pb.type = "button"; pb.textContent = "▶";
-      pb.title = "Play just this line";
-      pb.onclick = function () { playLine(li); };
+      pb.className = "ln-btn playb"; pb.type = "button"; pb.textContent = "▶";
+      pb.title = "Play or pause this line";
+      pb.onclick = function () { toggleLine(li); };
+      state.lineBtns[li] = pb;
       var mb = document.createElement("button");
       mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
       mb.title = "Set this line's start at the current position";
       mb.onclick = function () { markLine(li); };
       ctl.appendChild(pb);
-      if (l.group === "Alankar") {          // per-row stop, for alankar only
-        var sb2 = document.createElement("button");
-        sb2.className = "ln-btn stopb"; sb2.type = "button"; sb2.textContent = "■";
-        sb2.title = "Stop";
-        sb2.onclick = function () { stopPlayback(); };
-        ctl.appendChild(sb2);
-      }
       ctl.appendChild(mb);
       var sunb = document.createElement("button");
       sunb.className = "ln-btn sunb" + (favHas(l.id, secKey, li) ? " on" : "");
@@ -799,12 +838,33 @@
     var r = state.lineRows[li];
     if (r) { r.classList.add("playing"); if (r.scrollIntoView) r.scrollIntoView({ block: "center", behavior: "smooth" }); }
   }
+  function syncLineBtns() {
+    var au = state.audio;
+    Object.keys(state.lineBtns).forEach(function (k) {
+      var b = state.lineBtns[k]; if (!b) return;
+      var playing = (state.playingLine === +k && au && !au.paused);
+      b.textContent = playing ? "\u275a\u275a" : "▶";
+      b.classList.toggle("on", !!playing);
+    });
+  }
+  function toggleLine(li) {
+    var au = state.audio;
+    if (state.playingLine === li && au) {          // same line: pause, or resume where it stopped
+      if (au.paused) au.play().catch(function () {});
+      else au.pause();
+      syncLineBtns();
+      return;
+    }
+    playLine(li);
+  }
   function playLine(li) {
     var l = lesson(state.lessonId); if (!l) return;
+    state.playingLine = li;
     var s = segsOf()[li];
     if (!s) {  // not marked yet -> play the whole current track
       if (state.audio) { state.segPlay = null; state.audio.currentTime = 0; ensureLoop(); state.audio.play().catch(function () {}); }
       highlightLine(li);
+      syncLineBtns();
       return;
     }
     startSeg(li);
@@ -817,6 +877,7 @@
     ensureLoop();
     au.play().catch(function () {});
     highlightLine(li);
+    syncLineBtns();
   }
 
   function mkMsg(t) { var e = $("#mkMsg"); if (e) e.textContent = t || ""; }
@@ -889,8 +950,8 @@
   }
 
   // GET marks.json from GitHub -> { sha, data }
-  function ghGet(tok) {
-    return fetch(GH + "?t=" + Date.now(), { cache: "no-store", headers: ghHdr(tok) }).then(function (r) {
+  function ghGet(tok, url) {
+    return fetch((url || GH) + "?t=" + Date.now(), { cache: "no-store", headers: ghHdr(tok) }).then(function (r) {
       if (r.status === 404) return { sha: null, data: {} };
       if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; }
       return r.json().then(function (j) {
@@ -1069,13 +1130,15 @@
     if (tm) { state.vadyaOpen = true; }
   })();
   favLoad();
+  favLoad();
   loadAllLocal();
   renderTabs();
   pullMarks();
+  favPull();
   setInterval(autoSaveTick, 60000);    // background save + push every minute
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden") { saveAllLocal(); flushPush(); }
-    else { pullMarks(); }
+    if (document.visibilityState === "hidden") { saveAllLocal(); flushPush(); favPush(); }
+    else { pullMarks(); favPull(); }
   });
   window.addEventListener("pagehide", function () { saveAllLocal(); flushPush(); });
   window.addEventListener("online", function () { flushPush(); });
