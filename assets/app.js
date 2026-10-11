@@ -104,6 +104,7 @@
     if (!l) return;
     stopAll();
     state.lessonId = id; state.mediaIdx = 0;
+    for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
     renderList();
     renderStage(l);
@@ -117,8 +118,10 @@
     // media tabs
     if (l.media.length > 1) {
       html += '<div class="sk-mediatabs">' + l.media.map(function (m, i) {
+        var nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
+        if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
         return '<button class="sk-mtab' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">' +
-          (m.kind === "video" ? "🎬 " : "🎧 ") + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + "</button>";
+          (m.kind === "video" ? "🎬 " : "🎧 ") + nm + "</button>";
       }).join("") + "</div>";
     }
     html += '<div class="sk-player" id="player"></div>';
@@ -158,6 +161,7 @@
     var m = l.media[state.mediaIdx];
     var p = $("#player");
     if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
+    if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>' +
         '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";

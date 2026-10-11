@@ -282,3 +282,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-banner.vadya .sp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
 .sk-banner.vadya .sp-keys{position:relative;display:flex;min-width:660px;height:132px;
   background:#0e0b08;border-radius:10px;overflow:hidden;touch-action:manipulation;user-select:none}
+
+/* ---------- missing media tag ---------- */
+.sk-mtab.miss{opacity:.92}
+.sk-mtag{display:inline-block;margin-left:5px;padding:1px 7px;border-radius:999px;
+  font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+  background:rgba(232,166,62,.16);color:var(--saffron);border:1px solid rgba(232,166,62,.4)}
+.sk-missing{margin-top:8px;padding:11px 13px;border-radius:10px;font-size:14px;line-height:1.45;
+  background:rgba(232,166,62,.10);border:1px solid rgba(232,166,62,.3);color:var(--gold)}
