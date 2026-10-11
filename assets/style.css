@@ -2,7 +2,6 @@
   --bg:#15110f; --bg2:#1b1512; --panel:#221b17; --panel2:#2a221d;
   --line:#3b2f26; --ink:#f4eadc; --dim:#ab9a85;
   --maroon:#8f2b2b; --maroon2:#651c1c; --saffron:#e8a63e; --gold:#d9a441;
-  --cur-bg:#e8a63e; --cur-ink:#20160d;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-l:env(safe-area-inset-left,0px);
@@ -133,13 +132,6 @@ body{
   font-size:.5em; color:var(--saffron)}
 .sk-sw.octm::after{content:"•"; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%);
   font-size:.5em; color:var(--saffron)}
-.sk-sw.done{background:#2c221a}
-.sk-sw.done::before{content:""; position:absolute; left:6px; right:6px; bottom:2px; height:2px;
-  background:var(--gold); border-radius:2px}
-.sk-sw.cur{background:var(--cur-bg); color:var(--cur-ink); font-weight:700}
-.sk-sw.cur::before{content:""; position:absolute; left:4px; right:4px; bottom:1px; height:4px;
-  background:#20160d; border-radius:3px; animation:run .5s linear infinite}
-@keyframes run{from{opacity:.5} to{opacity:1}}
 .sk-sep{display:inline-block; padding:1px 6px; color:var(--dim); font-weight:700}
 
 /* ---------- footer ---------- */
@@ -302,8 +294,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 
 /* ---------- alternating group colours (alankar cells) ---------- */
 :root{--alt:#8fc9bd}
-.sk-sw.grpA:not(.cur){color:var(--ink)}
-.sk-sw.grpB:not(.cur){color:var(--alt)}
+.sk-sw.grpA{color:var(--ink)}
+.sk-sw.grpB{color:var(--alt)}
 .sk-sw.gstart{margin-left:5px}
 
 /* keep a video lesson on one screen: cap the player by viewport height */
@@ -338,3 +330,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 }
 .rail-tab:hover, .rail-tab:focus-visible{background:var(--saffron); color:#20160d}
 @media(max-width:780px){ .rail-tab{top:auto; bottom:calc(18px + var(--safe-b)); transform:none} }
+
+/* grouped rail: plain full-width rows inside a section */
+.sk-list.sections .sk-item{width:100%; text-align:left}
+@media(max-width:780px){
+  .sk-list.sections .sk-item{width:100%; text-align:left; border-radius:10px; white-space:normal}
+}

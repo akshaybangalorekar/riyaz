@@ -1,6 +1,6 @@
 /* Riyaz — Gurukool sargam practice
    Notation (Devanagari) + audio from Google Drive + a moving underline
-   that follows the audio at a tempo the learner sets (tap-tempo or slider). */
+   and per-line timings you set by ear with the stopwatch button. */
 (function () {
   "use strict";
   var D = window.SANGEET || { lessons: [] };
@@ -11,13 +11,7 @@
     group: localStorage.getItem("sk_group") || "Alankar",
     lessonId: localStorage.getItem("sk_lesson") || null,
     mediaIdx: 0,
-    swaras: [],      // {el, line}
     cur: -1,
-    follow: false,
-    speed: 2.0,      // swaras per second
-    baseT: 0,
-    baseI: 0,
-    tap: [],
     raf: 0,
     audio: null,
     segments: {},     // lessonId -> { lineIndex: {track, t} }   (local overrides)
@@ -112,6 +106,26 @@
       });
       return;
     }
+    if (state.group === "Taal") {
+      el.classList.add("sections");
+      var order = [], groups = {};
+      lessonsOf("Taal").forEach(function (l) {
+        var k = l.taal || "Taal";
+        if (!groups[k]) { groups[k] = []; order.push(k); }
+        groups[k].push(l);
+      });
+      el.innerHTML = order.map(function (k) {
+        return '<div class="sk-sec"><div class="sk-sec-h">' + esc(k) + '</div>' +
+          groups[k].map(function (l) {
+            return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
+              esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
+          }).join("") + "</div>";
+      }).join("");
+      Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
+        b.onclick = function () { open(b.dataset.id); setRail(true); };
+      });
+      return;
+    }
     el.classList.remove("sections");
     el.innerHTML = lessonsOf(state.group).map(function (l) {
       return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
@@ -129,7 +143,6 @@
     if (state.raf) cancelAnimationFrame(state.raf);
     state.raf = 0;
     if (state.audio) { try { state.audio.pause(); } catch (e) {} state.audio = null; }
-    state.follow = false; state.swaras = []; state.cur = -1; state.tap = [];
     state.segPlay = null; state.lineRows = [];
   }
 
@@ -162,10 +175,12 @@
     var html = '<div class="sk-h1">' + esc(l.title) + "</div>";
     if (l.sub) html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";
 
-    // media tabs
-    if (l.media.length > 1) {
-      html += '<div class="sk-mediatabs">' + l.media.map(function (m, i) {
-        var nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
+    // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
+    var tabMs = [];
+    l.media.forEach(function (m, i) { if (!(l.group === "Alankar" && m.kind !== "video")) tabMs.push({ m: m, i: i }); });
+    if (tabMs.length > 1) {
+      html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
+        var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
         return '<button class="sk-mtab' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">' +
           (m.kind === "video" ? "🎬 " : "🎧 ") + nm + "</button>";
@@ -187,12 +202,8 @@
     if (l.lines && l.lines.length && !curVideo) {
       if (!bareLesson) {
         html += '<div class="sk-controls">' +
-          '<button class="sk-btn" id="btnFollow">▶ Follow line</button>' +
-          '<button class="sk-btn tap" id="btnTap">Tap tempo</button>' +
-          '<button class="sk-btn" id="btnNext">Next ›</button>' +
-          '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat</button>' +
+          '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat line</button>' +
           '<button class="sk-btn" id="btnClear">Clear marks</button>' +
-          '<div class="sk-ctl"><label>Speed</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' notes/s</span></div>' +
           '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
           "</div>";
       }
@@ -235,9 +246,8 @@
         si++;
         if (si < srcs.length) { au.src = srcs[si]; au.load(); }
       });
-      au.addEventListener("play", function () { ensureLoop(); startFollowBase(); });
-      au.addEventListener("seeked", function () { startFollowBase(); });
-      au.addEventListener("ended", function () { state.follow = false; state.segPlay = null; clearLineHL(); syncBtn(); });
+      au.addEventListener("play", function () { ensureLoop(); });
+      au.addEventListener("ended", function () { state.segPlay = null; clearLineHL(); });
       /* compact player */
       var playBtn = $("#plPlay"), fill = $("#plFill"), timeEl = $("#plTime"), track = $("#plTrack"), bar = track.firstChild;
       function upd() {
@@ -270,7 +280,6 @@
   function renderNotation(l) {
     var box = $("#notation");
     box.innerHTML = "";
-    state.swaras = [];
     var curIsVideo = (l.media[state.mediaIdx] || {}).kind === "video";
     l.lines.forEach(function (line, li) {
       if (line.onlyVideo && !curIsVideo) return;
@@ -315,10 +324,6 @@
           }
           noteN++;
           sw.textContent = tk.t;
-          var idx = state.swaras.length;
-          sw.dataset.i = idx;
-          sw.onclick = function () { setCur(idx); };
-          state.swaras.push({ el: sw, line: li });
           row.appendChild(sw);
         }
       });
@@ -327,30 +332,6 @@
   }
 
   function wireControls(l) {
-    var bf = $("#btnFollow");
-    bf.onclick = function () {
-      state.follow = !state.follow;
-      if (state.follow && state.audio && state.audio.paused) state.audio.play().catch(function(){});
-      startFollowBase();
-      syncBtn();
-    };
-    $("#btnTap").onclick = function () {
-      var now = performance.now();
-      state.tap.push(now);
-      if (state.tap.length > 5) state.tap.shift();
-      if (state.tap.length >= 2) {
-        var iv = [];
-        for (var i = 1; i < state.tap.length; i++) iv.push(state.tap[i] - state.tap[i - 1]);
-        var avg = iv.reduce(function (a, b) { return a + b; }, 0) / iv.length;
-        if (avg > 80) {
-          state.speed = Math.max(0.5, Math.min(6, 1000 / avg));
-          $("#rngSpeed").value = state.speed;
-          $("#lblSpeed").textContent = state.speed.toFixed(1) + " notes/s";
-          startFollowBase();
-        }
-      }
-    };
-    $("#btnNext").onclick = function () { setCur(state.cur + 1); startFollowBase(); };
     var bl = $("#btnLoop");
     if (bl) bl.onclick = function () {
       state.segLoop = !state.segLoop; this.classList.toggle("on", state.segLoop);
@@ -365,44 +346,15 @@
       schedulePush();
     };
     updateMarksMsg();
-    $("#rngSpeed").oninput = function () {
-      state.speed = +this.value;
-      $("#lblSpeed").textContent = state.speed.toFixed(1) + " notes/s";
-      startFollowBase();
-    };
-    $("#rngRate").oninput = function () {
+    var rr = $("#rngRate");
+    if (rr) rr.oninput = function () {
       var r = +this.value;
       $("#lblRate").textContent = r.toFixed(2) + "×";
       if (state.audio) state.audio.playbackRate = r;
-      startFollowBase();
     };
   }
 
-  function syncBtn() {
-    var bf = $("#btnFollow");
-    if (!bf) return;
-    bf.classList.toggle("on", state.follow);
-    bf.textContent = state.follow ? "⏸ Stop follow" : "▶ Follow line";
-  }
-
-  /* ---------- the moving underline ---------- */
-  function setCur(i) {
-    var n = state.swaras.length;
-    if (!n) return;
-    i = ((i % n) + n) % n;
-    state.cur = i;
-    for (var k = 0; k < n; k++) {
-      var el = state.swaras[k].el;
-      el.classList.toggle("done", state.follow ? k < i : (k < i));
-      el.classList.toggle("cur", k === i);
-    }
-    var cur = state.swaras[i].el;
-    if (cur && cur.scrollIntoView) {
-      var r = cur.getBoundingClientRect();
-      if (r.top < 80 || r.bottom > window.innerHeight - 60)
-        cur.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }  /* ---------- per-line segments (listen to one line at a time) ---------- */
+  /* ---------- per-line segments (listen to one line at a time) ---------- */
   function fmtTime(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
   /* Marks are stored per audio file, because every recording has its own
      timeline:  marks[lesson][track][line] = { t, at }   (track 0 = Komal, 1 = Shuddha …)
@@ -738,12 +690,6 @@
   }
 
   function ensureLoop() { if (!state.raf) loop(); }
-  function startFollowBase() {
-    if (!state.audio) return;
-    state.baseT = state.audio.currentTime;
-    state.baseI = state.cur < 0 ? 0 : state.cur;
-    ensureLoop();
-  }
   function loop() {
     state.raf = requestAnimationFrame(loop);
     var au = state.audio; if (!au) return;
@@ -755,13 +701,6 @@
         if (sp.loop) { try { au.currentTime = sp.start; } catch (e) {} }
         else { au.pause(); state.segPlay = null; clearLineHL(); }
       }
-    }
-    // follow underline
-    if (state.follow && state.swaras.length) {
-      var n = state.swaras.length;
-      var adv = Math.floor((t - state.baseT) * state.speed);
-      var idx = ((state.baseI + adv) % n + n) % n;
-      if (idx !== state.cur) setCur(idx);
     }
   }
 
