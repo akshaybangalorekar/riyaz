@@ -249,3 +249,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   .set-actions .sk-btn{flex:1 1 46%;text-align:center}
   .sk-modal-box{padding:15px}
 }
+
+/* ---------- settings banner (top, not a page) ---------- */
+.sk-banner{display:none;background:var(--panel2);border-bottom:1px solid var(--line);
+  padding:14px calc(16px + var(--safe-r)) 14px calc(16px + var(--safe-l));
+  box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.sk-banner.on{display:block}
+.sk-banner-in{max-width:760px;margin:0 auto}
+.sk-banner .set-actions{margin-bottom:8px}

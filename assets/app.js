@@ -157,8 +157,7 @@
         '<div class="sk-ctl"><label>गति</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' स्वर/से.</span></div>' +
         '<div class="sk-ctl"><label>आवाज़</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>" +
-        '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>' +
-        '<div class="marks-bar"><span class="mk-msg" id="mkMsg"></span></div>';
+        '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>';
     }
     s.innerHTML = html;
 
@@ -450,13 +449,11 @@
     return n;
   }
   function updateMarksMsg() {
-    var t = 0, p = 0;
-    try { t = +localStorage.getItem("sk_marks_saved") || 0; p = +localStorage.getItem("sk_marks_pushed") || 0; } catch (e) {}
-    var when = t ? new Date(t).toLocaleTimeString() : "—";
-    mkMsg(marksCount() + " पंक्तियाँ चिह्नित · सहेजा गया " + when);
+    var t = 0, p = 0, l = 0;
+    try { t = +localStorage.getItem("sk_marks_saved") || 0; p = +localStorage.getItem("sk_marks_pushed") || 0; l = +localStorage.getItem("sk_marks_pulled") || 0; } catch (e) {}
+    function T(x) { return x ? new Date(x).toLocaleTimeString() : "—"; }
     var s = $("#setStatus");
-    if (s) s.textContent = marksCount() + " पंक्तियाँ · " + when +
-      (getToken() ? (" · GitHub जुड़ा" + (p ? " (" + new Date(p).toLocaleTimeString() + ")" : "")) : " · टोकन नहीं डाला");
+    if (s) s.textContent = marksCount() + " पंक्तियाँ · अंतिम लोड " + T(l) + " · अंतिम सहेजा " + T(p) + " · " + (getToken() ? "GitHub जुड़ा" : "टोकन नहीं डाला");
   }
   function pushMarks(cb) {
     var tok = getToken();
@@ -482,51 +479,40 @@
     saveAllLocal(); updateMarksMsg();
     if (getToken()) pushMarks(function () { updateMarksMsg(); });
   }
-  function downloadMarks() {
-    var blob = new Blob([JSON.stringify(allMarks(), null, 1)], { type: "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "marks.json";
-    document.body.appendChild(a); a.click(); a.remove();
-  }
-  function importMarks() {
-    var inp = this, f = inp.files && inp.files[0]; if (!f) return;
-    var fr = new FileReader();
-    fr.onload = function () {
-      try {
-        var j = JSON.parse(fr.result) || {};
-        Object.keys(j).forEach(function (k) {
-          state.segments[k] = state.segments[k] || {};
-          Object.keys(j[k]).forEach(function (i) { state.segments[k][i] = j[k][i]; });
-        });
-        saveAllLocal();
-        var m = $("#setMsg"); if (m) m.textContent = "चिह्न लोड हो गए";
-        updateMarksMsg();
+  function pullMarks(cb) {
+    var tok = getToken();
+    var opts = { cache: "no-store" };
+    var url;
+    if (tok) { url = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/marks.json?t=" + Date.now(); opts.headers = { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github.raw" }; }
+    else { url = "marks.json?t=" + Date.now(); }
+    fetch(url, opts)
+      .then(function (r) { if (!r.ok) throw new Error("http"); return r.text(); })
+      .then(function (txt) {
+        var j = {}; try { j = JSON.parse(txt) || {}; } catch (e) { j = {}; }
+        state.sharedMarks = j;
+        try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
         if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
-      } catch (e) { var m2 = $("#setMsg"); if (m2) m2.textContent = "फ़ाइल पढ़ी नहीं गई"; }
-    };
-    fr.readAsText(f);
+        updateMarksMsg();
+        if (cb) cb("ok");
+      })
+      .catch(function () { updateMarksMsg(); if (cb) cb("fail"); });
   }
-  function closeSettings() { var m = $("#skModal"); if (m) m.classList.remove("on"); }
+  function closeSettings() { var m = $("#skSettings"); if (m) m.classList.remove("on"); }
   function openSettings() {
-    var box = $("#skModalBox"); if (!box) return;
+    var box = $("#skSettingsBox"); if (!box) return;
     box.innerHTML =
       '<div class="set-h">सेटिंग</div>' +
-      '<div class="set-lab">GitHub token</div>' +
+      '<div class="set-lab">GitHub token — सिर्फ़ इस ब्राउज़र में रहता है</div>' +
       '<input id="setToken" class="set-input" type="password" autocomplete="off" placeholder="github_pat_…">' +
       '<div class="set-actions">' +
         '<button class="sk-btn" id="setSave">सहेजें</button>' +
         '<button class="sk-btn" id="setClear">हटाएँ</button>' +
-        '<button class="sk-btn" id="setSync">अभी सिंक करें</button>' +
+        '<button class="sk-btn" id="setClose">बंद करें</button>' +
       '</div>' +
       '<div class="set-msg" id="setMsg"></div>' +
-      '<p class="set-note">टोकन सिर्फ़ इस ब्राउज़र में रहता है — GitHub के अलावा कहीं नहीं भेजा जाता। स्कोप रखें: केवल <b>riyaz</b> रेपो, अनुमति <b>Contents: Read and write</b>।</p>' +
-      '<p class="set-note">चिह्न स्थिति: <span id="setStatus"></span></p>' +
-      '<div class="set-actions">' +
-        '<button class="sk-btn" id="setDl">चिह्न डाउनलोड</button>' +
-        '<label class="sk-btn" style="cursor:pointer">चिह्न लोड<input id="setFile" type="file" accept="application/json,.json" style="display:none"></label>' +
-        '<button class="sk-btn" id="setClose">बंद करें</button>' +
-      '</div>';
-    var m = $("#skModal"); if (m) m.classList.add("on");
+      '<p class="set-note">स्कोप: केवल <b>riyaz</b> रेपो, अनुमति <b>Contents: Read and write</b>। लोड करना और सहेजना अपने-आप होता है — और कुछ नहीं करना है।</p>' +
+      '<p class="set-note">स्थिति: <span id="setStatus"></span></p>';
+    var m = $("#skSettings"); if (m) m.classList.add("on");
     var ti = $("#setToken");
     if (getToken()) ti.placeholder = "टोकन सहेजा हुआ है (बदलने के लिए नया डालें)";
     $("#setSave").onclick = function () {
@@ -534,20 +520,16 @@
       if (!v) { $("#setMsg").textContent = "पहले टोकन डालें"; return; }
       try { localStorage.setItem("sk_gh_token", v); } catch (e) {}
       ti.value = ""; ti.placeholder = "टोकन सहेजा हुआ है";
-      $("#setMsg").textContent = "जाँचा जा रहा है…";
-      pushMarks(function (r) {
-        $("#setMsg").textContent = r === "ok" ? "टोकन ठीक — चिह्न GitHub पर सहेजे गए"
-          : (r === "no-token" ? "टोकन डालें" : "सिंक असफल — टोकन की अनुमति (Contents: Read and write) जाँचें");
-        updateMarksMsg();
+      $("#setMsg").textContent = "GitHub से ताज़ा चिह्न लाए जा रहे हैं…";
+      pullMarks(function () {
+        pushMarks(function (r) {
+          $("#setMsg").textContent = r === "ok" ? "जुड़ गया — अब हर बदलाव अपने-आप सहेजा जाएगा"
+            : "सहेजना असफल — टोकन की अनुमति (Contents: Read and write) जाँचें";
+          updateMarksMsg();
+        });
       });
     };
     $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "टोकन हटा दिया"; updateMarksMsg(); };
-    $("#setSync").onclick = function () {
-      $("#setMsg").textContent = "सिंक हो रहा है…";
-      pushMarks(function (r) { $("#setMsg").textContent = r === "ok" ? "सिंक हो गया" : (r === "no-token" ? "पहले टोकन डालें" : "सिंक असफल"); updateMarksMsg(); });
-    };
-    $("#setDl").onclick = downloadMarks;
-    $("#setFile").onchange = importMarks;
     $("#setClose").onclick = closeSettings;
     updateMarksMsg();
   }
@@ -590,12 +572,14 @@
     if (tm) { var tn = decodeURIComponent(tm[1]); var tl = TOOLS.filter(function (x) { return x.id === tn || x.name === tn; })[0]; if (tl) state.group = tl.name; }
   })();
   renderTabs();
-  loadSharedMarks();
+  pullMarks();
   setInterval(autoSaveTick, 300000);   // background save every 5 minutes
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") autoSaveTick(); });
-  var gear = $("#btnSettings"); if (gear) gear.onclick = openSettings;
+  var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
+    var b = $("#skSettings");
+    if (b && b.classList.contains("on")) closeSettings(); else openSettings();
+  };
   if (location.hash === "#settings") openSettings();
-  var modal = $("#skModal"); if (modal) modal.onclick = function (e) { if (e.target === this) closeSettings(); };
   if (isTool(state.group)) {
     showTool(state.group);
   } else {
