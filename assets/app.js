@@ -5,9 +5,7 @@
   "use strict";
   var D = window.SANGEET || { lessons: [] };
   var GROUPS = ["Alankar", "Taal", "Raag"];
-  var TOOLS = (window.RIYAZ && window.RIYAZ.tools) || [];
-  var TABS = GROUPS.concat(TOOLS.map(function (t) { return t.name; }));
-  function isTool(g) { return TOOLS.some(function (t) { return t.name === g; }); }
+  var TABS = GROUPS;
 
   var state = {
     group: localStorage.getItem("sk_group") || "Alankar",
@@ -22,8 +20,7 @@
     tap: [],
     raf: 0,
     audio: null,
-    toolCleanup: null,
-    segments: {},      // lessonId -> { lineIndex: {track, t} }   (local overrides)
+    segments: {},     // lessonId -> { lineIndex: {track, t} }   (local overrides)
     segPlay: null,     // {line, start, end, loop}
     segLoop: true,
     lineRows: [],
@@ -72,7 +69,6 @@
         state.group = b.dataset.g;
         localStorage.setItem("sk_group", state.group);
         renderTabs();
-        if (isTool(state.group)) { showTool(state.group); return; }
         renderList();
         var first = lessonsOf(state.group)[0];
         if (first) open(first.id);
@@ -99,7 +95,6 @@
     if (state.raf) cancelAnimationFrame(state.raf);
     state.raf = 0;
     if (state.audio) { try { state.audio.pause(); } catch (e) {} state.audio = null; }
-    if (state.toolCleanup) { try { state.toolCleanup(); } catch (e) {} state.toolCleanup = null; }
     state.follow = false; state.swaras = []; state.cur = -1; state.tap = [];
     state.segPlay = null; state.lineRows = [];
   }
@@ -108,21 +103,10 @@
     var l = lesson(id);
     if (!l) return;
     stopAll();
-    $(".sk-main").classList.remove("tool-mode");
     state.lessonId = id; state.mediaIdx = 0;
     localStorage.setItem("sk_lesson", id);
     renderList();
     renderStage(l);
-  }
-
-  function showTool(name) {
-    stopAll();
-    var t = TOOLS.filter(function (x) { return x.name === name; })[0];
-    if (!t) return;
-    $(".sk-main").classList.add("tool-mode");
-    var stage = $("#stage");
-    stage.innerHTML = "";
-    state.toolCleanup = t.mount(stage);
   }
 
   function renderStage(l) {
@@ -569,7 +553,7 @@
     var id = m ? decodeURIComponent(m[1]) : (location.hash ? location.hash.slice(1) : "");
     if (id && lesson(id)) { state.lessonId = id; state.group = lesson(id).group; }
     var tm = /[?&]tool=([^&#]+)/.exec(location.search);
-    if (tm) { var tn = decodeURIComponent(tm[1]); var tl = TOOLS.filter(function (x) { return x.id === tn || x.name === tn; })[0]; if (tl) state.group = tl.name; }
+    if (tm) { state.vadyaOpen = true; }
   })();
   renderTabs();
   pullMarks();
@@ -580,11 +564,20 @@
     if (b && b.classList.contains("on")) closeSettings(); else openSettings();
   };
   if (location.hash === "#settings") openSettings();
-  if (isTool(state.group)) {
-    showTool(state.group);
-  } else {
-    renderList();
-    var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
-    if (start) open(start);
+  /* Vadya panel — mounted once; hiding it never stops the instruments */
+  var vbox = $("#skVadyaBox");
+  if (vbox && window.RIYAZ && window.RIYAZ.vadya) window.RIYAZ.vadya.mount(vbox);
+  var vb = $("#btnVadya");
+  function toggleVadya() {
+    var p = $("#skVadya"); if (!p) return;
+    var on = p.classList.toggle("on");
+    if (vb) vb.classList.toggle("on", on);
+    if (on) { var close = $("#skSettings"); if (close) close.classList.remove("on"); }
   }
+  if (vb) vb.onclick = toggleVadya;
+  if (/[?&]vadya=1/.test(location.search)) toggleVadya();
+  if (GROUPS.indexOf(state.group) < 0) { state.group = GROUPS[0]; }
+  renderList();
+  var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
+  if (start) open(start);
 })();
