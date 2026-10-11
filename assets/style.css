@@ -356,3 +356,12 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-small{font-size:12.5px; color:var(--dim)}
 .sk-sec-h.raag{font-family:'Baloo 2',sans-serif; font-size:17px; font-weight:800; color:var(--ink);
   text-transform:none; letter-spacing:.2px; margin:4px 4px 7px}
+
+/* ---------- per-row stop button + sticky video ---------- */
+.ln-btn.stopb{background:var(--panel2)}
+.ln-btn.stopb:hover{background:var(--maroon); color:#fff}
+.sk-player.vidstick{position:sticky; top:calc(70px + var(--safe-t)); z-index:6;
+  background:var(--panel); padding:2px 0 6px; border-radius:12px}
+.sk-file{font-size:14px; font-weight:700; color:var(--gold); background:rgba(217,164,65,.12);
+  border:1px solid rgba(217,164,65,.3); border-radius:999px; padding:2px 9px;
+  margin-left:9px; letter-spacing:.2px; white-space:nowrap; vertical-align:middle}

@@ -264,13 +264,13 @@
           (m.kind === "video" ? "🎬 " : "🎧 ") + nm + "</button>";
       }).join("") + "</div>";
     }
-    html += '<div class="sk-player" id="player"></div>';
+    html += '<div class="sk-player' + (curVideo ? " vidstick" : "") + '" id="player"></div>';
 
     // stop button — above the notation so it stays on screen even on long lessons
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
-        '<button class="sk-btn stop" id="btnStop" type="button">■ Stop</button>' +
-        (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</span>') +
+        (l.group === "Alankar" ? "" : '<button class="sk-btn stop" id="btnStop" type="button">■ Stop</button>') +
+        (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>▶</b> to play a line · <b>■</b> to stop · <b>⏱</b> to set its start.</span>') +
         "</div>";
     }
 
@@ -391,7 +391,15 @@
       mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
       mb.title = "Set this line's start at the current position";
       mb.onclick = function () { markLine(li); };
-      ctl.appendChild(pb); ctl.appendChild(mb);
+      ctl.appendChild(pb);
+      if (l.group === "Alankar") {          // per-row stop, for alankar only
+        var sb2 = document.createElement("button");
+        sb2.className = "ln-btn stopb"; sb2.type = "button"; sb2.textContent = "■";
+        sb2.title = "Stop";
+        sb2.onclick = function () { stopPlayback(); };
+        ctl.appendChild(sb2);
+      }
+      ctl.appendChild(mb);
       var seg = segsOf()[li];
       if (seg) {
         var tm = document.createElement("span");
