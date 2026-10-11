@@ -1,16 +1,16 @@
-/* संगीत-चैम्प — गुरुकूल स्वरलिपि अभ्यास
+/* Riyaz — Gurukool sargam practice
    Notation (Devanagari) + audio from Google Drive + a moving underline
    that follows the audio at a tempo the learner sets (tap-tempo or slider). */
 (function () {
   "use strict";
   var D = window.SANGEET || { lessons: [] };
-  var GROUPS = ["अलंकार", "ताल", "राग"];
+  var GROUPS = ["Alankar", "Taal", "Raag"];
   var TOOLS = (window.RIYAZ && window.RIYAZ.tools) || [];
   var TABS = GROUPS.concat(TOOLS.map(function (t) { return t.name; }));
   function isTool(g) { return TOOLS.some(function (t) { return t.name === g; }); }
 
   var state = {
-    group: localStorage.getItem("sk_group") || "अलंकार",
+    group: localStorage.getItem("sk_group") || "Alankar",
     lessonId: localStorage.getItem("sk_lesson") || null,
     mediaIdx: 0,
     swaras: [],      // {el, line}
@@ -143,21 +143,21 @@
     if (l.lines && l.lines.length) {
       html += '<div class="sk-notation" id="notation"></div>';
     } else {
-      html += '<div class="sk-dim" style="margin-top:10px">इस पाठ की लिखित स्वरलिपि नहीं है — वीडियो देखें।</div>';
+      html += '<div class="sk-dim" style="margin-top:10px">No written notation for this lesson — watch the video.</div>';
     }
 
     // controls (only if there is notation)
     if (l.lines && l.lines.length) {
       html += '<div class="sk-controls">' +
-        '<button class="sk-btn" id="btnFollow">▶ रेखा चलाओ</button>' +
-        '<button class="sk-btn tap" id="btnTap">ताल दबाएँ</button>' +
-        '<button class="sk-btn" id="btnNext">अगला ›</button>' +
-        '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">दोहराएँ</button>' +
-        '<button class="sk-btn" id="btnClear">चिह्न हटाएँ</button>' +
-        '<div class="sk-ctl"><label>गति</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' स्वर/से.</span></div>' +
-        '<div class="sk-ctl"><label>आवाज़</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
+        '<button class="sk-btn" id="btnFollow">▶ Follow line</button>' +
+        '<button class="sk-btn tap" id="btnTap">Tap tempo</button>' +
+        '<button class="sk-btn" id="btnNext">Next ›</button>' +
+        '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat</button>' +
+        '<button class="sk-btn" id="btnClear">Clear marks</button>' +
+        '<div class="sk-ctl"><label>Speed</label><input type="range" id="rngSpeed" min="0.5" max="6" step="0.1" value="' + state.speed + '"><span class="sk-rate" id="lblSpeed">' + state.speed.toFixed(1) + ' notes/s</span></div>' +
+        '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
         "</div>" +
-        '<div class="sk-hint">पंक्ति-अभ्यास: किसी पंक्ति का <b>▶</b> दबाकर सिर्फ़ वही पंक्ति सुनें। पहली बार ऑडियो चलाते समय हर पंक्ति की शुरुआत पर उस पंक्ति का <b>⏱</b> दबाएँ — फिर हर पंक्ति अलग चलेगी।</div>';
+        '<div class="sk-hint">Line practice: tap a line&rsquo;s <b>▶</b> to hear just that line. The first time, play the audio and tap <b>⏱</b> on each line as it begins — after that every line plays on its own.</div>';
     }
     s.innerHTML = html;
 
@@ -173,7 +173,7 @@
   function renderPlayer(l) {
     var m = l.media[state.mediaIdx];
     var p = $("#player");
-    if (!m) { p.innerHTML = '<div class="sk-dim">इस पाठ के लिए कोई ऑडियो/वीडियो नहीं मिला।</div>'; return; }
+    if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>' +
         '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";
@@ -181,10 +181,10 @@
       p.innerHTML =
         '<div class="pl">' +
           '<button class="pl-btn" id="plPlay" type="button" aria-label="play">▶</button>' +
-          '<button class="pl-btn sm" id="plBack" type="button">−५</button>' +
+          '<button class="pl-btn sm" id="plBack" type="button">−5</button>' +
           '<div class="pl-track" id="plTrack"><div class="pl-bar"><div class="pl-fill" id="plFill"></div></div></div>' +
           '<span class="pl-time" id="plTime">0:00 / 0:00</span>' +
-          '<button class="pl-btn sm" id="plFwd" type="button">+५</button>' +
+          '<button class="pl-btn sm" id="plFwd" type="button">+5</button>' +
         "</div>" +
         '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
         '<div class="sk-dim">🎧 ' + esc(m.name) + "</div>";
@@ -239,11 +239,11 @@
       ctl.className = "ln-ctl";
       var pb = document.createElement("button");
       pb.className = "ln-btn"; pb.type = "button"; pb.textContent = "▶";
-      pb.title = "सिर्फ़ यह पंक्ति सुनें";
+      pb.title = "Play just this line";
       pb.onclick = function () { playLine(li); };
       var mb = document.createElement("button");
       mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
-      mb.title = "अभी की जगह = इस पंक्ति की शुरुआत";
+      mb.title = "Set this line's start at the current position";
       mb.onclick = function () { markLine(li); };
       ctl.appendChild(pb); ctl.appendChild(mb);
       var seg = segsOf()[li];
@@ -297,7 +297,7 @@
         if (avg > 80) {
           state.speed = Math.max(0.5, Math.min(6, 1000 / avg));
           $("#rngSpeed").value = state.speed;
-          $("#lblSpeed").textContent = state.speed.toFixed(1) + " स्वर/से.";
+          $("#lblSpeed").textContent = state.speed.toFixed(1) + " notes/s";
           startFollowBase();
         }
       }
@@ -317,7 +317,7 @@
     updateMarksMsg();
     $("#rngSpeed").oninput = function () {
       state.speed = +this.value;
-      $("#lblSpeed").textContent = state.speed.toFixed(1) + " स्वर/से.";
+      $("#lblSpeed").textContent = state.speed.toFixed(1) + " notes/s";
       startFollowBase();
     };
     $("#rngRate").oninput = function () {
@@ -332,7 +332,7 @@
     var bf = $("#btnFollow");
     if (!bf) return;
     bf.classList.toggle("on", state.follow);
-    bf.textContent = state.follow ? "⏸ रेखा रोकें" : "▶ रेखा चलाओ";
+    bf.textContent = state.follow ? "⏸ Stop follow" : "▶ Follow line";
   }
 
   /* ---------- the moving underline ---------- */
@@ -453,7 +453,7 @@
     try { t = +localStorage.getItem("sk_marks_saved") || 0; p = +localStorage.getItem("sk_marks_pushed") || 0; l = +localStorage.getItem("sk_marks_pulled") || 0; } catch (e) {}
     function T(x) { return x ? new Date(x).toLocaleTimeString() : "—"; }
     var s = $("#setStatus");
-    if (s) s.textContent = marksCount() + " पंक्तियाँ · अंतिम लोड " + T(l) + " · अंतिम सहेजा " + T(p) + " · " + (getToken() ? "GitHub जुड़ा" : "टोकन नहीं डाला");
+    if (s) s.textContent = marksCount() + " lines · last load " + T(l) + " · last save " + T(p) + " · " + (getToken() ? "GitHub connected" : "no token");
   }
   function pushMarks(cb) {
     var tok = getToken();
@@ -501,35 +501,35 @@
   function openSettings() {
     var box = $("#skSettingsBox"); if (!box) return;
     box.innerHTML =
-      '<div class="set-h">सेटिंग</div>' +
-      '<div class="set-lab">GitHub token — सिर्फ़ इस ब्राउज़र में रहता है</div>' +
+      '<div class="set-h">Settings</div>' +
+      '<div class="set-lab">GitHub token — stored only in this browser</div>' +
       '<input id="setToken" class="set-input" type="password" autocomplete="off" placeholder="github_pat_…">' +
       '<div class="set-actions">' +
-        '<button class="sk-btn" id="setSave">सहेजें</button>' +
-        '<button class="sk-btn" id="setClear">हटाएँ</button>' +
-        '<button class="sk-btn" id="setClose">बंद करें</button>' +
+        '<button class="sk-btn" id="setSave">Save</button>' +
+        '<button class="sk-btn" id="setClear">Remove</button>' +
+        '<button class="sk-btn" id="setClose">Close</button>' +
       '</div>' +
       '<div class="set-msg" id="setMsg"></div>' +
-      '<p class="set-note">स्कोप: केवल <b>riyaz</b> रेपो, अनुमति <b>Contents: Read and write</b>। लोड करना और सहेजना अपने-आप होता है — और कुछ नहीं करना है।</p>' +
-      '<p class="set-note">स्थिति: <span id="setStatus"></span></p>';
+      '<p class="set-note">Scope: the <b>riyaz</b> repo only, permission <b>Contents: Read and write</b>. Loading and saving happen automatically — nothing else to do.</p>' +
+      '<p class="set-note">Status: <span id="setStatus"></span></p>';
     var m = $("#skSettings"); if (m) m.classList.add("on");
     var ti = $("#setToken");
-    if (getToken()) ti.placeholder = "टोकन सहेजा हुआ है (बदलने के लिए नया डालें)";
+    if (getToken()) ti.placeholder = "Token saved (enter a new one to replace)";
     $("#setSave").onclick = function () {
       var v = (ti.value || "").trim();
-      if (!v) { $("#setMsg").textContent = "पहले टोकन डालें"; return; }
+      if (!v) { $("#setMsg").textContent = "Enter a token first"; return; }
       try { localStorage.setItem("sk_gh_token", v); } catch (e) {}
-      ti.value = ""; ti.placeholder = "टोकन सहेजा हुआ है";
-      $("#setMsg").textContent = "GitHub से ताज़ा चिह्न लाए जा रहे हैं…";
+      ti.value = ""; ti.placeholder = "Token saved";
+      $("#setMsg").textContent = "Fetching the latest marks from GitHub…";
       pullMarks(function () {
         pushMarks(function (r) {
-          $("#setMsg").textContent = r === "ok" ? "जुड़ गया — अब हर बदलाव अपने-आप सहेजा जाएगा"
-            : "सहेजना असफल — टोकन की अनुमति (Contents: Read and write) जाँचें";
+          $("#setMsg").textContent = r === "ok" ? "Connected — changes now save automatically"
+            : "Save failed — check the token permission (Contents: Read and write)";
           updateMarksMsg();
         });
       });
     };
-    $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "टोकन हटा दिया"; updateMarksMsg(); };
+    $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "Token removed"; updateMarksMsg(); };
     $("#setClose").onclick = closeSettings;
     updateMarksMsg();
   }

@@ -1,6 +1,6 @@
 {
-  "name": "रियाज़ — गुरुकूल",
-  "short_name": "रियाज़",
+  "name": "Riyaz — Gurukool",
+  "short_name": "Riyaz",
   "description": "Hindustani classical music practice — sargam notation with follow-along playback. Gwalior gharana.",
   "start_url": "./index.html",
   "scope": "./",
@@ -8,7 +8,7 @@
   "orientation": "any",
   "background_color": "#15110f",
   "theme_color": "#15110f",
-  "lang": "hi",  "icons": [
+  "lang": "en",  "icons": [
     { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
   ]

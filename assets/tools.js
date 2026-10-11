@@ -1,4 +1,4 @@
-/* रियाज़ — tools: सुर पेटी (harmonium) + तबला (theka machine with variations)
+/* Riyaz — tools: Sur Peti (harmonium) + Tabla (theka machine with variations)
    All sound is synthesised in the browser with the Web Audio API — no samples, no downloads. */
 (function () {
   "use strict";
@@ -80,18 +80,18 @@
     var voices = {}, droneOn = false;
 
     var html =
-      '<div class="sk-h1">सुर पेटी</div>' +
-      '<div class="sk-hsub">हारमोनियम — स्वर दबाकर सुनें। सा (मूल स्वर) चुनें, तानपूरा चलाएँ।</div>' +
+      '<div class="sk-h1">Sur Peti</div>' +
+      '<div class="sk-hsub">Harmonium — tap the keys to hear the notes. Pick your सा (tonic), and start the tanpura.</div>' +
       '<div class="sp-bar">' +
       '  <label class="sp-lab">सा = <select id="spTonic">' + NOTE_NAMES.map(function (n, i) {
         var f = 261.63 * Math.pow(2, i / 12);
         return '<option value="' + f.toFixed(2) + '"' + (Math.abs(f - base) < 0.5 ? " selected" : "") + ">" + n + "</option>";
       }).join("") + "</select></label>" +
-      '  <button class="sk-btn" id="spDrone">तानपूरा चलाएँ</button>' +
+      '  <button class="sk-btn" id="spDrone">Start tanpura</button>' +
       '  <span class="sp-note" id="spNote">—</span>' +
       "</div>" +
       '<div class="sp-scroll"><div class="sp-keys" id="spKeys"></div></div>' +
-      '<div class="sp-hint">टिप: कंप्यूटर पर <b>a w s e d f t g y h u j k</b> दबाकर भी बजा सकते हैं।</div>';
+      '<div class="sp-hint">Tip: on a computer you can also play with the keys <b>a w s e d f t g y h u j k</b>.</div>';
 
     el.innerHTML = html;
 
@@ -160,7 +160,7 @@
     el.querySelector("#spDrone").onclick = function () {
       droneOn = !droneOn;
       this.classList.toggle("on", droneOn);
-      this.textContent = droneOn ? "तानपूरा बंद करें" : "तानपूरा चलाएँ";
+      this.textContent = droneOn ? "Stop tanpura" : "Start tanpura";
       if (droneOn) startDrone(); else stopDrone();
     };
 
@@ -248,7 +248,7 @@
       bols: [["धा"], ["धिं"], ["धिं"], ["धा"], ["धा"], ["धिं"], ["धिं"], ["धा"], ["धा"], ["तिं"], ["तिं"], ["ता"], ["ता"], ["धिं"], ["धिं"], ["धा"]] }
   ];
 
-  var MODES = ["सादा ठेका", "अंत में तिरकिट", "अंत में दुगुन", "बदलता हुआ"];
+  var MODES = ["Plain theka", "Tirakit ending", "Dugun ending", "Changing (each cycle)"];
   var TIRAKIT = ["ति", "र", "कि", "ट"];
 
   function variation(taal, v) {
@@ -270,24 +270,24 @@
     var st = { taal: TAALS[6], bpm: 80, mode: 0, playing: false, matra: 0, cycle: 0, next: 0, timer: null, uiT: [], cur: null, liveV: 0 };
 
     var html =
-      '<div class="sk-h1">तबला</div>' +
-      '<div class="sk-hsub">ताल चुनें, गति (BPM) ठीक करें — तबला ठेका बजाएगा। “बदलता हुआ” चुनने पर हर आवर्त में प्रकार बदलेगा, जिससे लय पकड़ने का अभ्यास होगा।</div>' +
+      '<div class="sk-h1">Tabla</div>' +
+      '<div class="sk-hsub">Choose a taal and set the tempo (BPM) — the tabla plays the theka. With &ldquo;Changing&rdquo;, the variation changes every cycle, so he practises holding taal while the tabla moves.</div>' +
       '<div class="tb-bar">' +
-      '  <label class="tb-lab">ताल <select id="tbTaal">' + TAALS.map(function (t) {
-        return '<option value="' + t.id + '"' + (t.id === "teentaal" ? " selected" : "") + ">" + t.name + " · " + t.matras + " मात्रा</option>";
+      '  <label class="tb-lab">Taal <select id="tbTaal">' + TAALS.map(function (t) {
+        return '<option value="' + t.id + '"' + (t.id === "teentaal" ? " selected" : "") + ">" + t.name + " · " + t.matras + " matra</option>";
       }).join("") + "</select></label>" +
-      '  <label class="tb-lab">प्रकार <select id="tbMode">' + MODES.map(function (m, i) {
+      '  <label class="tb-lab">Variation <select id="tbMode">' + MODES.map(function (m, i) {
         return '<option value="' + i + '">' + m + "</option>";
       }).join("") + "</select></label>" +
       "</div>" +
       '<div class="tb-bar">' +
-      '  <button class="sk-btn on" id="tbPlay">▶ बजाओ</button>' +
-      '  <button class="sk-btn tap" id="tbTap">ताल दबाएँ</button>' +
-      '  <div class="sk-ctl"><label>गति</label><input type="range" id="tbBpm" min="40" max="240" step="1" value="80"><span class="sk-rate" id="tbBpmLbl">80 BPM</span></div>' +
+      '  <button class="sk-btn on" id="tbPlay">▶ Play</button>' +
+      '  <button class="sk-btn tap" id="tbTap">Tap tempo</button>' +
+      '  <div class="sk-ctl"><label>Speed</label><input type="range" id="tbBpm" min="40" max="240" step="1" value="80"><span class="sk-rate" id="tbBpmLbl">80 BPM</span></div>' +
       "</div>" +
       '<div class="tb-now" id="tbNow">—</div>' +
       '<div class="tb-grid" id="tbGrid"></div>' +
-      '<div class="tb-legend"><span class="lg sam">X सम</span><span class="lg tali">२/३ ताली</span><span class="lg khali">० खाली</span></div>';
+      '<div class="tb-legend"><span class="lg sam">X Sam</span><span class="lg tali">2/3 Tali</span><span class="lg khali">0 Khali</span></div>';
 
     el.innerHTML = html;
 
@@ -331,8 +331,8 @@
       var c = grid.querySelector('.tb-cell[data-m="' + m + '"]');
       if (c) c.classList.add("cur");
       var t = st.taal;
-      nowLbl.textContent = "मात्रा " + (m + 1) + " / " + t.matras + "  ·  " + t.bols[m].join(" ") +
-        (st.mode === 3 ? "   (प्रकार " + (st.liveV + 1) + ")" : "");
+      nowLbl.textContent = "Matra " + (m + 1) + " / " + t.matras + "  ·  " + t.bols[m].join(" ") +
+        (st.mode === 3 ? "   (variation " + (st.liveV + 1) + ")" : "");
     }
 
     function scheduleMatra(m, when, bols) {
@@ -363,7 +363,7 @@
       st.next = AC().currentTime + 0.15;
       st.timer = setInterval(tick, 25);
       tick();
-      playBtn.textContent = "⏸ रोको"; playBtn.classList.add("on");
+      playBtn.textContent = "⏸ Stop"; playBtn.classList.add("on");
     }
     function stop() {
       st.playing = false;
@@ -371,7 +371,7 @@
       st.uiT.forEach(clearTimeout); st.uiT = [];
       var prev = grid.querySelector(".tb-cell.cur"); if (prev) prev.classList.remove("cur");
       nowLbl.textContent = "—";
-      playBtn.textContent = "▶ बजाओ"; playBtn.classList.remove("on");
+      playBtn.textContent = "▶ Play"; playBtn.classList.remove("on");
     }
 
     playBtn.onclick = function () { if (st.playing) stop(); else start(); };
@@ -398,8 +398,8 @@
 
   window.RIYAZ = {
     tools: [
-      { id: "surpeti", name: "सुर पेटी", mount: mountSurPeti },
-      { id: "tabla", name: "तबला", mount: mountTabla }
+      { id: "surpeti", name: "Sur Peti", mount: mountSurPeti },
+      { id: "tabla", name: "Tabla", mount: mountTabla }
     ]
   };
 })();
