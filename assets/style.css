@@ -81,7 +81,7 @@ body{
 @media(max-width:520px){ .sk-stage{padding:14px 14px} }
 .sk-empty{text-align:center; color:var(--dim); padding:50px 10px; font-size:17px}
 .sk-dim{color:var(--dim)}
-.sk-h1{font-family:'Baloo 2',sans-serif; font-size:clamp(21px,5.4vw,27px); font-weight:800;
+.sk-h1{font-family:'Baloo 2',sans-serif; font-size:clamp(23px,6vw,31px); font-weight:800;
   color:var(--saffron); margin:0 0 2px; line-height:1.25}
 .sk-hsub{color:var(--dim); font-size:14px; margin-bottom:14px}
 
@@ -342,3 +342,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   letter-spacing:.2px; white-space:nowrap}
 .sk-player.bare{margin:0}
 .sk-player.bare audio{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
+
+/* ---------- stop button row ---------- */
+.sk-stoprow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 2px}
+.sk-btn.stop{background:var(--panel2); border-color:var(--line); color:var(--ink)}
+.sk-btn.stop:hover, .sk-btn.stop:active{background:var(--maroon); color:#fff; border-color:var(--maroon)}
+.sk-stoprow .sk-hint{margin:0}

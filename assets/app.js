@@ -173,10 +173,23 @@
   function renderStage(l) {
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
+    var curVideo = mcur.kind === "video";
     var fname = (mcur.name || "").replace(/\.[a-z0-9]+$/i, "");
-    var html = '<div class="sk-h1">' + esc(l.title) +
-      (l.group === "Alankar" && fname ? ' <span class="sk-file">' + esc(fname) + "</span>" : "") + "</div>";
-    if (l.sub) html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";
+    if (l.title) {   // "Raag दुर्गा - Aaroh..." -> "Aaroh..." (the name is already in the heading)
+      var pre = new RegExp("^" + l.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*[-\u2013\u2014]\\s*");
+      fname = fname.replace(pre, "");
+    }
+    var head = l.title, meta = [];
+    if (l.group === "Taal" && l.taal) {          // taal name big, matras + file name small
+      head = l.taal;
+      if (l.sub) meta.push(l.sub);
+      if (fname) meta.push(fname);
+    } else if (l.group === "Alankar" || l.group === "Raag") {
+      if (fname) meta.push(fname);
+    }
+    var html = '<div class="sk-h1">' + esc(head) +
+      (meta.length ? ' <span class="sk-file">' + esc(meta.join(" \u00b7 ")) + "</span>" : "") + "</div>";
+    if (l.sub && l.group !== "Taal") html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";
 
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
     var tabMs = [];
@@ -191,6 +204,14 @@
     }
     html += '<div class="sk-player" id="player"></div>';
 
+    // stop button — above the notation so it stays on screen even on long lessons
+    if (l.lines && l.lines.length) {
+      html += '<div class="sk-stoprow">' +
+        '<button class="sk-btn stop" id="btnStop" type="button">■ Stop</button>' +
+        (curVideo ? "" : '<span class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</span>') +
+        "</div>";
+    }
+
     // notation (shown right under the player, so it is visible while listening)
     if (l.lines && l.lines.length) {
       html += '<div class="sk-notation" id="notation"></div>';
@@ -198,19 +219,14 @@
       html += '<div class="sk-dim" style="margin-top:10px">No written notation for this lesson — watch the video.</div>';
     }
 
-    // controls: audio lessons only. Alankar lessons get none of them —
-    // they keep just the per-line ▶ (play) and ⏱ (mark) buttons.
-    var curVideo = (l.media[state.mediaIdx] || {}).kind === "video";
+    // controls: audio lessons only, and never on Alankar (just the per-line buttons there)
     var bareLesson = l.group === "Alankar";
-    if (l.lines && l.lines.length && !curVideo) {
-      if (!bareLesson) {
-        html += '<div class="sk-controls">' +
-          '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat line</button>' +
-          '<button class="sk-btn" id="btnClear">Clear marks</button>' +
-          '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
-          "</div>";
-      }
-      html += '<div class="sk-hint">Tap <b>▶</b> to play one line · tap <b>⏱</b> where that line starts.</div>';
+    if (l.lines && l.lines.length && !curVideo && !bareLesson) {
+      html += '<div class="sk-controls">' +
+        '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat line</button>' +
+        '<button class="sk-btn" id="btnClear">Clear marks</button>' +
+        '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
+        "</div>";
     }
     s.innerHTML = html;
 
@@ -220,6 +236,7 @@
     });
 
     renderPlayer(l);
+    var sb = $("#btnStop"); if (sb) sb.onclick = stopPlayback;
     if (l.lines && l.lines.length) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
   }
 
@@ -230,10 +247,9 @@
     if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
-      p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>' +
-        '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";
-    } else if (l.group === "Alankar") {
-      // alankar pages get no on-screen player: the per-line ▶ buttons drive playback
+      p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>';
+    } else if (l.group === "Alankar" || l.group === "Raag") {
+      // no on-screen player here: the per-line ▶ buttons drive playback
       p.classList.add("bare");
       p.innerHTML = '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>';
       var au0 = $("#au");
@@ -445,6 +461,13 @@
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
     updateMarksMsg();
     schedulePush();
+  }
+  function stopPlayback() {
+    if (state.audio) { try { state.audio.pause(); } catch (e) {} }
+    state.segPlay = null;
+    clearLineHL();
+    var f = document.querySelector(".sk-iframe");
+    if (f) { try { f.src = f.src; } catch (e) {} }   // reloading the frame halts the video
   }
   function clearLineHL() { state.lineRows.forEach(function (r) { if (r) r.classList.remove("playing"); }); }
   function highlightLine(li) {
