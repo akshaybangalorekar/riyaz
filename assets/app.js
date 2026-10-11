@@ -351,41 +351,60 @@
     }
   }  /* ---------- per-line segments (listen to one line at a time) ---------- */
   function fmtTime(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
-  function localSegs() {
+  /* Marks are stored per audio file, because every recording has its own
+     timeline:  marks[lesson][track][line] = { t, at }   (track 0 = Komal, 1 = Shuddha …)
+     Older saves were marks[lesson][line] = { track, t } and are migrated here. */
+  function normalizeLesson(src) {
+    var dst = {};
+    Object.keys(src || {}).forEach(function (key) {
+      var v = src[key];
+      if (!v || typeof v !== "object") return;
+      if (typeof v.t === "number") {                       // legacy entry
+        var tr = String(v.track || 0);
+        dst[tr] = dst[tr] || {};
+        dst[tr][key] = { t: v.t, at: v.at || 0 };
+      } else {                                             // already per-track
+        dst[key] = dst[key] || {};
+        Object.keys(v).forEach(function (ln) {
+          var e = v[ln];
+          if (e && typeof e.t === "number") dst[key][ln] = { t: e.t, at: e.at || 0 };
+        });
+      }
+    });
+    return dst;
+  }
+  function normalizeAll(m) {
+    var out = {};
+    Object.keys(m || {}).forEach(function (les) { out[les] = normalizeLesson(m[les]); });
+    return out;
+  }
+  function loadAllLocal() {
+    try {
+      Object.keys(localStorage).forEach(function (kk) {
+        if (kk.indexOf("sk_seg_") !== 0) return;
+        try { state.segments[kk.slice(7)] = normalizeLesson(JSON.parse(localStorage.getItem(kk) || "{}") || {}); } catch (e) {}
+      });
+    } catch (e) {}
+  }
+  function trackKey() { return String(state.mediaIdx); }
+  function localSegs() {                     // this device's marks for the CURRENT audio file
     var k = state.lessonId;
-    if (!state.segments[k]) {
-      try { state.segments[k] = JSON.parse(localStorage.getItem("sk_seg_" + k) || "{}") || {}; }
-      catch (e) { state.segments[k] = {}; }
-    }
-    return state.segments[k];
+    if (!state.segments[k]) state.segments[k] = {};
+    var tr = trackKey();
+    if (!state.segments[k][tr]) state.segments[k][tr] = {};
+    return state.segments[k][tr];
   }
   function newer(a, b) { return (((b && b.at) || 0) >= ((a && a.at) || 0)) ? b : a; }
-  function segsOf() {
-    var k = state.lessonId, base = {};
+  function segsOf() {                        // merged marks for the CURRENT audio file
+    var k = state.lessonId, tr = trackKey(), base = {};
     if (state.cleared[k]) return base;
-    if (state.sharedMarks && state.sharedMarks[k]) {
-      try { base = JSON.parse(JSON.stringify(state.sharedMarks[k])); } catch (e) { base = {}; }
-    }
+    var sh = state.sharedMarks && state.sharedMarks[k] && state.sharedMarks[k][tr];
+    if (sh) { try { base = JSON.parse(JSON.stringify(sh)); } catch (e) { base = {}; } }
     var loc = localSegs();
     Object.keys(loc).forEach(function (i) { base[i] = newer(base[i], loc[i]); });
     return base;
   }
-  function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(localSegs())); } catch (e) {} }
-  function allMarks() {
-    var out = {};
-    if (state.sharedMarks) Object.keys(state.sharedMarks).forEach(function (k) { try { out[k] = JSON.parse(JSON.stringify(state.sharedMarks[k])); } catch (e) { out[k] = {}; } });
-    Object.keys(state.segments).forEach(function (k) {
-      out[k] = out[k] || {};
-      Object.keys(state.segments[k]).forEach(function (i) { out[k][i] = state.segments[k][i]; });
-    });
-    return out;
-  }
-  function loadSharedMarks() {
-    fetch("marks.json?t=" + Date.now(), { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { state.sharedMarks = j || {}; if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId)); })
-      .catch(function () { state.sharedMarks = {}; });
-  }
+  function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(state.segments[state.lessonId] || {})); } catch (e) {} }
   function lineEnds() {
     var segs = segsOf(), l = lesson(state.lessonId), n = l && l.lines ? l.lines.length : 0, ends = [];
     for (var i = 0; i < n; i++) {
@@ -393,7 +412,7 @@
       if (!s) continue;
       for (var j = 0; j < n; j++) {
         var o = segs[j];
-        if (o && o.track === s.track && o.t > s.t + 0.05 && (ends[i] === null || o.t < ends[i])) ends[i] = o.t;
+        if (o && o.t > s.t + 0.05 && (ends[i] === null || o.t < ends[i])) ends[i] = o.t;
       }
     }
     return ends;
@@ -401,7 +420,7 @@
   function markLine(li) {
     if (!state.audio) return;
     delete state.cleared[state.lessonId];
-    localSegs()[li] = { track: state.mediaIdx, t: +state.audio.currentTime.toFixed(2), at: Date.now() };
+    localSegs()[li] = { t: +state.audio.currentTime.toFixed(2), at: Date.now() };
     saveAllLocal();
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
@@ -422,8 +441,7 @@
       highlightLine(li);
       return;
     }
-    if (s.track !== state.mediaIdx) { state.mediaIdx = s.track; renderStage(l); setTimeout(function () { startSeg(li); }, 90); }
-    else startSeg(li);
+    startSeg(li);
   }
   function startSeg(li) {
     var au = state.audio, s = segsOf()[li]; if (!au || !s) return;
@@ -463,8 +481,12 @@
     Object.keys(state.segments).forEach(function (k) {
       if (state.cleared[k]) return;
       out[k] = out[k] || {};
-      var src = state.segments[k] || {};
-      Object.keys(src).forEach(function (i) { out[k][i] = src[i]; });
+      var tracks = state.segments[k] || {};
+      Object.keys(tracks).forEach(function (tr) {
+        out[k][tr] = out[k][tr] || {};
+        var lines = tracks[tr] || {};
+        Object.keys(lines).forEach(function (ln) { out[k][tr][ln] = lines[ln]; });
+      });
     });
     return out;
   }
@@ -475,8 +497,12 @@
       Object.keys(src).forEach(function (k) {
         if (state.cleared[k]) return;
         out[k] = out[k] || {};
-        var rows = src[k] || {};
-        Object.keys(rows).forEach(function (i) { out[k][i] = newer(out[k][i], rows[i]); });
+        var tracks = src[k] || {};
+        Object.keys(tracks).forEach(function (tr) {
+          out[k][tr] = out[k][tr] || {};
+          var lines = tracks[tr] || {};
+          Object.keys(lines).forEach(function (ln) { out[k][tr][ln] = newer(out[k][tr][ln], lines[ln]); });
+        });
       });
     }
     return out;
@@ -484,7 +510,10 @@
   function allMarks() { return mergeMarks(state.sharedMarks || {}, localMarks()); }
   function marksCount() {
     var m = allMarks(), n = 0;
-    Object.keys(m).forEach(function (k) { n += Object.keys(m[k] || {}).length; });
+    Object.keys(m).forEach(function (k) {
+      var tracks = m[k] || {};
+      Object.keys(tracks).forEach(function (tr) { n += Object.keys(tracks[tr] || {}).length; });
+    });
     return n;
   }
   function updateMarksMsg(res, st) {
@@ -549,16 +578,38 @@
   }
   function autoSaveTick() { saveAllLocal(); updateMarksMsg(); flushPush(); }
 
+  function marksFreshness(m) {
+    var best = 0;
+    Object.keys(m || {}).forEach(function (k) {
+      var tracks = m[k] || {};
+      Object.keys(tracks).forEach(function (tr) {
+        var lines = tracks[tr] || {};
+        Object.keys(lines).forEach(function (ln) { var a = (lines[ln] || {}).at || 0; if (a > best) best = a; });
+      });
+    });
+    return best;
+  }
+  function fetchPublic(url) {
+    return fetch(url, { cache: "no-store" })
+      .then(function (r) { if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; } return r.json(); })
+      .catch(function () { return null; });
+  }
   function pullMarks(cb) {
     var tok = getToken();
     var p = tok
       ? ghGet(tok).then(function (cur) { return cur.data; })
-      : fetch("marks.json?t=" + Date.now(), { cache: "no-store" })
-          .then(function (r) { if (!r.ok) { var e = new Error("http"); e.status = r.status; throw e; } return r.json(); })
-          .catch(function () { return null; });
+      : Promise.all([
+          fetchPublic("marks.json?t=" + Date.now()),
+          fetchPublic("https://raw.githubusercontent.com/akshaybangalorekar/riyaz/main/marks.json?t=" + Date.now())
+        ]).then(function (both) {
+          var a = both[0], b = both[1];
+          if (!a) return b;
+          if (!b) return a;
+          return marksFreshness(a) >= marksFreshness(b) ? a : b;
+        });
     p.then(function (j) {
       if (j === null) { updateMarksMsg(); if (cb) cb("fail"); return; }
-      state.sharedMarks = j || {};
+      state.sharedMarks = normalizeAll(j || {});
       try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
       if (state.lessonId && !isTool(state.group) && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
       updateMarksMsg();
@@ -575,6 +626,7 @@
       '<div class="set-actions">' +
         '<button class="sk-btn" id="setSave">Save</button>' +
         '<button class="sk-btn" id="setSync">Sync now</button>' +
+        '<button class="sk-btn" id="setTake">Use server copy</button>' +
         '<button class="sk-btn" id="setClear">Remove</button>' +
         '<button class="sk-btn" id="setClose">Close</button>' +
       '</div>' +
@@ -612,6 +664,19 @@
           $("#setMsg").textContent = r === "ok" ? "Synced \u2014 marks are up to date." : "Sync failed" + (st ? " (HTTP " + st + ")" : "") + ".";
           updateMarksMsg(r, st);
         });
+      });
+    };
+    $("#setTake").onclick = function () {
+      if (!window.confirm("Replace this device's line marks with the copy from GitHub?")) return;
+      $("#setMsg").textContent = "Taking the GitHub copy\u2026";
+      pullMarks(function (pr) {
+        if (pr !== "ok") { $("#setMsg").textContent = "Could not read the GitHub copy."; return; }
+        state.segments = {}; state.cleared = {};
+        try { Object.keys(localStorage).forEach(function (kk) { if (kk.indexOf("sk_seg_") === 0) localStorage.removeItem(kk); }); } catch (e) {}
+        dirty = false;
+        if (state.lessonId && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
+        updateMarksMsg();
+        $("#setMsg").textContent = "Now showing the GitHub copy.";
       });
     };
     $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "Token removed"; updateMarksMsg(); };
@@ -656,6 +721,7 @@
     var tm = /[?&]tool=([^&#]+)/.exec(location.search);
     if (tm) { state.vadyaOpen = true; }
   })();
+  loadAllLocal();
   renderTabs();
   pullMarks();
   setInterval(autoSaveTick, 60000);    // background save + push every minute
