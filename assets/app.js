@@ -172,7 +172,10 @@
 
   function renderStage(l) {
     var s = $("#stage");
-    var html = '<div class="sk-h1">' + esc(l.title) + "</div>";
+    var mcur = l.media[state.mediaIdx] || {};
+    var fname = (mcur.name || "").replace(/\.[a-z0-9]+$/i, "");
+    var html = '<div class="sk-h1">' + esc(l.title) +
+      (l.group === "Alankar" && fname ? ' <span class="sk-file">' + esc(fname) + "</span>" : "") + "</div>";
     if (l.sub) html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";
 
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
@@ -223,11 +226,22 @@
   function renderPlayer(l) {
     var m = l.media[state.mediaIdx];
     var p = $("#player");
+    p.classList.remove("bare");
     if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML = '<div class="vidwrap"><iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe></div>' +
         '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";
+    } else if (l.group === "Alankar") {
+      // alankar pages get no on-screen player: the per-line ▶ buttons drive playback
+      p.classList.add("bare");
+      p.innerHTML = '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>';
+      var au0 = $("#au");
+      state.audio = au0;
+      var srcs0 = audioSources(m), si0 = 0;
+      au0.addEventListener("error", function () { si0++; if (si0 < srcs0.length) { au0.src = srcs0[si0]; au0.load(); } });
+      au0.addEventListener("play", function () { ensureLoop(); });
+      au0.addEventListener("ended", function () { state.segPlay = null; clearLineHL(); });
     } else {
       p.innerHTML =
         '<div class="pl">' +
