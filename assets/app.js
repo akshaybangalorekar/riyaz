@@ -78,8 +78,40 @@
   }
   function lessonsOf(g) { return D.lessons.filter(function (l) { return l.group === g; }); }
 
+  function alNumber(l) { var m = /(\d+)/.exec(l.title || ""); return m ? +m[1] : 0; }
+  function mediaIdxFor(l, kind) {
+    var ms = l.media || [];
+    for (var i = 0; i < ms.length; i++) {
+      var m = ms[i], nm = (m.name || "").toLowerCase();
+      if (kind === "video") { if (m.kind === "video") return i; }
+      else if (m.kind === "audio" && nm.indexOf(kind) === 0) return i;
+    }
+    return -1;
+  }
   function renderList() {
     var el = $("#list");
+    if (state.group === "Alankar") {
+      el.classList.add("sections");
+      var secs = [{ k: "komal", h: "Komal" }, { k: "shuddha", h: "Shuddha" }, { k: "video", h: "Alankar + Taal" }];
+      var html = "";
+      secs.forEach(function (sec) {
+        var items = lessonsOf("Alankar").filter(function (l) { return mediaIdxFor(l, sec.k) >= 0; })
+          .sort(function (a, b) { return alNumber(a) - alNumber(b); });
+        if (!items.length) return;
+        html += '<div class="sk-sec"><div class="sk-sec-h">' + sec.h + '</div><div class="sk-grid">' +
+          items.map(function (l) {
+            var i = mediaIdxFor(l, sec.k);
+            var on = (l.id === state.lessonId && state.mediaIdx === i) ? " on" : "";
+            return '<button class="sk-num' + on + '" data-id="' + l.id + '" data-m="' + i + '">' + alNumber(l) + "</button>";
+          }).join("") + "</div></div>";
+      });
+      el.innerHTML = html;
+      Array.prototype.forEach.call(el.querySelectorAll(".sk-num"), function (b) {
+        b.onclick = function () { open(b.dataset.id, +b.dataset.m); };
+      });
+      return;
+    }
+    el.classList.remove("sections");
     el.innerHTML = lessonsOf(state.group).map(function (l) {
       return '<button class="sk-item' + (l.id === state.lessonId ? " on" : "") + '" data-id="' + l.id + '">' +
         esc(l.title) + (l.sub ? '<span class="sk-sub">' + esc(l.sub) + "</span>" : "") + "</button>";
@@ -100,12 +132,13 @@
     state.segPlay = null; state.lineRows = [];
   }
 
-  function open(id) {
+  function open(id, mIdx) {
     var l = lesson(id);
     if (!l) return;
     stopAll();
     state.lessonId = id; state.mediaIdx = 0;
-    for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
+    if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
+    else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
     renderList();
     renderStage(l);
@@ -134,8 +167,9 @@
       html += '<div class="sk-dim" style="margin-top:10px">No written notation for this lesson — watch the video.</div>';
     }
 
-    // controls (only if there is notation)
-    if (l.lines && l.lines.length) {
+    // controls (audio only — a video lesson keeps video + notation, nothing else)
+    var curVideo = (l.media[state.mediaIdx] || {}).kind === "video";
+    if (l.lines && l.lines.length && !curVideo) {
       html += '<div class="sk-controls">' +
         '<button class="sk-btn" id="btnFollow">▶ Follow line</button>' +
         '<button class="sk-btn tap" id="btnTap">Tap tempo</button>' +
@@ -151,11 +185,11 @@
 
     // wire media tabs
     Array.prototype.forEach.call(s.querySelectorAll(".sk-mtab"), function (b) {
-      b.onclick = function () { state.mediaIdx = +b.dataset.i; renderStage(l); };
+      b.onclick = function () { state.mediaIdx = +b.dataset.i; renderList(); renderStage(l); };
     });
 
     renderPlayer(l);
-    if (l.lines && l.lines.length) { renderNotation(l); wireControls(l); }
+    if (l.lines && l.lines.length) { renderNotation(l); if (!curVideo) wireControls(l); }
   }
 
   function renderPlayer(l) {
@@ -220,7 +254,9 @@
     var box = $("#notation");
     box.innerHTML = "";
     state.swaras = [];
+    var curIsVideo = (l.media[state.mediaIdx] || {}).kind === "video";
     l.lines.forEach(function (line, li) {
+      if (line.onlyVideo && !curIsVideo) return;
       var row = document.createElement("div");
       row.className = "sk-line";
       state.lineRows[li] = row;

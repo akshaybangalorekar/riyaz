@@ -132,6 +132,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा नि ^सा नि ^सा नि ध नि ध नि ध प ध प ध प म प म प म ग म ग म ग रे ग रे ग रे सा रे सा रे सा _नि सा _नि सा",
      "unit": 5
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -144,6 +149,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1kagZV-240w2_wdWqJ2O9WJ5QTdMuhG_U",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1g85qSwU9OBsYU2x5Qr6R8MS4IJ13leWX",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_73624"
     }
    ]
   },
@@ -161,6 +172,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा नि ^रे ^सा नि ध ^सा नि ध प नि ध प म ध प म ग प म ग रे म ग रे सा ग रे सा _नि रे सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -178,6 +194,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1UGloqU8K2MiZJcZbGY4kfdNN7pV4iLOU",
      "name": "Shuddha scale C.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "17yNvuoAAz5DjJsRhi163xiRHihLHFOpo",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_71960"
     }
    ]
   },
@@ -195,6 +217,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ध ^रे ^सा नि प ^सा नि ध म नि ध प ग ध प म रे प म ग सा म ग रे _नि ग रे सा _ध रे सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -212,6 +239,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1kwOz5Jo_hFt1Kj2tbtbr-ljfdKIvEXny",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1B_CZyklKWaL5-sxHz6ThvETTafR3wsQZ",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_26052"
     }
    ]
   },
@@ -229,6 +262,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा नि ध ^सा नि ध प नि ध प म ध प म ग प म ग रे म ग रे सा ग रे सा _नि रे सा _नि _ध सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -241,6 +279,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1Sy3yGT9CPDT1tjvIyc4DDZlrJsGgxlaM",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1ukrizWjKFoISuXV_l5Iz3WsSYlH_5Q0X",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_75525"
     }
    ]
   },
@@ -258,6 +302,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ध नि ^सा नि प ध नि ध म प ध प ग म प म रे ग म ग सा रे ग रे _नि सा रे सा _ध _नि सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -270,6 +319,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1cbtrcNfSfcZKw40gxfBJn_1sIMDVLE0W",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1qNeKUBOfYgDcztGuTPP-3dG6jhvdK6Wc",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_8121"
     }
    ]
   },
@@ -287,6 +342,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ध नि नि प ध ध म प प ग म म रे ग ग सा रे रे _नि सा",
      "unit": 3
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -299,6 +359,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1kzzPvFuLnNz2Wu3nX__q12Y3a0M-pEly",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "13uEsA3xiAiqFM-jb9vrrpSnuv_GbOfWP",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_10110"
     }
    ]
   },
@@ -316,6 +382,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा नि प ^सा नि ध म नि ध प ग ध प म रे प म ग सा म ग रे _नि ग रे सा _ध रे सा _नि _प सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -328,6 +399,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1EJnK3Slwz5xgfC1TT0Uume-WOlqsy2e3",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1MnGTb0r2PAuT6Qyx5kmc2aQsGPO8HFMs",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_77536"
     }
    ]
   },
@@ -345,6 +422,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ध प नि प म ध म ग प ग रे म रे सा",
      "unit": 3
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -357,6 +439,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1PHyiUjjOqL-FRZW9KxcbsugKjKwLN3Dp",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1ylks0z9y2hLFUeJHA0cCKEs7plSM6TgE",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_46334"
     }
    ]
   },
@@ -374,6 +462,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ^रे नि ^सा नि ^सा ध नि ध नि प ध प ध म प म प ग म ग म रे ग रे ग सा रे सा रे _नि सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -386,6 +479,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1IFM5Z5XyGbpccEBMq6P74fhTD6iJgMWZ",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "18AxhsWg2g4a8ypkfNuJKlstuIjiynkNi",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_62627"
     }
    ]
   },
@@ -403,6 +502,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ^रे ध ^सा नि ^सा प नि ध नि म ध प ध ग प म प रे म ग म सा ग रे ग _नि रे सा रे _ध सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -415,6 +519,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1ZIGXW_zdOX-t3KO9UsWYKDWqWs1ZeC55",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1D_2NLjBZbCyyafNwOWRP3H9fhBlBjhws",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_74345"
     }
    ]
   },
@@ -432,6 +542,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा नि ^सा ^रे ^सा नि ध नि ^सा नि ध प ध नि ध प म प ध प म ग म प म ग रे ग म ग रे सा रे ग रे सा _नि सा रे सा",
      "unit": 5
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -444,6 +559,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1x6XsCuBS5sGw-RtfNBMkrwWU8o5e6x4S",
      "name": "Shuddha.m4a"
+    },
+    {
+     "kind": "video",
+     "id": "14dhkTY2xo1TipMpHjX9hHbTmZ-YqCuzm",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_54023"
     }
    ]
   },
@@ -461,6 +582,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ध ^सा ^ग ^सा नि प नि ^रे नि ध म ध ^सा ध प ग प नि प म रे म ध म ग सा ग प ग रे _नि रे म रे सा _ध सा ग सा",
      "unit": 5
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -473,6 +599,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1xSClgDefEFadPi-EW8d39hKm3_whbbr2",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1pZu8e4OADWG7QqFiHBsZGccQ3v7e5ZsD",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_5448"
     }
    ]
   },
@@ -490,6 +622,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "नि ^सा नि ध नि ध प ध प म प म ग म ग रे ग रे सा रे सा _नि सा _नि",
      "unit": 3
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -502,6 +639,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1CQuQso7ZCoGMvconZvRhB_iuIJgBen7-",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "10m7sGqLf4FMzMVEZWP6OMtkMznv1_Cgn",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_17559"
     }
    ]
   },
@@ -519,6 +662,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "ध नि ^सा प ध नि म प ध ग म प रे ग म सा रे ग _नि सा रे _ध _नि सा",
      "unit": 3
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -532,6 +680,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1WHMrpxGgQ5lfBAIvvp6NFqNmq_W7Dqys",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1C9JkusvzbA7nBEkXqRykBETJavg6z8o8",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_9411"
     }
    ]
   },
@@ -549,6 +703,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ध नि प ध म प ग म रे ग सा रे _नि सा _ध",
      "unit": 2
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -561,6 +720,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1PbF1WTjXETb68dXQxzfUzMz3NI0Rrozj",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1kGcbvz1oJpfiv8sJ4KWfC1pR7gzH3gK0",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_73251"
     }
    ]
   },
@@ -578,6 +743,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा प नि म ध ग प रे म सा ग _नि रे _ध सा _प",
      "unit": 2
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -585,6 +755,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1gKW8-rpHgYgYddPql5J6crGgMrTAj0MI",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1Lz9VylTiQRHx5aAxLjug2YtDVDDMTkDS",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_53705"
     }
    ]
   },
@@ -602,6 +778,11 @@ window.SANGEET = {
      "label": "Avroh",
      "text": "^सा ^रे ^ग ^म नि ^सा ^रे ^ग ध नि ^सा ^रे प ध नि ^सा म प ध नि ग म प ध रे ग म प सा रे ग म _नि सा रे ग _ध _नि सा रे _प _ध _नि सा",
      "unit": 4
+    },
+    {
+     "label": "3 taal theka",
+     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा",
+     "onlyVideo": true
     }
    ],
    "media": [
@@ -609,6 +790,12 @@ window.SANGEET = {
      "kind": "audio",
      "id": "1YPRPagxoS5kr7zBrBwWzYLM5gFmcY1-W",
      "name": "Shuddha.mp3"
+    },
+    {
+     "kind": "video",
+     "id": "1-8plJAHvqtwO2Yrk127GbfqAg6Wdit5c",
+     "name": "In 3 taal",
+     "fromLesson": "tl3_21331"
     }
    ]
   },
@@ -770,329 +957,6 @@ window.SANGEET = {
      "kind": "video",
      "id": "1-ZONxpIn_gjFAzpAWTniGi8BSs5wfJR_",
      "name": "Alankar in 3 taal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_10110",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 10 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "13uEsA3xiAiqFM-jb9vrrpSnuv_GbOfWP",
-     "name": "Alankar 10 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_77536",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 11 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1MnGTb0r2PAuT6Qyx5kmc2aQsGPO8HFMs",
-     "name": "Alankar 11 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_46334",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 12 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1ylks0z9y2hLFUeJHA0cCKEs7plSM6TgE",
-     "name": "Alankar 12 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_62627",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 13 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "18AxhsWg2g4a8ypkfNuJKlstuIjiynkNi",
-     "name": "Alankar 13 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_74345",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 14 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1D_2NLjBZbCyyafNwOWRP3H9fhBlBjhws",
-     "name": "Alankar 14 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_54023",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 15 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "14dhkTY2xo1TipMpHjX9hHbTmZ-YqCuzm",
-     "name": "Alankar 15 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_5448",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 16 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1pZu8e4OADWG7QqFiHBsZGccQ3v7e5ZsD",
-     "name": "Alankar 16 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_17559",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 17 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "10m7sGqLf4FMzMVEZWP6OMtkMznv1_Cgn",
-     "name": "Alankar 17 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_9411",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 18 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1C9JkusvzbA7nBEkXqRykBETJavg6z8o8",
-     "name": "Alankar 18 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_73251",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 19",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1kGcbvz1oJpfiv8sJ4KWfC1pR7gzH3gK0",
-     "name": "Alankar 19.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_53705",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 20",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1Lz9VylTiQRHx5aAxLjug2YtDVDDMTkDS",
-     "name": "Alankar 20.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_21331",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 21",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1-8plJAHvqtwO2Yrk127GbfqAg6Wdit5c",
-     "name": "Alankar 21.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_73624",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 5 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1g85qSwU9OBsYU2x5Qr6R8MS4IJ13leWX",
-     "name": "Alankar 5 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_71960",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 6 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "17yNvuoAAz5DjJsRhi163xiRHihLHFOpo",
-     "name": "Alankar 6 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_26052",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 7 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1B_CZyklKWaL5-sxHz6ThvETTafR3wsQZ",
-     "name": "Alankar 7 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_75525",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 8 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1ukrizWjKFoISuXV_l5Iz3WsSYlH_5Q0X",
-     "name": "Alankar 8 - Komal.mp4"
-    }
-   ]
-  },
-  {
-   "id": "tl3_8121",
-   "group": "Taal",
-   "title": "In 3 taal — अलंकार 9 - कोमल",
-   "sub": "Teen taal (16 matra)",
-   "lines": [
-    {
-     "label": "Common theka",
-     "text": "धा धिं धिं धा | धा धिं धिं धा | धा तिं तिं ता | ता धिं धिं धा"
-    }
-   ],
-   "media": [
-    {
-     "kind": "video",
-     "id": "1qNeKUBOfYgDcztGuTPP-3dG6jhvdK6Wc",
-     "name": "Alankar 9 - Komal.mp4"
     }
    ]
   },
