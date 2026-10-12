@@ -123,6 +123,12 @@
    "t": "",
    "label": "⚠ Bandish (Sthayi) — check whether a line is missing at the start",
    "sect": "bandish"
+  },
+  "1004": {
+   "t": "",
+   "label": "⚠ Tanas 4, 6, 7 and 9 need your eye — the photo was not sharp enough on those four to settle them",
+   "sect": "tana",
+   "at": 1791852000000
   }
  },
  "rg_durga": {
