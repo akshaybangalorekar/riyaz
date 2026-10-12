@@ -1232,8 +1232,9 @@
     }
     if (line.review) {
       var rv = document.createElement("div"); rv.className = "bnd-review";
-      rv.innerHTML = '<b>\u26a0 Check this one</b> \u2014 I read it from a small photo and could not be sure of every swar. ' +
-        'Tap <b>\u270e Edit notation</b> above and correct any note.';
+      rv.innerHTML = '<b>\u26a0 Check this one</b> \u2014 ' +
+        esc(line.reviewText || 'I read it from a small photo and could not be sure of every swar. Tap Edit notation above and correct any note.') +
+        ' <b>\u270e Edit notation</b>';
       wrap.appendChild(rv);
     }
     var nums = lane("bnd-nums");
@@ -1255,7 +1256,7 @@
             if (tk.mkClose && mk) mk = null;
           } else if (tk.mkClose && mk) { mk = null; }
         });
-        ll.children[i].textContent = r.lyric[i] || "";
+        ll.children[i].textContent = (r.lyric || [])[i] || "";   // a tana grid has no lyric lane
       }
       rw.appendChild(sl);
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
