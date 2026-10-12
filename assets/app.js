@@ -1673,21 +1673,38 @@
     }
     playLine(li);
   }
+  function noTimeYet(li, why) {
+    /* Never start a recording from the top to stand in for a missing time: the file
+       holds several items, so you would hear the wrong one and think the times had
+       been shuffled. Say what is wrong instead. */
+    state.playingLine = -1;
+    syncLineBtns();
+    var r = state.lineRows[li];
+    if (r) {
+      r.classList.add("ln-flash");
+      setTimeout(function () { r.classList.remove("ln-flash"); }, 1900);
+      var old = r.querySelector(".ln-note"); if (old) old.remove();
+      var n = document.createElement("span");
+      n.className = "ln-note"; n.textContent = why;
+      var ctl = r.querySelector(".ln-ctl");
+      if (ctl) ctl.appendChild(n); else r.appendChild(n);
+      setTimeout(function () { if (n.parentNode) n.remove(); }, 4200);
+    }
+    mkMsg(why);
+  }
   function playLine(li) {
     var l = lesson(state.lessonId); if (!l) return;
-    state.playingLine = li;
     var elsewhere = markInOtherFile(l, li);
-    if (elsewhere) {                       // this line belongs to another recording
-      switchMedia(l, elsewhere.track, function () { state.playingLine = li; startSeg(li); });
+    if (elsewhere) {                       // its time was taken on a different recording
+      noTimeYet(li, "timed on another recording \u2014 press the chip to open it");
       return;
     }
     var s = segsOf()[li];
-    if (!s) {  // not marked yet -> play the whole current track
-      if (state.audio) { state.segPlay = null; state.audio.currentTime = 0; ensureLoop(); state.audio.play().catch(function () {}); }
-      highlightLine(li);
-      syncLineBtns();
+    if (!s || !s.t) {                      // no time for this line yet
+      noTimeYet(li, "no time set for this line \u2014 set it in edit mode");
       return;
     }
+    state.playingLine = li;
     startSeg(li);
   }
   function startSeg(li) {

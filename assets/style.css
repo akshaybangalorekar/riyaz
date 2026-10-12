@@ -375,6 +375,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   margin-left:3px;cursor:pointer;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ln-other:hover,.ln-other:focus-visible{border-color:var(--saffron);color:var(--saffron)}
 .pl-hidden{display:none !important}
+.ln-note{font-size:11.5px;color:var(--saffron);margin-left:6px;font-style:italic}
+.sk-line.ln-flash{box-shadow:inset 0 0 0 1px var(--saffron)}
 .ln-take{border:1px solid var(--saffron);background:transparent;color:var(--saffron);
   font-family:inherit;font-size:11.5px;line-height:1.2;padding:3px 8px;border-radius:20px;
   margin-left:3px;cursor:pointer;white-space:nowrap}
