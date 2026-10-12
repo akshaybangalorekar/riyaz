@@ -361,14 +361,30 @@
       ' title="' + (on ? "Remove from favourites" : "Add to favourites") + '">\u2600</button>';
   }
   function alNumber(l) { var m = /(\d+)/.exec(l.title || ""); return m ? +m[1] : 0; }
+  function marksOn(lid, i) {          // how many lines carry a time on this recording
+    var n = 0;
+    [state.sharedMarks && state.sharedMarks[lid], state.segments && state.segments[lid]].forEach(function (src) {
+      var t = src && src[String(i)];
+      if (!t) return;
+      Object.keys(t).forEach(function (k) {
+        var e = t[k];
+        if (e && !e.del && (e.takes || typeof e.t === "number")) n++;
+      });
+    });
+    return n;
+  }
   function mediaIdxFor(l, kind) {
-    var ms = l.media || [];
+    /* Several recordings can serve one part — an alankar has a komal take and
+       more than one shuddha take. Open the one you actually timed, so your
+       offsets are on screen when the page comes up. */
+    var ms = l.media || [], best = -1, bestN = -1;
     for (var i = 0; i < ms.length; i++) {
-      var m = ms[i];
-      if (kind === "video") { if (m.kind === "video") return i; }
-      else if (m.kind === "audio" && m.tr === kind) return i;
+      var m = ms[i], ok = (kind === "video") ? (m.kind === "video") : (m.kind === "audio" && m.tr === kind);
+      if (!ok) continue;
+      var n = marksOn(l.id, i);
+      if (best < 0 || n > bestN) { best = i; bestN = n; }
     }
-    return -1;
+    return best;
   }
   function renderList() {
     var el = $("#list");
@@ -1694,18 +1710,22 @@
   }
   function playLine(li) {
     var l = lesson(state.lessonId); if (!l) return;
+    /* A line's time belongs to one recording. If this recording has none but a
+       sibling does (the komal and shuddha takes of an alankar, say), follow it
+       there rather than refusing: that time is real and was set on purpose. */
     var elsewhere = markInOtherFile(l, li);
-    if (elsewhere) {                       // its time was taken on a different recording
-      noTimeYet(li, "timed on another recording \u2014 press the chip to open it");
+    if (elsewhere) {
+      state.playingLine = li;
+      switchMedia(l, elsewhere.track, function () { state.playingLine = li; startSeg(li); });
       return;
     }
     var s = segsOf()[li];
-    if (!s || !s.t) {                      // no time for this line yet
+    if (!s) {                              // nothing was ever timed for this line
       noTimeYet(li, "no time set for this line \u2014 set it in edit mode");
       return;
     }
     state.playingLine = li;
-    startSeg(li);
+    startSeg(li);                          // 0:00 is a real time, not a missing one
   }
   function startSeg(li) {
     var au = state.audio, s = segsOf()[li]; if (!au || !s) return;
