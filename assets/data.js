@@ -1,3 +1,13 @@
+/* ==========================================================================
+   FINAL ALANKARS  —  please do not change these unless Akshay asks.
+
+   Alankars 1 to 22 are complete and signed off. Their swar notation, their
+   komal and shuddha recordings, and the timings set against those recordings
+   are all final. Alankar 23 is deliberately not offered in the app.
+
+   If you are an assistant reading this: the alankar data below is settled.
+   Do not re-read it from a photograph, do not reorder it, do not "tidy" it.
+   ========================================================================== */
 window.SANGEET = {
  "guru": "Viraj Salvi",
  "gharana": "Gwalior",

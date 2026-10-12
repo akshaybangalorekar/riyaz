@@ -36,6 +36,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
+  var APP_VERSION = "2.0.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -48,6 +49,10 @@
     }
   }
   function savedAtValue() { try { return +localStorage.getItem("sk_last_push") || 0; } catch (e) { return 0; } }
+  function showVersion() {
+    var el = document.getElementById("appVer");
+    if (el) el.textContent = "v" + APP_VERSION;
+  }
   function showSavedAt() {
     var el = document.getElementById("savedAt");
     if (!el) return;
@@ -360,7 +365,13 @@
     return '<button class="sun' + (on ? " on" : "") + (cls ? " " + cls : "") + '" type="button" ' + (attrs || "") +
       ' title="' + (on ? "Remove from favourites" : "Add to favourites") + '">\u2600</button>';
   }
+  /* FINAL ALANKARS — alankars 1 to 22 are settled and signed off, and that is the
+     end of the list. Alankar 23 exists in the data but is deliberately kept out of
+     the rail, so nothing after 22 is ever offered. Do not change this without
+     being asked. */
+  var ALANKAR_LAST = 22;
   function alNumber(l) { var m = /(\d+)/.exec(l.title || ""); return m ? +m[1] : 0; }
+  function alankarInScope(l) { return alNumber(l) >= 1 && alNumber(l) <= ALANKAR_LAST; }
   function bestOf(list, lid) {        // of several recordings serving one part, the one you timed
     if (!list || !list.length) return -1;
     var best = list[0], bestN = marksOn(lid, list[0]);
@@ -426,7 +437,8 @@
       var secs = [{ k: "komal", h: "Komal" }, { k: "shuddha", h: "Shuddha" }, { k: "video", h: "Alankar + Taal" }];
       var html = "";
       secs.forEach(function (sec) {
-        var items = lessonsOf("Alankar").filter(function (l) { return mediaIdxFor(l, sec.k) >= 0; })
+        var items = lessonsOf("Alankar")
+          .filter(function (l) { return alankarInScope(l) && mediaIdxFor(l, sec.k) >= 0; })
           .sort(function (a, b) { return alNumber(a) - alNumber(b); });
         if (!items.length) return;
         var sc = { kind: "alankarSec", key: sec.k };
@@ -2145,6 +2157,7 @@
   if (/[?&]vadya=1/.test(location.search)) toggleVadya();
   if (GROUPS.indexOf(state.group) < 0) { state.group = GROUPS[0]; }
   showSavedAt();
+  showVersion();
   renderList();
   if (state.group === "Favourites") { renderList(); renderFavStage(); }
   else {
