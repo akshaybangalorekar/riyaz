@@ -52,10 +52,10 @@
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
                  shruti: "", mkOpen: mkOpen, mkClose: mkClose };
       }
-      var oct = 0, komal = false, guard = 0;
+      var oct = 0, komal = false, guard = 0, octUp = false, octDn = false;
       while (guard++ < 6) {                                        // markers may come in any order
-        if (t[0] === "^") { oct = 1; t = t.slice(1); continue; }
-        if (t[0] === "_") { oct = -1; t = t.slice(1); continue; }
+        if (t[0] === "^") { octUp = true; oct = 1; t = t.slice(1); continue; }    // dot above
+        if (t[0] === "_") { octDn = true; oct = -1; t = t.slice(1); continue; }   // dot below
         if (t[0] === "~") { komal = true; t = t.slice(1); continue; }   // komal — a horizontal underline
         break;
       }
@@ -69,15 +69,16 @@
       }
       if (t.indexOf("\u093c") >= 0) { oct = -1; t = t.replace(/\u093c/g, ""); }
       // the small kan note can itself be komal, or sit in another octave
-      var kanKomal = false, kanOct = 0, g4 = 0, kt = kan;
+      var kanKomal = false, kanOct = 0, kanOctUp = false, kanOctDn = false, g4 = 0, kt = kan;
       while (g4++ < 4) {
         if (kt[0] === "~") { kanKomal = true; kt = kt.slice(1); continue; }
-        if (kt[0] === "^") { kanOct = 1; kt = kt.slice(1); continue; }
-        if (kt[0] === "_") { kanOct = -1; kt = kt.slice(1); continue; }
+        if (kt[0] === "^") { kanOctUp = true; kanOct = 1; kt = kt.slice(1); continue; }
+        if (kt[0] === "_") { kanOctDn = true; kanOct = -1; kt = kt.slice(1); continue; }
         break;
       }
       kan = kt;
-      return { sep: false, t: t, oct: oct, komal: komal, kan: kan, kanKomal: kanKomal, kanOct: kanOct,
+      return { sep: false, t: t, oct: oct, octUp: octUp, octDn: octDn, komal: komal,
+               kan: kan, kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
                shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
     });
   }
@@ -85,7 +86,8 @@
   // one swar, with any of the three marks it may carry
   function swarEl(tk, unit, noteN) {
     var sw = document.createElement("span");
-    sw.className = "sk-sw" + (tk.oct === 1 ? " oct1" : tk.oct === -1 ? " octm" : "") + (tk.komal ? " komal" : "");
+    sw.className = "sk-sw" + ((tk.octUp || tk.oct === 1) ? " oct1" : "") +
+      ((tk.octDn || tk.oct === -1) ? " octm" : "") + (tk.komal ? " komal" : "");
     if (unit > 1) {
       var g = Math.floor(noteN / unit);
       sw.className += (g % 2 ? " grpB" : " grpA") + (noteN % unit === 0 ? " gstart" : "");
@@ -95,7 +97,8 @@
       sw.className += " kan-host";
       var k = document.createElement("span");
       k.className = "kan" + (tk.kanKomal ? " komal" : "") +
-        (tk.kanOct === 1 ? " oct1" : tk.kanOct === -1 ? " octm" : "");
+        ((tk.kanOctUp || tk.kanOct === 1) ? " oct1" : "") +
+        ((tk.kanOctDn || tk.kanOct === -1) ? " octm" : "");
       k.textContent = tk.kan;
       sw.appendChild(k);
     }

@@ -104,7 +104,7 @@ body{
 .sk-sw .kan.komal{text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:2px}
 .sk-sw .kan.oct1::after{content:"\2022"; position:absolute; left:50%; transform:translateX(-50%);
   top:-9px; font-size:.62em; line-height:1}
-.sk-sw .kan.octm::after{content:"\2022"; position:absolute; left:50%; transform:translateX(-50%);
+.sk-sw .kan.octm::before{content:"\2022"; position:absolute; left:50%; transform:translateX(-50%);
   bottom:0; font-size:.62em; line-height:1}
 
 /* a note telling you which lines want a second look */
@@ -293,7 +293,7 @@ body{
   transition:background .12s,color .12s; cursor:pointer}
 .sk-sw.oct1::after{content:"•"; position:absolute; left:50%; top:-6px; transform:translateX(-50%);
   font-size:.5em; color:var(--saffron)}
-.sk-sw.octm::after{content:"•"; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%);
+.sk-sw.octm::before{content:"•"; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%);
   font-size:.5em; color:var(--saffron)}
 .sk-sep{display:inline-block; padding:1px 6px; color:var(--dim); font-weight:700}
 
