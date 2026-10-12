@@ -50,11 +50,14 @@
         if (t[0] === "~") { komal = true; t = t.slice(1); continue; }   // komal — a horizontal underline
         break;
       }
-      var kan = "", shruti = "";
-      var km = /\(([^)]*)\)$/.exec(t);                            // kan-swar — a small note above
-      if (km) { kan = km[1]; t = t.slice(0, km.index); }
-      var sm = /\[([0-9]*)\]$/.exec(t);                           // shruti — which microtone of the 22
-      if (sm) { shruti = sm[1]; t = t.slice(0, sm.index); }
+      var kan = "", shruti = "", g2 = 0;
+      while (g2++ < 4) {                                          // a swar may carry either or both
+        var km = /\(([^)]*)\)$/.exec(t);                          // kan-swar — a small note above
+        if (km) { kan = km[1]; t = t.slice(0, km.index); continue; }
+        var sm = /\[([0-9\u0966-\u096f]*)\]$/.exec(t);               // shruti — which microtone of the 22
+        if (sm) { shruti = sm[1]; t = t.slice(0, sm.index); continue; }
+        break;
+      }
       if (t.indexOf("\u093c") >= 0) { oct = -1; t = t.replace(/\u093c/g, ""); }
       return { sep: false, t: t, oct: oct, komal: komal, kan: kan, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
     });
@@ -1041,6 +1044,55 @@
   }
 
   /* ---------- the editors ---------- */
+  // the swar pad. Typing Devanagari means switching keyboards, so the notes
+  // are one tap each. Whatever box you last touched is where they land.
+  var lastTa = null;
+  function trackTa(ta) {
+    ta.addEventListener("focus", function () { lastTa = ta; });
+    if (!lastTa) lastTa = ta;
+  }
+  var SWAR_PAD = [
+    ["\u0938\u093e", "\u0938\u093e"], ["\u0930\u0947", "\u0930\u0947"], ["\u0917", "\u0917"],
+    ["\u092e", "\u092e"], ["\u092a", "\u092a"], ["\u0927", "\u0927"], ["\u0928\u093f", "\u0928\u093f"],
+    ["^", "^"], ["_", "_"], ["|", "|"], ["\u2013", "-"]
+  ];
+  function swarPad() {
+    var box = document.createElement("span"); box.className = "ed-tools ed-swarrow";
+    SWAR_PAD.forEach(function (p, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "ed-sw" + (i === 7 || i === 9 ? " alt" : "");
+      b.textContent = p[0];
+      b.title = p[1] === "^" ? "Upper octave (taar)"
+        : p[1] === "_" ? "Lower octave (mandra)"
+        : p[1] === "|" ? "Bar" : p[1] === "-" ? "Rest" : "Insert " + p[0];
+      b.onclick = function () { insertSwar(p[1]); };
+      box.appendChild(b);
+    });
+    return box;
+  }
+  function insertSwar(txt) {
+    var ta = lastTa;
+    if (!ta) return;
+    var v = ta.value, s0 = ta.selectionStart, e0 = ta.selectionEnd;
+    if (s0 === null || s0 === undefined) s0 = e0 = v.length;
+    var before = v.slice(0, s0), after = v.slice(e0);
+    try { ta.focus({ preventScroll: true }); } catch (x) { ta.focus(); }
+    // inside a kan ( ) or shruti [ ] the swar must not bring spaces with it,
+    // or the token would break in two
+    if (/[([{][^)\]}]*$/.test(before)) {
+      var skip = /^[)\]}]/.test(after) ? 1 : 0;      // a closing bracket right here
+      ta.value = before + txt + after;               // keep it, do not eat it
+      var q = s0 + txt.length + skip;                // caret steps past it
+      ta.setSelectionRange(q, q);
+      return;
+    }
+    var lead = (before && !/\s$/.test(before)) ? " " : "";
+    var ins = lead + txt + " ";
+    ta.value = before + ins + after;
+    var pos = s0 + ins.length;
+    ta.setSelectionRange(pos, pos);
+  }
+
   function swarTools(ta) {
     var box = document.createElement("span"); box.className = "ed-tools";
     [["Komal", "komal", "Underline this swar (komal)"],
@@ -1056,10 +1108,18 @@
   }
   function applyMark(ta, kind) {
     var v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
-    if (s === e) {                       // nothing selected? take the swar the caret sits on
-      var a = s; while (a > 0 && !/\s/.test(v[a - 1])) a--;
-      var b = e; while (b < v.length && !/\s/.test(v[b])) b++;
-      s = a; e = b;
+    if (s === e) {                       // nothing selected? take the swar next to the caret
+      var a = s, b = e;
+      while (a > 0 && /\s/.test(v[a - 1])) a--;        // step back over spaces
+      var st = a;
+      while (st > 0 && !/\s/.test(v[st - 1])) st--;    // then to the start of that swar
+      if (a > st) { s = st; e = a; }                   // the swar just before the caret wins
+      else {
+        while (b < v.length && /\s/.test(v[b])) b++;
+        var en = b;
+        while (en < v.length && !/\s/.test(v[en])) en++;
+        s = b; e = en;
+      }
     }
     var sel = v.slice(s, e);
     if (!sel) return;
@@ -1077,14 +1137,18 @@
     }
     ta.value = v.slice(0, s) + out + v.slice(e);
     ta.focus();
-    if (kind === "kan" || kind === "shruti") ta.setSelectionRange(s + out.length - 1, s + out.length - 1);
-    else ta.setSelectionRange(s, s + out.length);
+    var end2 = s + out.length;
+    // a kan or shruti wants the caret inside its brackets so you can type the note;
+    // the others leave the caret just after, ready for the next swar
+    if (kind === "kan" || kind === "shruti") ta.setSelectionRange(end2 - 1, end2 - 1);
+    else ta.setSelectionRange(end2, end2);
   }
 
   function notationEditor(l, li) {
     var d = document.createElement("div"); d.className = "ed";
     var ta = document.createElement("textarea");
     ta.className = "ed-ta"; ta.rows = 2; ta.value = lineText(l, li);
+    trackTa(ta);
     d.appendChild(ta);
     var bar = document.createElement("div"); bar.className = "ed-bar";
     var sv = document.createElement("button"); sv.className = "ed-btn"; sv.type = "button"; sv.textContent = "Save";
@@ -1092,11 +1156,12 @@
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
+    bar.appendChild(swarPad());
     bar.appendChild(swarTools(ta));
     var tip = document.createElement("span"); tip.className = "ed-tip";
-    tip.textContent = "Swar are separated by spaces. Select one and tap Komal / Murki / Kan to add a mark. " +
-      "\u007e underlines a komal swar \u00b7 { } draws a curve over a murki group \u00b7 a small note goes in ( ) \u00b7 " +
-      "^ upper octave \u00b7 _ lower \u00b7 | a bar.";
+    tip.textContent = "Tap a swar to drop it in \u2014 it lands where your cursor is. Then tap Komal / Murki / Kan / Shruti to mark it. " +
+      "Swar are separated by spaces: \u007e underlines a komal swar \u00b7 { } curves a murki group \u00b7 a small note goes in ( ) \u00b7 " +
+      "a shruti number goes in [ ].";
     bar.appendChild(tip);
     d.appendChild(bar);
     return d;
@@ -1112,6 +1177,7 @@
       a.value = r.swar.join(" "); a.title = "swar, one per matra";
       var b = document.createElement("textarea"); b.className = "ed-ta lyr"; b.rows = 1;
       b.value = r.lyric.join(" "); b.title = "the song's letters, one per matra";
+      trackTa(a); trackTa(b);
       box.appendChild(a); box.appendChild(b);
       d.appendChild(box);
       fields.push({ ri: ri, a: a, b: b });
@@ -1132,10 +1198,11 @@
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
+    bar.appendChild(swarPad());
     bar.appendChild(swarTools(fields.length ? fields[0].a : null));
     var tip = document.createElement("span"); tip.className = "ed-tip";
     tip.textContent = "First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
-      "Tap Komal / Murki / Kan to add a mark to the swar you have selected.";
+      "Tap a swar to drop it into whichever box you last touched, then tap Komal / Murki / Kan / Shruti to mark it.";
     bar.appendChild(tip);
     d.appendChild(bar);
     return d;

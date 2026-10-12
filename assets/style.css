@@ -112,6 +112,17 @@ body{
 .ed-tool:active{transform:scale(.96)}
 
 
+
+/* the swar pad in the editor */
+.ed-swarrow{flex:1 1 100%}
+.ed-sw{
+  border:1px solid var(--line); background:var(--bg2); color:var(--ink);
+  font:inherit; font-size:17px; font-weight:700; padding:6px 12px; border-radius:9px;
+  cursor:pointer; min-height:44px; min-width:48px; line-height:1;
+}
+.ed-sw:active{background:var(--saffron); color:#20160d; border-color:var(--saffron)}
+.ed-sw.alt{color:var(--saffron); font-size:15px; min-width:42px}
+
 /* ---------- shruti: the 22 microtones ---------- */
 .sk-banner.shruti{background:#1d1611;border-bottom:2px solid var(--saffron)}
 .shr-head{font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:800;color:var(--saffron);margin-bottom:8px}
