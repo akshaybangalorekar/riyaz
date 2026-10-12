@@ -20,6 +20,8 @@
     lineRows: [],
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
     cleared: {},       // lessons whose marks were cleared in this session
+    edits: {},         // user corrections to the written notation
+    editMode: false,   // is the notation editor open
     raagSect: null,    // which part of a raag is showing (aaroh / mukt / …)
     raagOpen: {},      // which raags are expanded in the rail
     fav: [],           // favourites: { id, m, sect, line } in the order you lined them up
@@ -515,7 +517,9 @@
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
         
-        (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>▶</b> to play a line · <b>■</b> to stop · <b>⏱</b> to set its start.</span>') +
+        (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
+        '<button class="sk-editbtn' + (state.editMode ? " on" : "") + '" id="btnEditNotation" type="button">\u270e ' +
+        (state.editMode ? "Done editing" : "Edit notation") + "</button>" +
         "</div>";
     }
 
@@ -544,6 +548,8 @@
 
     renderPlayer(l);
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
+    var ebtn = $("#btnEditNotation");
+    if (ebtn) ebtn.onclick = function () { state.editMode = !state.editMode; renderStage(l); };
   }
 
   function renderPlayer(l) {
@@ -697,8 +703,14 @@
         lb.className = "sk-lbl"; lb.textContent = line.label;
         row.appendChild(lb);
       }
+      if (line.bandish) {                 // a bandish gets the swimlane view, not a swar run
+        row.appendChild(bandishView(l, li, line));
+        box.appendChild(row);
+        if (state.editMode) box.appendChild(bandishEditor(l, li, line));
+        return;
+      }
       var unit = line.unit || 0, noteN = 0;
-      tokenize(line.text).forEach(function (tk) {
+      tokenize(lineText(l, li)).forEach(function (tk) {
         if (tk.sep) {
           var sp = document.createElement("span");
           sp.className = "sk-sep"; sp.textContent = tk.t;
@@ -717,6 +729,216 @@
       });
       box.appendChild(row);
     });
+  }
+
+  /* ---------- written-notation edits ----------
+     The sheet does not always read cleanly, and every device hears things
+     differently, so any line can be corrected here. Edits live on the device
+     and are merged (never replaced) with whatever another device wrote. */
+  var EDITS = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/edits.json";
+
+  function editsFor(id) { if (!state.edits[id]) state.edits[id] = {}; return state.edits[id]; }
+  function editOf(id, li) {          // lookup must not create an entry just by looking
+    var e = state.edits[id];
+    return (e && e[String(li)]) || null;
+  }
+  function lineText(l, li) {
+    var e = editOf(l.id, li);
+    if (e && typeof e.t === "string") return e.t;
+    return (l.lines[li].text || "");
+  }
+  function bandishRows(l, li) {
+    var b = l.lines[li].bandish;
+    if (!b) return [];
+    var e = editOf(l.id, li), ov = (e && e.b) || {};
+    return b.rows.map(function (r, ri) {
+      var o = ov[String(ri)] || {};
+      return { swar: o.swar || r.swar, lyric: o.lyric || r.lyric, arc: o.arc || r.arc };
+    });
+  }
+  function setLineEdit(id, li, obj) {
+    var e = editsFor(id), k = String(li);
+    if (obj) e[k] = obj; else delete e[k];
+    if (!Object.keys(e).length) delete state.edits[id];   // keep the file tidy
+    saveEdits(); scheduleEditsPush();
+  }
+  function saveEdits() { try { localStorage.setItem("sk_edits", JSON.stringify(state.edits || {})); } catch (e) {} }
+  function loadEdits() { try { var r = localStorage.getItem("sk_edits"); if (r) state.edits = JSON.parse(r) || {}; } catch (e) {} }
+
+  function mergeEdits() {
+    var out = {};
+    for (var a = 0; a < arguments.length; a++) {
+      var src = arguments[a] || {};
+      Object.keys(src).forEach(function (k) {
+        out[k] = out[k] || {};
+        var lines = src[k] || {};
+        Object.keys(lines).forEach(function (li) {
+          var v = lines[li]; if (!v || typeof v !== "object") return;
+          var prev = out[k][li];
+          if (!prev) { out[k][li] = v; return; }
+          var m = {};
+          if (typeof prev.t === "string" || typeof v.t === "string") m.t = (v.t !== undefined ? v.t : prev.t);
+          var pb = prev.b || {}, vb = v.b || {};
+          var ks = Object.keys(pb).concat(Object.keys(vb));
+          if (ks.length) { m.b = {}; ks.forEach(function (ri) { m.b[ri] = vb[ri] || pb[ri]; }); }
+          out[k][li] = m;
+        });
+      });
+    }
+    return out;
+  }
+  var editTimer = 0, editPushing = false, editDirty = false;
+  function scheduleEditsPush(delay) {
+    if (!getToken()) return;
+    editDirty = true;
+    if (editTimer) return;
+    editTimer = setTimeout(function () { editTimer = 0; flushEdits(); }, delay || 1500);
+  }
+  function flushEdits() {
+    if (!getToken() || !editDirty || editPushing) return;
+    editPushing = true;
+    pushEdits(function (r) {
+      editPushing = false;
+      if (r === "ok") editDirty = false; else scheduleEditsPush(8000);
+    });
+  }
+  function pushEdits(cb) {
+    var tok = getToken();
+    if (!tok) { if (cb) cb("no-token"); return; }
+    ghGet(tok, EDITS).then(function (cur) {
+      if (!cur.ok) { if (cb) cb("unreadable"); return; }     // never overwrite an unread file
+      var merged = mergeEdits(cur.data || {}, state.edits || {});
+      var body = { message: "Update notation edits", branch: "main", content: b64(JSON.stringify(merged, null, 1)) };
+      if (cur.sha) body.sha = cur.sha;
+      var h = ghHdr(tok); h["Content-Type"] = "application/json";
+      return fetch(EDITS, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
+    }).then(function (r) {
+      if (r && r.ok) { if (cb) cb("ok"); } else if (cb) cb("fail", r && r.status);
+    }).catch(function (e) { if (cb) cb(e && e.status ? "fail" : "net", e && e.status); });
+  }
+  function pullEdits(cb) {
+    var tok = getToken();
+    var p = tok
+      ? ghGet(tok, EDITS).then(function (cur) { return cur.ok ? cur.data : null; })
+      : fetchPublic("edits.json?t=" + Date.now());
+    p.then(function (j) {
+      if (j === null || typeof j !== "object") { if (cb) cb("fail"); return; }
+      state.edits = mergeEdits(state.edits || {}, j);
+      saveEdits();
+      if (state.lessonId && GROUPS.indexOf(state.group) >= 0 && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
+      if (cb) cb("ok");
+    }).catch(function () { if (cb) cb("fail"); });
+  }
+
+  /* ---------- the bandish swimlane ---------- */
+  function vibhagStart(vb, i) {
+    var acc = 0;
+    for (var k = 0; k < vb.length; k++) { if (acc === i && k > 0) return true; acc += vb[k]; }
+    return false;
+  }
+  function bandishView(l, li, line) {
+    var b = line.bandish, N = b.matras || 16, vb = b.vibhag || [4, 4, 4, 4];
+    var rows = bandishRows(l, li);
+    var wrap = document.createElement("div"); wrap.className = "bnd";
+    var head = document.createElement("div"); head.className = "bnd-head";
+    head.innerHTML = '<b>' + esc(b.taal || "") + '</b><span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e</span>';
+    wrap.appendChild(head);
+
+    function lane(cls) {
+      var el = document.createElement("div"); el.className = "bnd-lane " + cls;
+      for (var i = 0; i < N; i++) {
+        var c = document.createElement("span");
+        c.className = "bnd-cell" + (vibhagStart(vb, i) ? " bnd-vs" : "");
+        el.appendChild(c);
+      }
+      return el;
+    }
+    var nums = lane("bnd-nums");
+    for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
+    wrap.appendChild(nums);
+
+    rows.forEach(function (r) {
+      var rw = document.createElement("div"); rw.className = "bnd-row";
+      var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
+      for (var i = 0; i < N; i++) {
+        sl.children[i].textContent = r.swar[i] || "";
+        ll.children[i].textContent = r.lyric[i] || "";
+      }
+      rw.appendChild(sl);
+      var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
+      lw.appendChild(ll);
+      var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "bnd-arcs");
+      svg.setAttribute("viewBox", "0 0 " + (N * 10) + " 10");
+      svg.setAttribute("preserveAspectRatio", "none");
+      (r.arc || []).forEach(function (a) {
+        var x1 = a[0] * 10 + 2.5, x2 = (a[1] + 1) * 10 - 2.5;
+        var pa = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pa.setAttribute("d", "M" + x1 + " 1.4 Q " + ((x1 + x2) / 2) + " 8.4 " + x2 + " 1.4");
+        pa.setAttribute("fill", "none");
+        svg.appendChild(pa);
+      });
+      lw.appendChild(svg);
+      rw.appendChild(lw);
+      wrap.appendChild(rw);
+    });
+    return wrap;
+  }
+
+  /* ---------- the editors ---------- */
+  function notationEditor(l, li) {
+    var d = document.createElement("div"); d.className = "ed";
+    var ta = document.createElement("textarea");
+    ta.className = "ed-ta"; ta.rows = 2; ta.value = lineText(l, li);
+    d.appendChild(ta);
+    var bar = document.createElement("div"); bar.className = "ed-bar";
+    var sv = document.createElement("button"); sv.className = "ed-btn"; sv.type = "button"; sv.textContent = "Save";
+    sv.onclick = function () { setLineEdit(l.id, li, { t: ta.value }); renderNotation(l); };
+    var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
+    rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
+    bar.appendChild(sv); bar.appendChild(rs);
+    var tip = document.createElement("span"); tip.className = "ed-tip";
+    tip.textContent = "swar separated by spaces \u00b7 ^ upper octave \u00b7 _ lower \u00b7 | a bar";
+    bar.appendChild(tip);
+    d.appendChild(bar);
+    return d;
+  }
+  function bandishEditor(l, li, line) {
+    var d = document.createElement("div"); d.className = "ed ed-bandish";
+    var rows = bandishRows(l, li), fields = [];
+    rows.forEach(function (r, ri) {
+      var box = document.createElement("div"); box.className = "ed-brow";
+      var n = document.createElement("span"); n.className = "ed-bn"; n.textContent = "Line " + (ri + 1);
+      box.appendChild(n);
+      var a = document.createElement("textarea"); a.className = "ed-ta"; a.rows = 1;
+      a.value = r.swar.join(" "); a.title = "swar, one per matra";
+      var b = document.createElement("textarea"); b.className = "ed-ta lyr"; b.rows = 1;
+      b.value = r.lyric.join(" "); b.title = "the song's letters, one per matra";
+      box.appendChild(a); box.appendChild(b);
+      d.appendChild(box);
+      fields.push({ ri: ri, a: a, b: b });
+    });
+    var bar = document.createElement("div"); bar.className = "ed-bar";
+    var sv = document.createElement("button"); sv.className = "ed-btn"; sv.type = "button"; sv.textContent = "Save";
+    sv.onclick = function () {
+      var b = {};
+      fields.forEach(function (f) {
+        b[String(f.ri)] = {
+          swar: f.a.value.split(/\s+/).filter(Boolean),
+          lyric: f.b.value.split(/\s+/).filter(Boolean)
+        };
+      });
+      setLineEdit(l.id, li, { b: b });
+      renderNotation(l);
+    };
+    var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
+    rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
+    bar.appendChild(sv); bar.appendChild(rs);
+    var tip = document.createElement("span"); tip.className = "ed-tip";
+    tip.textContent = "first box = swar for each of the 16 matras \u00b7 second box = the song's letters";
+    bar.appendChild(tip);
+    d.appendChild(bar);
+    return d;
   }
 
   function wireControls(l) {
@@ -1204,16 +1426,18 @@
   favLoad();
   loadAllLocal();
   loadSharedCache();
+  loadEdits();
   renderSyncNote();
   renderTabs();
   pullMarks();
   favPull();
+  pullEdits();
   setInterval(autoSaveTick, 60000);    // background save + push every minute
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden") { saveAllLocal(); flushPush(); favPush(); }
-    else { pullMarks(); favPull(); }
+    if (document.visibilityState === "hidden") { saveAllLocal(); saveEdits(); flushPush(); flushEdits(); favPush(); }
+    else { pullMarks(); favPull(); pullEdits(); }
   });
-  window.addEventListener("pagehide", function () { saveAllLocal(); flushPush(); });
+  window.addEventListener("pagehide", function () { saveAllLocal(); saveEdits(); flushPush(); flushEdits(); });
   window.addEventListener("online", function () { flushPush(); });
   var railBtn = $("#btnRail"); if (railBtn) railBtn.onclick = toggleRail;
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
