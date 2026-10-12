@@ -129,6 +129,15 @@ body{
 .ed-sw:active{background:var(--saffron); color:#20160d; border-color:var(--saffron)}
 .ed-sw.alt{color:var(--saffron); font-size:15px; min-width:42px}
 
+
+/* add-another-line button, shown while editing */
+.ed-addbtn{
+  display:block; width:100%; margin:6px 0 4px; padding:11px 14px;
+  border:1px dashed var(--saffron); border-radius:10px; background:transparent;
+  color:var(--saffron); font:inherit; font-size:14px; font-weight:700; cursor:pointer; text-align:center;
+}
+.ed-addbtn:active{background:var(--saffron); color:#20160d}
+
 /* ---------- shruti: the 22 microtones ---------- */
 .sk-banner.shruti{background:#1d1611;border-bottom:2px solid var(--saffron)}
 .shr-head{font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:800;color:var(--saffron);margin-bottom:8px}

@@ -776,6 +776,14 @@
       box.appendChild(row);
       if (state.editMode) box.appendChild(notationEditor(l, li));
     });
+    // while editing, one more line can be added right after the last one shown
+    if (state.editMode && l.group === "Raag" && state.raagSect) {
+      var addb = document.createElement("button");
+      addb.type = "button"; addb.className = "ed-addbtn";
+      addb.textContent = "+ Add another " + (raagSectLabel(state.raagSect) || "line");
+      addb.onclick = function () { addLine(l, state.raagSect); };
+      box.appendChild(addb);
+    }
   }
 
   /* ---------- written-notation edits ----------
@@ -785,12 +793,69 @@
   var EDITS = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/edits.json";
 
   function editsFor(id) { if (!state.edits[id]) state.edits[id] = {}; return state.edits[id]; }
+
+  /* Added lines live in the same store as the edits, at index 1000 and up, so they
+     ride the same save-and-merge path. Nothing below 1000 is ever an added line. */
+  var ADD_BASE = 1000;
+  function addedKeys(id) {
+    var e = state.edits[id] || {};
+    return Object.keys(e).filter(function (k) { return +k >= ADD_BASE; })
+      .sort(function (a, b) { return (+a) - (+b); });
+  }
+  function nextAddIndex(id) {
+    var ks = addedKeys(id);
+    return ks.length ? (+ks[ks.length - 1] + 1) : ADD_BASE;
+  }
+  function nextLabel(l, sect) {
+    var re, base;
+    if (sect === "mukt") { re = /^Mukt Aalap\s*(\d+)/i; base = "Mukt Aalap"; }
+    else if (sect === "tana") { re = /^Tana\s*(\d+)/i; base = "Tana"; }
+    else if (sect === "laikari") { re = /Laikari\s*(\d+)/i; base = "Sthayi Laikari"; }
+    else if (sect === "bandish") { re = /Bandish\s*\(?(\w*)\)?\s*(\d*)/i; base = "Bandish"; }
+    else { re = /(\d+)\s*$/; base = "Line"; }
+    var max = 0;
+    (l.lines || []).forEach(function (ln) {
+      var m = re.exec(ln.label || "");
+      if (m) { var n = +(m[1] && /^\d+$/.test(m[1]) ? m[1] : (m[2] || 0)); if (n > max) max = n; }
+    });
+    return base + " " + (max + 1);
+  }
+  // rebuild every lesson's line list as its built-in lines plus the added ones
+  function applyAdds() {
+    D.lessons.forEach(function (l) {
+      if (!l._base) l._base = (l.lines || []).slice();
+      var extra = addedKeys(l.id).map(function (k) {
+        var v = state.edits[l.id][k] || {};
+        return { label: v.label || "Added line", text: v.t || "", added: true, idx: +k };
+      });
+      l.lines = l._base.concat(extra);
+    });
+  }
+  function addLine(l, sect) {
+    var idx = nextAddIndex(l.id);
+    editsFor(l.id)[String(idx)] = { t: "", label: nextLabel(l, sect), sect: sect || null };
+    applyAdds(); saveEdits(); scheduleEditsPush();
+    renderList(); renderStage(l);
+  }
+  function removeAddedLine(l, li) {
+    var line = (l.lines || [])[li];
+    if (!line || !line.added) return;
+    var e = editsFor(l.id);
+    delete e[String(line.idx)];
+    if (!Object.keys(e).length) delete state.edits[l.id];
+    applyAdds(); saveEdits(); scheduleEditsPush();
+    renderList(); renderStage(l);
+  }
+  function editKeyFor(l, li) {       // added lines are stored under their own index
+    var ln = (l.lines || [])[li];
+    return (ln && ln.added) ? String(ln.idx) : String(li);
+  }
   function editOf(id, li) {          // lookup must not create an entry just by looking
     var e = state.edits[id];
     return (e && e[String(li)]) || null;
   }
   function lineText(l, li) {
-    var e = editOf(l.id, li);
+    var e = editOf(l.id, editKeyFor(l, li));
     if (e && typeof e.t === "string") return e.t;
     return (l.lines[li].text || "");
   }
@@ -1132,10 +1197,16 @@
     d.appendChild(ta);
     var bar = document.createElement("div"); bar.className = "ed-bar";
     var sv = document.createElement("button"); sv.className = "ed-btn"; sv.type = "button"; sv.textContent = "Save";
-    sv.onclick = function () { setLineEdit(l.id, li, { t: ta.value }); renderNotation(l); };
+    sv.onclick = function () { setLineEdit(l.id, editKeyFor(l, li), { t: ta.value }); renderNotation(l); };
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
-    rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
+    rs.onclick = function () { setLineEdit(l.id, editKeyFor(l, li), null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
+    if (l.lines[li] && l.lines[li].added) {
+      var rm = document.createElement("button");
+      rm.className = "ed-btn ghost"; rm.type = "button"; rm.textContent = "Remove this line";
+      rm.onclick = function () { removeAddedLine(l, li); };
+      bar.appendChild(rm);
+    }
     bar.appendChild(swarPad());
     bar.appendChild(markHelp("Tap a swar to drop it in \u2014 it lands where your cursor is."));
     d.appendChild(bar);
@@ -1666,6 +1737,7 @@
   loadAllLocal();
   loadSharedCache();
   loadEdits();
+  applyAdds();
   renderSyncNote();
   renderTabs();
   pullMarks();
