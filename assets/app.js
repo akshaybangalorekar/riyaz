@@ -50,11 +50,13 @@
         if (t[0] === "~") { komal = true; t = t.slice(1); continue; }   // komal — a horizontal underline
         break;
       }
-      var kan = "";
+      var kan = "", shruti = "";
       var km = /\(([^)]*)\)$/.exec(t);                            // kan-swar — a small note above
       if (km) { kan = km[1]; t = t.slice(0, km.index); }
+      var sm = /\[([0-9]*)\]$/.exec(t);                           // shruti — which microtone of the 22
+      if (sm) { shruti = sm[1]; t = t.slice(0, sm.index); }
       if (t.indexOf("\u093c") >= 0) { oct = -1; t = t.replace(/\u093c/g, ""); }
-      return { sep: false, t: t, oct: oct, komal: komal, kan: kan, mkOpen: mkOpen, mkClose: mkClose };
+      return { sep: false, t: t, oct: oct, komal: komal, kan: kan, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
     });
   }
 
@@ -72,6 +74,12 @@
       var k = document.createElement("span");
       k.className = "kan"; k.textContent = tk.kan;
       sw.appendChild(k);
+    }
+    if (tk.shruti) {                    // the shruti number sits at the top right
+      sw.className += " shr-host";
+      var sh = document.createElement("span");
+      sh.className = "shr"; sh.textContent = tk.shruti;
+      sw.appendChild(sh);
     }
     return sw;
   }
@@ -854,6 +862,117 @@
     }).catch(function () { if (cb) cb("fail"); });
   }
 
+  /* ---------- the 22 shrutis ----------
+     Sa and Pa are achal (fixed). Each of Re, Ga, Ma, Dha, Ni takes four seats:
+     two flavours (komal / shuddha) and, within each, a lower and a higher seat.
+     2 + 5 x 4 = 22. Ratios and the traditional names differ between texts; the
+     ones below are one widely cited listing, given so they can be compared. */
+  var SHRUTIS = [
+    { n: 1,  code: "S",  swar: "\u0938\u093e", name: "\u0924\u0940\u0935\u094d\u0930\u093e",        tone: "\u0938\u093e",              ratio: "1/1",     cents: "0.0" },
+    { n: 2,  code: "r1", swar: "\u0930\u0947", name: "\u0915\u0941\u092e\u0941\u0926\u094d\u0935\u0924\u0940", tone: "\u0905\u0924\u093f \u0915\u094b\u092e\u0932 \u0930\u0947", ratio: "256/243", cents: "90.2" },
+    { n: 3,  code: "r2", swar: "\u0930\u0947", name: "\u092e\u0928\u094d\u0926\u093e",          tone: "\u0915\u094b\u092e\u0932 \u0930\u0947",     ratio: "16/15",   cents: "111.7" },
+    { n: 4,  code: "R1", swar: "\u0930\u0947", name: "\u091b\u0928\u094d\u0926\u094b\u0935\u0924\u0940", tone: "\u0936\u0941\u0926\u094d\u0927 \u0930\u0947", ratio: "10/9",    cents: "182.4" },
+    { n: 5,  code: "R2", swar: "\u0930\u0947", name: "\u0926\u092f\u093e\u0935\u0924\u0940",      tone: "\u0924\u0940\u0935\u094d\u0930 \u0936\u0941\u0926\u094d\u0927 \u0930\u0947", ratio: "9/8", cents: "203.9" },
+    { n: 6,  code: "g1", swar: "\u0917",  name: "\u0930\u091e\u094d\u091c\u0928\u0940",        tone: "\u0905\u0924\u093f \u0915\u094b\u092e\u0932 \u0917", ratio: "32/27",   cents: "294.1" },
+    { n: 7,  code: "g2", swar: "\u0917",  name: "\u0930\u0915\u094d\u0924\u093f\u0915\u093e",        tone: "\u0915\u094b\u092e\u0932 \u0917",       ratio: "6/5",     cents: "315.6" },
+    { n: 8,  code: "G1", swar: "\u0917",  name: "\u0930\u094c\u0926\u094d\u0930\u0940",        tone: "\u0936\u0941\u0926\u094d\u0927 \u0917",   ratio: "5/4",     cents: "386.3" },
+    { n: 9,  code: "G2", swar: "\u0917",  name: "\u0915\u094d\u0930\u094b\u0927\u093e",        tone: "\u0924\u0940\u0935\u094d\u0930 \u0936\u0941\u0926\u094d\u0927 \u0917", ratio: "81/64", cents: "407.8" },
+    { n: 10, code: "M1", swar: "\u092e",  name: "\u0935\u091c\u094d\u0930\u093f\u0915\u093e",        tone: "\u0936\u0941\u0926\u094d\u0927 \u092e",   ratio: "4/3",     cents: "498.0" },
+    { n: 11, code: "M2", swar: "\u092e",  name: "\u092a\u094d\u0930\u0938\u093e\u0930\u093f\u0923\u0940",    tone: "\u090f\u0915 \u0936\u094d\u0930\u0941\u0924\u093f \u092e", ratio: "27/20", cents: "519.6" },
+    { n: 12, code: "m1", swar: "\u092e\u093c", name: "\u092a\u094d\u0930\u0940\u0924\u093f",          tone: "\u0924\u0940\u0935\u094d\u0930 \u092e",   ratio: "45/32",   cents: "590.2" },
+    { n: 13, code: "m2", swar: "\u092e\u093c", name: "\u092e\u093e\u0930\u094d\u091c\u0928\u0940",        tone: "\u0924\u0940\u0935\u094d\u0930\u0924\u092e \u092e", ratio: "729/512", cents: "611.7" },
+    { n: 14, code: "P",  swar: "\u092a",  name: "\u0915\u094d\u0937\u093f\u0924\u093f",        tone: "\u092a",              ratio: "3/2",     cents: "702.0" },
+    { n: 15, code: "d1", swar: "\u0927",  name: "\u0930\u0915\u094d\u0924\u093e",          tone: "\u0905\u0924\u093f \u0915\u094b\u092e\u0932 \u0927", ratio: "128/81", cents: "792.2" },
+    { n: 16, code: "d2", swar: "\u0927",  name: "\u0938\u0928\u094d\u0926\u0940\u092a\u0928\u0940",      tone: "\u0915\u094b\u092e\u0932 \u0927",     ratio: "8/5",     cents: "813.7" },
+    { n: 17, code: "D1", swar: "\u0927",  name: "\u0906\u0932\u093e\u092a\u093f\u0928\u0940",      tone: "\u0936\u0941\u0926\u094d\u0927 \u0927",   ratio: "5/3",     cents: "884.4" },
+    { n: 18, code: "D2", swar: "\u0927",  name: "\u092e\u0926\u0928\u094d\u0924\u0940",        tone: "\u0924\u0940\u0935\u094d\u0930 \u0936\u0941\u0926\u094d\u0927 \u0927", ratio: "27/16", cents: "905.9" },
+    { n: 19, code: "n1", swar: "\u0928\u093f", name: "\u0930\u094b\u0939\u093f\u0923\u0940",        tone: "\u0905\u0924\u093f \u0915\u094b\u092e\u0932 \u0928\u093f", ratio: "16/9", cents: "996.1" },
+    { n: 20, code: "n2", swar: "\u0928\u093f", name: "\u0930\u092e\u094d\u092f\u093e",          tone: "\u0915\u094b\u092e\u0932 \u0928\u093f",     ratio: "9/5",     cents: "1017.6" },
+    { n: 21, code: "N1", swar: "\u0928\u093f", name: "\u0909\u0917\u094d\u0930\u093e",          tone: "\u0936\u0941\u0926\u094d\u0927 \u0928\u093f", ratio: "15/8",    cents: "1088.3" },
+    { n: 22, code: "N2", swar: "\u0928\u093f", name: "\u0915\u094d\u0937\u094b\u092d\u093f\u0928\u0940",      tone: "\u0924\u0940\u0935\u094d\u0930 \u0936\u0941\u0926\u094d\u0927 \u0928\u093f", ratio: "243/128", cents: "1109.8" }
+  ];
+  var SHR_SA = [ { hz: 146.83, t: "D3" }, { hz: 196.00, t: "G3" }, { hz: 220.00, t: "A3" }, { hz: 261.63, t: "C4" } ];
+  var shrCtx = null, shrOsc = null, shrBtnEl = null;
+
+  function shrStop() {
+    if (shrOsc) { try { shrOsc.stop(); } catch (e) {} shrOsc = null; }
+    if (shrBtnEl) { shrBtnEl.classList.remove("on"); shrBtnEl.textContent = "\u25b6"; shrBtnEl = null; }
+  }
+  function shrPlay(hz, btn) {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!shrCtx) shrCtx = new Ctx();
+      if (shrCtx.state === "suspended") shrCtx.resume();
+      shrStop();
+      var o = shrCtx.createOscillator(), g = shrCtx.createGain();
+      o.type = "triangle"; o.frequency.value = hz;
+      var t = shrCtx.currentTime;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.17, t + 0.04);
+      g.gain.setValueAtTime(0.17, t + 1.05);
+      g.gain.linearRampToValueAtTime(0, t + 1.4);
+      o.connect(g); g.connect(shrCtx.destination);
+      o.start(t); o.stop(t + 1.45);
+      shrOsc = o; shrBtnEl = btn;
+      if (btn) { btn.classList.add("on"); btn.textContent = "\u275a\u275a"; }
+      o.onended = function () { if (btn) { btn.classList.remove("on"); btn.textContent = "\u25b6"; } };
+    } catch (e) {}
+  }
+  function shrutiFrac(ratio) {
+    var p = ratio.split("/");
+    return (+p[0]) / (+p[1] || 1);
+  }
+
+  function mountShruti(box) {
+    var sel = "", rows = SHRUTIS.map(function (s2) {
+      return '<div class="shr-row" data-hz="' + (shrutiFrac(s2.ratio)).toFixed(6) + '">' +
+        '<span class="shr-n">' + s2.n + "</span>" +
+        '<span class="shr-code">' + esc(s2.code) + "</span>" +
+        '<span class="shr-swar">' + esc(s2.swar) + "</span>" +
+        '<span class="shr-name">' + esc(s2.name) + "</span>" +
+        '<span class="shr-tone">' + esc(s2.tone) + "</span>" +
+        '<span class="shr-ratio">' + esc(s2.ratio) + "</span>" +
+        '<span class="shr-cents">' + esc(s2.cents) + "</span>" +
+        '<button class="shr-play" type="button" aria-label="hear it">\u25b6</button>' +
+      "</div>";
+    }).join("");
+    sel = SHR_SA.map(function (x, i) {
+      return '<option value="' + x.hz + '"' + (i === 2 ? " selected" : "") + ">Sa = " + x.t + " (" + x.hz + " Hz)</option>";
+    }).join("");
+    box.innerHTML =
+      '<div class="shr-head">\u0936\u094d\u0930\u0941\u0924\u093f \u2014 22 microtones in one saptak</div>' +
+      '<div class="shr-intro">A shruti is the smallest pitch step the ear can tell apart. Sa and Pa are <b>achal</b> (fixed) \u2014 one seat each. ' +
+      'Re, Ga, Ma, Dha and Ni each take <b>four</b> seats: two flavours (komal and shuddha) and, within each, a lower and a higher one. ' +
+      '2 + 5 \u00d7 4 = <b>22</b>. Every seat below can be heard against Sa.</div>' +
+      '<div class="shr-bar"><label for="shrSa">Play against</label><select id="shrSa" class="v-sel">' + sel + "</select>" +
+        '<button class="shr-stop" id="shrStop" type="button">Stop</button></div>' +
+      '<div class="shr-list">' +
+        '<div class="shr-row shr-hrow"><span class="shr-n">#</span><span class="shr-code">code</span><span class="shr-swar"></span>' +
+        '<span class="shr-name">name</span><span class="shr-tone">swar</span><span class="shr-ratio">ratio</span>' +
+        '<span class="shr-cents">cents</span><span class="shr-play"></span></div>' + rows +
+      "</div>" +
+      '<div class="shr-note">Ratios and cents are one widely cited listing; the traditional names and the exact fractions differ between texts, ' +
+      'so treat this as a map to listen against rather than the last word. Sa = ' +
+      '<span id="shrSaNow">A3</span>.</div>';
+
+    function saHz() { var e = box.querySelector("#shrSa"); return e ? +e.value : 220; }
+    function saName() { var e = box.querySelector("#shrSa"); return e && e.selectedOptions[0] ? e.selectedOptions[0].textContent : ""; }
+    function updSa() { var e = box.querySelector("#shrSaNow"); if (e) e.textContent = saName().replace(/^Sa = /, ""); }
+    var se = box.querySelector("#shrSa");
+    if (se) se.onchange = function () { updSa(); shrStop(); };
+    updSa();
+    var st = box.querySelector("#shrStop");
+    if (st) st.onclick = function () { shrStop(); };
+    Array.prototype.forEach.call(box.querySelectorAll(".shr-row[data-hz]"), function (r) {
+      var b = r.querySelector(".shr-play");
+      b.onclick = function () {
+        if (b.classList.contains("on")) { shrStop(); return; }
+        shrPlay(saHz() * (+r.dataset.hz), b);
+      };
+    });
+  }
+
   /* ---------- the bandish swimlane ---------- */
   function vibhagStart(vb, i) {
     var acc = 0;
@@ -926,7 +1045,8 @@
     var box = document.createElement("span"); box.className = "ed-tools";
     [["Komal", "komal", "Underline this swar (komal)"],
      ["Murki", "murki", "Curve over these swar \u2014 murki / khatka"],
-     ["Kan", "kan", "A small note above this one \u2014 kan / sparsh swar"]].forEach(function (p) {
+     ["Kan", "kan", "A small note above this one \u2014 kan / sparsh swar"],
+     ["Shruti", "shruti", "Mark which of the 22 shrutis this swar is sung on"]].forEach(function (p) {
       var b = document.createElement("button");
       b.type = "button"; b.className = "ed-tool"; b.textContent = p[0]; b.title = p[2];
       b.onclick = function () { if (ta) applyMark(ta, p[1]); };
@@ -948,13 +1068,16 @@
       out = sel.split(/\s+/).map(function (w) { return w[0] === "~" ? w.slice(1) : "~" + w; }).join(" ");
     } else if (kind === "murki") {
       out = sel[0] === "{" ? sel.slice(1, -1) : "{" + sel + "}";
+    } else if (kind === "shruti") {
+      var m2 = /^(.*?)(\[[0-9]*\])?$/.exec(sel);
+      out = (m2 ? m2[1] : sel) + "[]";
     } else {
       var m = /^([^{}~^_]*)(\([^)]*\))?$/.exec(sel);
       out = (m ? m[1] : sel) + "()";
     }
     ta.value = v.slice(0, s) + out + v.slice(e);
     ta.focus();
-    if (kind === "kan") ta.setSelectionRange(s + out.length - 1, s + out.length - 1);
+    if (kind === "kan" || kind === "shruti") ta.setSelectionRange(s + out.length - 1, s + out.length - 1);
     else ta.setSelectionRange(s, s + out.length);
   }
 
@@ -1525,12 +1648,23 @@
   /* Vadya panel — mounted once; hiding it never stops the instruments */
   var vbox = $("#skVadyaBox");
   if (vbox && window.RIYAZ && window.RIYAZ.vadya) window.RIYAZ.vadya.mount(vbox);
+  var sbox = $("#skShrutiBox");
+  if (sbox) mountShruti(sbox);
+  var sb2 = $("#btnShruti");
+  if (sb2) sb2.onclick = function () {
+    var p = $("#skShruti"); if (!p) return;
+    var on = p.classList.toggle("on");
+    sb2.classList.toggle("on", on);
+    if (on) { var o1 = $("#skVadya"); if (o1) o1.classList.remove("on"); var v1 = $("#btnVadya"); if (v1) v1.classList.remove("on"); }
+  };
   var vb = $("#btnVadya");
   function toggleVadya() {
     var p = $("#skVadya"); if (!p) return;
     var on = p.classList.toggle("on");
     if (vb) vb.classList.toggle("on", on);
     if (on) { var close = $("#skSettings"); if (close) close.classList.remove("on"); }
+    var o2 = $("#skShruti"); if (on && o2) o2.classList.remove("on");
+    var s2b = $("#btnShruti"); if (on && s2b) s2b.classList.remove("on");
   }
   if (vb) vb.onclick = toggleVadya;
   if (/[?&]vadya=1/.test(location.search)) toggleVadya();

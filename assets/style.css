@@ -111,6 +111,42 @@ body{
 }
 .ed-tool:active{transform:scale(.96)}
 
+
+/* ---------- shruti: the 22 microtones ---------- */
+.sk-banner.shruti{background:#1d1611;border-bottom:2px solid var(--saffron)}
+.shr-head{font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:800;color:var(--saffron);margin-bottom:8px}
+.shr-intro{color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px}
+.shr-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.shr-bar label{color:var(--ink);font-size:14px}
+.shr-stop{border:1px solid var(--line);background:var(--bg2);color:var(--saffron);font:inherit;
+  font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;min-height:38px}
+.shr-list{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg2)}
+.shr-row{display:grid;grid-template-columns:30px 42px 34px 1.1fr 1.1fr 76px 62px 42px;gap:6px;
+  align-items:center;padding:7px 10px;border-top:1px solid var(--line);font-size:13.5px}
+.shr-row:first-child{border-top:0}
+.shr-hrow{color:var(--dim);font-size:11px;letter-spacing:.5px;text-transform:uppercase;background:var(--panel2)}
+.shr-n{color:var(--dim);font-variant-numeric:tabular-nums}
+.shr-code{color:var(--saffron);font-weight:700}
+.shr-swar{color:var(--ink);font-weight:700}
+.shr-name{color:var(--ink)}
+.shr-tone{color:var(--dim)}
+.shr-ratio{color:var(--dim);font-variant-numeric:tabular-nums}
+.shr-cents{color:var(--dim);font-variant-numeric:tabular-nums;text-align:right}
+.shr-play{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--saffron);font:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.shr-play.on{background:var(--saffron);color:#20160d;border-color:var(--saffron)}
+.shr-note{color:var(--dim);font-size:12.5px;line-height:1.65;margin-top:12px}
+@media(max-width:660px){
+  .shr-row{grid-template-columns:24px 34px 30px 1fr 62px 54px 40px;gap:4px;font-size:13px;padding:7px 8px}
+  .shr-tone{display:none}
+}
+
+/* the shruti number written on a swar */
+.sk-sw.shr-host{padding-top:12px}
+.sk-sw .shr{position:absolute;right:-2px;top:-1px;font-size:9px;line-height:1;font-weight:700;color:var(--alt)}
+.bnd-swar .sk-sw.shr-host{padding-top:11px}
+.bnd-swar .sk-sw .shr{font-size:8px;right:-3px}
+
 /* ---------- sync note (only appears when something is wrong) ---------- */
 .sk-syncnote{
   background:linear-gradient(90deg,#4a2f12,#5a3a16);
