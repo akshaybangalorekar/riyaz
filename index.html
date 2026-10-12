@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=41">
+<link rel="stylesheet" href="assets/style.css?v=42">
 </head>
 <body>
 <header class="sk-head">
@@ -52,8 +52,10 @@
 <footer class="sk-foot">
   <span>Gurukool · Riyaz</span>
   <span class="sk-dim">The line follows the audio — adjust the speed below.</span>
-  <span class="sk-saved" id="savedAt"></span>
 </footer>
+
+<!-- the last-saved date, pinned to the foot of every page -->
+<div class="sk-savedbar" role="status" aria-live="polite"><span id="savedAt"></span></div>
 
 <script src="assets/data.js?v=14"></script>
 <script src="assets/tools.js?v=6"></script>

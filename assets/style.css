@@ -298,7 +298,16 @@ body{
 .sk-sep{display:inline-block; padding:1px 6px; color:var(--dim); font-weight:700}
 
 /* ---------- footer ---------- */
-.sk-saved{color:var(--saffron); font-size:12.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.sk-savedbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:38;
+  display:flex; align-items:center; justify-content:center;
+  padding:6px 14px calc(6px + var(--safe-b));
+  background:var(--bg2); border-top:1px solid var(--line);
+  font-size:12.5px; color:var(--saffron); font-variant-numeric:tabular-nums;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sk-savedbar:empty{display:none}
+/* keep the page clear of the pinned strip */
+body{padding-bottom:calc(32px + var(--safe-b))}
 .sk-foot{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
   padding:14px calc(16px + var(--safe-r)) calc(14px + var(--safe-b)) calc(16px + var(--safe-l));
   border-top:1px solid var(--line); font-size:13px; color:var(--dim); background:var(--bg2)}
@@ -493,7 +502,7 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   box-shadow:2px 0 10px rgba(0,0,0,.35); transition:background .15s, color .15s;
 }
 .rail-tab:hover, .rail-tab:focus-visible{background:var(--saffron); color:#20160d}
-@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(18px + var(--safe-b)); transform:none} }
+@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(48px + var(--safe-b)); transform:none} }
 
 /* grouped rail: plain full-width rows inside a section */
 .sk-list.sections .sk-item{width:100%; text-align:left}
