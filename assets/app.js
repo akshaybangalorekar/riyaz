@@ -842,6 +842,16 @@
         var tm = document.createElement("span");
         tm.className = "ln-time"; tm.textContent = fmtTime(seg.t);
         ctl.appendChild(tm);
+      } else {
+        var other = markInOtherFile(l, li);
+        if (other) {                       // timed on a different recording — say so
+          var ob = document.createElement("button");
+          ob.type = "button"; ob.className = "ln-other";
+          ob.textContent = "in " + shortMedia(mediaNameOf(l, other.track));
+          ob.title = "This line is timed against another recording \u2014 press to open it there";
+          ob.onclick = function () { switchMedia(l, other.track, function () { startSeg(li); }); };
+          ctl.appendChild(ob);
+        }
       }
       row.appendChild(ctl);
       if (line.label) {
@@ -1462,6 +1472,48 @@
     return base;
   }
   function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(state.segments[state.lessonId] || {})); } catch (e) {} }
+  /* ---------- which recording does a line belong to ----------
+     Every recording has its own timeline, so a line's time only means anything
+     against the recording it was measured on. A line may be timed on one file
+     while you are listening to another; markAnywhere finds it either way, and
+     opening the line takes the player to the right recording. */
+  function mediaNameOf(l, i) { var m = l && l.media && l.media[i]; return m ? (m.name || "") : ""; }
+  function shortMedia(n) {
+    n = String(n || "").replace(/^\s*(Raag|\u0930\u093e\u0917)\s*/i, "");
+    n = n.replace(/\.(mp3|mp4|mov|jpeg|jpg|png)$/i, "");
+    n = n.replace(/^[\u0966-\u096f0-9\-\s]{6,}?\s*[-\u2013]\s*/, "");   // drop a leading date
+    n = n.replace(/\s+[-\u2013]\s+/g, " \u00b7 ");   // only spaced dashes, so 9-10 stays whole
+    return n.length > 46 ? n.slice(0, 44) + "\u2026" : n;
+  }
+  function markAnywhere(lid, li) {          // newest mark for this line, on ANY recording
+    var sh = (state.sharedMarks && state.sharedMarks[lid]) || {};
+    var loc = (state.segments && state.segments[lid]) || {};
+    var best = null;
+    Object.keys(sh).concat(Object.keys(loc)).forEach(function (tr) {
+      if (!isLine(String(li))) return;
+      var a = sh[tr] && sh[tr][li], b = loc[tr] && loc[tr][li];
+      var e = newer(a, b);
+      if (!e || typeof e.t !== "number") return;
+      if (!best || ((e.at || 0) > (best.at || 0))) best = { track: +tr, t: e.t, at: e.at || 0, of: e.of || "" };
+    });
+    return best;
+  }
+  function markInOtherFile(l, li) {         // a mark that lives on a different recording
+    var mk = markAnywhere(l.id, li);
+    if (!mk || mk.track === state.mediaIdx) return null;
+    if (!l.media || !l.media[mk.track]) return null;
+    return mk;
+  }
+  function switchMedia(l, i, then) {       // move the player to another recording
+    if (i == null || i < 0 || !l.media || !l.media[i]) return;
+    var keep = state.raagSect;             // changing recording must not move you to another part
+    state.mediaIdx = i;
+    renderList();
+    state.raagSect = keep;
+    renderStage(l);
+    state.raagSect = keep;
+    if (then) setTimeout(then, 260);       // let the audio element come up first
+  }
   function lineEnds() {
     var segs = segsOf(), l = lesson(state.lessonId), n = l && l.lines ? l.lines.length : 0, ends = [];
     for (var i = 0; i < n; i++) {
@@ -1477,7 +1529,8 @@
   function markLine(li) {
     if (!state.audio) return;
     delete state.cleared[state.lessonId];
-    localSegs()[li] = { t: +state.audio.currentTime.toFixed(2), at: Date.now() };
+    var _l = lesson(state.lessonId);
+    localSegs()[li] = { t: +state.audio.currentTime.toFixed(2), at: Date.now(), of: mediaNameOf(_l, state.mediaIdx) };
     saveAllLocal();
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
@@ -1521,6 +1574,11 @@
   function playLine(li) {
     var l = lesson(state.lessonId); if (!l) return;
     state.playingLine = li;
+    var elsewhere = markInOtherFile(l, li);
+    if (elsewhere) {                       // this line belongs to another recording
+      switchMedia(l, elsewhere.track, function () { state.playingLine = li; startSeg(li); });
+      return;
+    }
     var s = segsOf()[li];
     if (!s) {  // not marked yet -> play the whole current track
       if (state.audio) { state.segPlay = null; state.audio.currentTime = 0; ensureLoop(); state.audio.play().catch(function () {}); }
