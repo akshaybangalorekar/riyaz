@@ -863,26 +863,26 @@
   function applyAdds() {
     D.lessons.forEach(function (l) {
       if (!l._base) l._base = (l.lines || []).slice();
-      var extra = addedKeys(l.id).map(function (k) {
+      var extra = addedKeys(l.id).filter(function (k) {
+        return !(state.edits[l.id][k] || {}).del;          // tombstones are gone for good
+      }).map(function (k) {
         var v = state.edits[l.id][k] || {};
         return { label: v.label || "Added line", text: v.t || "", added: true, idx: +k };
       });
       l.lines = l._base.concat(extra);
     });
   }
-  function addLine(l, sect) {
+  function addLine(l, sect, label) {
     var idx = nextAddIndex(l.id);
-    editsFor(l.id)[String(idx)] = { t: "", label: nextLabel(l, sect), sect: sect || null };
-    applyAdds(); saveEdits(); scheduleEditsPush();
+    setLineEdit(l.id, String(idx), { t: "", label: label || nextLabel(l, sect), sect: sect || null });
+    applyAdds();
     renderList(); renderStage(l);
   }
   function removeAddedLine(l, li) {
     var line = (l.lines || [])[li];
     if (!line || !line.added) return;
-    var e = editsFor(l.id);
-    delete e[String(line.idx)];
-    if (!Object.keys(e).length) delete state.edits[l.id];
-    applyAdds(); saveEdits(); scheduleEditsPush();
+    setLineEdit(l.id, String(line.idx), null);      // a tombstone, so it stays gone
+    applyAdds();
     renderList(); renderStage(l);
   }
   function editKeyFor(l, li) {       // added lines are stored under their own index
@@ -890,8 +890,8 @@
     return (ln && ln.added) ? String(ln.idx) : String(li);
   }
   function editOf(id, li) {          // lookup must not create an entry just by looking
-    var e = state.edits[id];
-    return (e && e[String(li)]) || null;
+    var e = state.edits[id], v = e && e[String(li)];
+    return (v && !v.del) ? v : null;   // a tombstone reads as "no edit"
   }
   function lineText(l, li) {
     var e = editOf(l.id, editKeyFor(l, li));
@@ -909,8 +909,17 @@
   }
   function setLineEdit(id, li, obj) {
     var e = editsFor(id), k = String(li);
-    if (obj) e[k] = obj; else delete e[k];
-    if (!Object.keys(e).length) delete state.edits[id];   // keep the file tidy
+    if (obj) {
+      // merge, so saving the swar of an added line keeps its label and section
+      var cur = (e[k] && !e[k].del) ? e[k] : {}, m = {};
+      ["t", "label", "sect", "b"].forEach(function (f) { if (cur[f] !== undefined) m[f] = cur[f]; });
+      Object.keys(obj).forEach(function (f) { m[f] = obj[f]; });
+      m.at = Date.now();
+      e[k] = m;
+    } else {
+      // a reset or a removal must travel, or the other device would put it back
+      e[k] = { del: true, at: Date.now() };
+    }
     saveEdits(); scheduleEditsPush();
   }
   function saveEdits() { try { localStorage.setItem("sk_edits", JSON.stringify(state.edits || {})); } catch (e) {} }
@@ -927,11 +936,18 @@
           var v = lines[li]; if (!v || typeof v !== "object") return;
           var prev = out[k][li];
           if (!prev) { out[k][li] = v; return; }
+          var pa = +prev.at || 0, va = +v.at || 0;
+          if (va > pa) { out[k][li] = v; return; }        // the newer edit wins outright
+          if (va < pa) return;
+          if (v.del && !prev.del) { out[k][li] = v; return; }   // same age: a delete wins
+          if (prev.del && !v.del) return;
           var m = {};
           if (typeof prev.t === "string" || typeof v.t === "string") m.t = (v.t !== undefined ? v.t : prev.t);
           var pb = prev.b || {}, vb = v.b || {};
           var ks = Object.keys(pb).concat(Object.keys(vb));
           if (ks.length) { m.b = {}; ks.forEach(function (ri) { m.b[ri] = vb[ri] || pb[ri]; }); }
+          if (prev.label || v.label) m.label = v.label || prev.label;
+          if (prev.sect || v.sect) m.sect = v.sect || prev.sect;
           out[k][li] = m;
         });
       });
@@ -976,6 +992,8 @@
       if (j === null || typeof j !== "object") { if (cb) cb("fail"); return; }
       state.edits = mergeEdits(state.edits || {}, j);
       saveEdits();
+      applyAdds();                 // added lines that arrived from another device
+      renderList();
       if (state.lessonId && GROUPS.indexOf(state.group) >= 0 && lesson(state.lessonId)) renderStage(lesson(state.lessonId));
       if (cb) cb("ok");
     }).catch(function () { if (cb) cb("fail"); });

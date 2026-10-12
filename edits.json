@@ -53,6 +53,28 @@
   },
   "1002": {
    "t": "~ध(नी) ~ध(नी) ~नी(सा) सा | ~ध(नी) ~ध(नी) सा | ~ध ~नी सा ~^रे | सा | सा ~नी ~रे(नी) सा ~ध(नी) प | {प ~ध ~नी सा ~^रे सा ~ध} | प | ~ध प {म ~ग} | {सा ~ग म प ~ग म ~रे(ग) | ~_ध ग - [ग म ग ग] सा ~रे सा "
+  },
+  "1003": {
+   "t": "",
+   "label": "⚠ Bandish (Sthayi) — check whether a line is missing at the start",
+   "sect": "bandish",
+   "at": 1791800146206
+  }
+ },
+ "rg_durga": {
+  "1000": {
+   "t": "",
+   "label": "⚠ Mukt Aalap — swar not yet checked against the sheet, please verify",
+   "sect": "mukt",
+   "at": 1791800146206
+  }
+ },
+ "rg_bhimpalasi": {
+  "1000": {
+   "t": "",
+   "label": "⚠ No notation captured for this raag — the folder holds only the video",
+   "sect": "bandish",
+   "at": 1791800146206
   }
  }
 }
