@@ -1669,6 +1669,26 @@ window.SANGEET = {
      "text": "सा रे ग म | प म ग म | रे - सा ध | ध सा"
     },
     {
+     "label": "Sthayi Laikari 6",
+     "text": "रे - ग म | प म ग म | रे - सा ग म | ग रे सा"
+    },
+    {
+     "label": "Sthayi Laikari 7",
+     "text": "रे सा ग रे | म ग प म | ग रे सा प म | ग रे सा"
+    },
+    {
+     "label": "Sthayi Laikari 8",
+     "text": "ग म प ध | प म ग रे | ग रे ग रे सा ध | ग रे सा"
+    },
+    {
+     "label": "Sthayi Laikari 9",
+     "text": "प ध नी सा | नी ध प म | ग म ग रे सा ग | रे सा"
+    },
+    {
+     "label": "Sthayi Laikari 10",
+     "text": "प ध नी सा | रे सा नी ध | प म ग रे सा ग म | ग म ग रे"
+    },
+    {
      "label": "Antara Laikari 1",
      "text": "ग म प ध नि ध प प ग म प ध नि सा ^पं"
     },
@@ -1683,6 +1703,30 @@ window.SANGEET = {
     {
      "label": "Antara Laikari 4",
      "text": "सा रे ग प ध नि ध प प ध नि सा र सा नि ध सा नि पु ^पं"
+    },
+    {
+     "label": "Antara Laikari 5",
+     "text": "ग प ध म ^रे ^ग ^रे सा सा नी ध ^रे सा नी ध ध ^पं"
+    },
+    {
+     "label": "Antara Laikari 6",
+     "text": "^रे रे ग प ध सा ^रे सा ^रे ^ग ^रे ^ग ^रे सा ध ध ध ^पं"
+    },
+    {
+     "label": "Antara Laikari 7",
+     "text": "रे नी सा रे ग प ध सा प ध सा ^रे सा ^रे ^ग ^रे नी ध प ध ^पं"
+    },
+    {
+     "label": "Antara Laikari 8",
+     "text": "रे नी सा ^रे ग ^रे ग ^रे ग ^रे नी ध प ध सा ^रे ग रे ग प ^पं"
+    },
+    {
+     "label": "Antara Laikari 9",
+     "text": "सा ^रे ग ^रे ^ध ध प ध सा ^रे ग ^रे रे ग प ^पं"
+    },
+    {
+     "label": "Antara Laikari 10",
+     "text": "सा ^रे ग ^रे ^ध ध प ध सा ^रे ग ^रे प ध नी ध ध म ग ^रे ग प ^पं"
     },
     {
      "label": "Tana 1",

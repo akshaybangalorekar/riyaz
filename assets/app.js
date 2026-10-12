@@ -22,6 +22,7 @@
     cleared: {},       // lessons whose marks were cleared in this session
     edits: {},         // user corrections to the written notation
     editMode: false,   // is the notation editor open
+    grp: {},           // which Sthayi / Antara headings are folded away
     raagSect: null,    // which part of a raag is showing (aaroh / mukt / …)
     raagOpen: {},      // which raags are expanded in the rail
     fav: [],           // favourites: { id, m, sect, line } in the order you lined them up
@@ -715,6 +716,30 @@
     }
   }
 
+  /* Sthayi and Antara sit side by side on one page, each behind its own
+     collapsible heading. */
+  function subGroup(label) {
+    var t = label || "";
+    if (/^Sthayi/i.test(t) || /^\u0938\u094d\u0925\u093e\u0908/.test(t)) return "\u0938\u094d\u0925\u093e\u0908";
+    if (/^Antara/i.test(t) || /^\u0905\u0902?\u0924\u0930/.test(t)) return "\u0905\u0902\u0924\u0930\u093e";
+    return "";
+  }
+  function grpKey(l, g) { return l.id + "|" + (state.raagSect || "") + "|" + g; }
+  function groupHeader(l, g) {
+    var open = state.grp[grpKey(l, g)] !== false;
+    var n = 0;
+    (l.lines || []).forEach(function (ln) {
+      if (raagSect(ln.label) === state.raagSect && subGroup(ln.label) === g) n++;
+    });
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "grp-h" + (open ? " open" : "");
+    b.innerHTML = '<span class="grp-car">' + (open ? "\u25be" : "\u25b8") + "</span>" +
+      "<span>" + esc(g) + " " + esc(raagSectLabel(state.raagSect)) + "</span>" +
+      '<span class="grp-n">' + n + "</span>";
+    b.onclick = function () { state.grp[grpKey(l, g)] = !open; renderNotation(l); };
+    return b;
+  }
+
   function renderNotation(l) {
     var box = $("#notation");
     if (!box) return;
@@ -722,9 +747,23 @@
     state.lineBtns = {};
     var curIsVideo = (l.media[state.mediaIdx] || {}).kind === "video";
     var secKey = (l.group === "Raag" && state.raagSect) ? state.raagSect : null;
+    // which sub-groups are on screen? (only worth headings when there are two)
+    var grpCount = {};
+    l.lines.forEach(function (line) {
+      if (line.onlyVideo && !curIsVideo) return;
+      if (secKey && raagSect(line.label) !== secKey) return;
+      var g0 = subGroup(line.label);
+      if (g0) grpCount[g0] = (grpCount[g0] || 0) + 1;
+    });
+    var useGroups = Object.keys(grpCount).length >= 2;
+    var lastG = null;
+
     l.lines.forEach(function (line, li) {
       if (line.onlyVideo && !curIsVideo) return;
       if (secKey && raagSect(line.label) !== secKey) return;
+      var grp = useGroups ? subGroup(line.label) : "";
+      if (useGroups && grp && grp !== lastG) { box.appendChild(groupHeader(l, grp)); lastG = grp; }
+      if (useGroups && grp && state.grp[grpKey(l, grp)] === false) return;   // this heading is folded away
       var row = document.createElement("div");
       row.className = "sk-line";
       state.lineRows[li] = row;

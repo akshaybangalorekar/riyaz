@@ -138,6 +138,19 @@ body{
 }
 .ed-addbtn:active{background:var(--saffron); color:#20160d}
 
+
+/* collapsible Sthayi / Antara headings inside a lesson */
+.grp-h{
+  display:flex; align-items:center; gap:9px; width:100%; margin:10px 0 8px;
+  padding:10px 13px; border:1px solid var(--line); border-radius:10px;
+  background:var(--panel); color:var(--saffron); font:inherit; font-size:15px; font-weight:700;
+  cursor:pointer; text-align:left; min-height:46px;
+}
+.grp-h:hover{border-color:var(--saffron)}
+.grp-h .grp-car{color:var(--saffron); font-size:13px; width:14px}
+.grp-h .grp-n{margin-left:auto; color:var(--dim); font-weight:400; font-size:13px}
+.grp-h.open{background:var(--panel2)}
+
 /* ---------- shruti: the 22 microtones ---------- */
 .sk-banner.shruti{background:#1d1611;border-bottom:2px solid var(--saffron)}
 .shr-head{font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:800;color:var(--saffron);margin-bottom:8px}
