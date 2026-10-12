@@ -1074,8 +1074,8 @@
       var b = document.createElement("button");
       b.type = "button"; b.className = "ed-sw" + (i === 7 || i === 9 ? " alt" : "");
       b.textContent = p[0];
-      b.title = p[1] === "^" ? "Upper octave (taar)"
-        : p[1] === "_" ? "Lower octave (mandra)"
+      b.title = p[1] === "^" ? "तार सप्तक — a dot above the swar (upper octave)"
+        : p[1] === "_" ? "मंद्र सप्तक — a dot below the swar (lower octave)"
         : p[1] === "|" ? "Bar" : p[1] === "-" ? "Rest" : "Insert " + p[0];
       b.onclick = function () { insertSwar(p[1]); };
       box.appendChild(b);
@@ -1117,8 +1117,10 @@
       '<div class="ed-tip-line"><code>( )</code> after a swar puts a small <b>kan / sparsh</b> note above it \u2014 <code>\u092a(\u0927)</code>. ' +
         'The small note can be komal or in another octave as well: <code>\u092a(~\u0927)</code>, <code>\u092a(_\u0927)</code>, <code>\u092a(^\u0927)</code>.</div>' +
       '<div class="ed-tip-line"><code>[ ]</code> after a swar marks which <b>shruti</b> it is sung on \u2014 <code>\u0930\u0947[2]</code>.</div>' +
-      '<div class="ed-tip-line"><code>^</code> upper octave \u00b7 <code>_</code> lower octave \u00b7 <code>|</code> bar \u00b7 <code>\u2013</code> rest. ' +
-        "Swar are separated by spaces.</div>";
+      '<div class="ed-tip-line"><code>^</code> before a swar puts a dot <b>above</b> it — <b>तार सप्तक</b>, the upper octave.</div>' +
+      '<div class="ed-tip-line"><code>_</code> before a swar puts a dot <b>below</b> it — <b>मंद्र सप्तक</b>, the lower octave. ' +
+        'A swar with no dot is <b>मध्य सप्तक</b>, the middle octave.</div>' +
+      '<div class="ed-tip-line"><code>|</code> bar · <code>–</code> rest. Swar are separated by spaces.</div>';
     return d;
   }
 
