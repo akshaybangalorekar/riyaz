@@ -91,19 +91,21 @@ body{
 
 /* ---------- the three marks: komal, murki/khatka, kan-swar ---------- */
 .sk-sw.komal{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}
-.sk-sw.kan-host{padding-top:18px}
-.sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:-1px;
+.sk-sw.kan-host{padding-top:36px}
+.sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:10px; padding-bottom:8px;
   font-size:15.5px; line-height:1; font-weight:700; color:var(--saffron); white-space:nowrap}
 .mk-grp{position:relative; display:inline-block; padding-bottom:15px}
 .mk-grp::before{content:""; position:absolute; left:1px; right:1px; bottom:1px; height:11px;
   border:2px solid var(--saffron); border-top:0; border-radius:0 0 11px 11px; opacity:1}
 .bnd-swar .sk-sw{padding:1px 2px; font-size:15px}
 .bnd-swar .mk-grp{padding-bottom:12px}
-.bnd-swar .sk-sw.kan-host{padding-top:17px}
+.bnd-swar .sk-sw.kan-host{padding-top:32px}
 .bnd-swar .sk-sw .kan{font-size:13.5px}
 .sk-sw .kan.komal{text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:2px}
-.sk-sw .kan.oct1::after{content:"\2022"; font-size:.62em; vertical-align:super; margin-left:1px}
-.sk-sw .kan.octm::after{content:"\2022"; font-size:.62em; vertical-align:sub; margin-left:1px}
+.sk-sw .kan.oct1::after{content:"\2022"; position:absolute; left:50%; transform:translateX(-50%);
+  top:-9px; font-size:.62em; line-height:1}
+.sk-sw .kan.octm::after{content:"\2022"; position:absolute; left:50%; transform:translateX(-50%);
+  bottom:0; font-size:.62em; line-height:1}
 
 /* a note telling you which lines want a second look */
 .bnd-review{
