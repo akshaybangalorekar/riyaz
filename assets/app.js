@@ -826,6 +826,7 @@
     });
     var useGroups = Object.keys(grpCount).length >= 2;
     var lastG = null;
+    var _ends = lineEnds();   // a line runs until the next line's offset begins
 
     l.lines.forEach(function (line, li) {
       if (line.onlyVideo && !curIsVideo) return;
@@ -860,7 +861,10 @@
       var seg = segsOf()[li];
       if (seg) {
         var tm = document.createElement("span");
-        tm.className = "ln-time"; tm.textContent = fmtTime(seg.t);
+        tm.className = "ln-time";
+        tm.textContent = fmtTime(seg.t) + (_ends[li] != null ? " \u2013 " + fmtTime(_ends[li]) : "");
+        tm.title = "Starts here; runs until the next line's offset begins"
+          + (_ends[li] != null ? "" : " (no later line is timed, so this one runs to the end)")
         ctl.appendChild(tm);
       } else {
         var other = markInOtherFile(l, li);
