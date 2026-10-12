@@ -853,6 +853,33 @@
           ctl.appendChild(ob);
         }
       }
+      // more than one take on this line?  show which one, and let it be changed
+      var _e = entryOf(l.id, li);
+      var _all = takesOf(_e);
+      if (_all && _all.length > 1) {
+        var tc = document.createElement("button");
+        tc.type = "button"; tc.className = "ln-take";
+        tc.textContent = (_all[+_e.cur || 0].name || "Take " + ((+_e.cur || 0) + 1)) + " \u25be";
+        tc.title = "This line has more than one time \u2014 tap to change which one you are on";
+        tc.onclick = function () {
+          var st = localSegs(); st[li] = st[li] || { takes: _all, cur: 0 };
+          st[li].cur = ((+st[li].cur || 0) + 1) % _all.length;
+          saveAllLocal(); renderNotation(l); updateMarksMsg(); schedulePush();
+        };
+        ctl.appendChild(tc);
+      }
+      if (state.editMode) {              // a second take is a deliberate act, so it lives in edit mode
+        var addb = document.createElement("button");
+        addb.type = "button"; addb.className = "ln-addtake";
+        addb.textContent = "+";
+        addb.title = "Give this line a second time \u2014 for a version sung again on the same recording";
+        addb.onclick = function () {
+          var st = localSegs();
+          addTake(st, li);
+          saveAllLocal(); renderNotation(l); updateMarksMsg(); schedulePush();
+        };
+        ctl.appendChild(addb);
+      }
       row.appendChild(ctl);
       if (line.label) {
         var lb = document.createElement("span");
@@ -1409,7 +1436,7 @@
       if (tr == null || ln == null) return;
       dst[tr] = dst[tr] || {};
       var cur = dst[tr][ln];
-      dst[tr][ln] = (cur && ((cur.at || 0) > (e.at || 0))) ? cur : e;
+      dst[tr][ln] = (cur && (entryAt(cur) > entryAt(e))) ? cur : e;
     }
     Object.keys(src || {}).forEach(function (key) {
       var v = src[key];
@@ -1419,9 +1446,13 @@
         var e = v[k2];
         if (isLine(k2) && e && typeof e === "object" && typeof e.t === "number")
           put(key, k2, { t: e.t, at: e.at || 0 });
+        else if (isLine(k2) && e && typeof e === "object" && e.takes && e.takes.length)
+          put(key, k2, { takes: e.takes.map(function (x) { return { name: x.name || "", t: +x.t || 0, at: +x.at || 0 }; }),
+                         cur: +e.cur || 0 });
       });
       // legacy shape: the value is itself one line's mark (key = line)
       if (typeof v.t === "number") put(String(v.track || 0), key, { t: v.t, at: v.at || 0 });
+      else if (v.takes && v.takes.length) put(String(v.track || 0), key, { takes: v.takes, cur: +v.cur || 0 });
     });
     return dst;
   }
@@ -1454,6 +1485,64 @@
     } catch (e) {}
   }
   function trackKey() { return String(state.mediaIdx); }
+  /* ---------- takes ----------
+     One line can carry more than one time when the same thing is sung twice on the
+     same recording — in Mukt Aalap the same alankar appears komal and then shuddha.
+     A single time stays exactly the old shape {t, at}; two or more become
+     {takes: [{name, t, at}], cur}. Nothing already saved has to move. */
+  function entryAt(e) {
+    if (!e) return 0;
+    if (typeof e.at === "number") return e.at;
+    var mx = 0; (e.takes || []).forEach(function (x) { if ((+x.at || 0) > mx) mx = +x.at || 0; });
+    return mx;
+  }
+  function takesOf(e) {
+    if (!e) return null;
+    if (e.takes && e.takes.length) return e.takes;
+    if (typeof e.t === "number") return [{ name: "", t: e.t, at: e.at || 0 }];
+    return null;
+  }
+  function isMukt(label) { return /mukt aalap|\u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a/i.test(label || ""); }
+  function defaultTakeName(li, n) {
+    var l = lesson(state.lessonId);
+    var lab = l && l.lines[li] ? l.lines[li].label : "";
+    if (isMukt(lab)) return n === 0 ? "Komal" : (n === 1 ? "Shuddha" : "Take " + (n + 1));
+    return "Take " + (n + 1);
+  }
+  function curTake(e) {                       // the take a line is showing
+    var ts = takesOf(e); if (!ts) return null;
+    return ts[Math.min(Math.max(+e.cur || 0, 0), ts.length - 1)];
+  }
+  function segOfEntry(e) {                    // {t, at} for the take on screen
+    var ts = takesOf(e); if (!ts) return null;
+    var c = ts[Math.min(Math.max(+e.cur || 0, 0), ts.length - 1)];
+    return { t: c.t, at: c.at || 0, of: e ? e.of : "" };
+  }
+  function entryOf(lid, li) {                 // newest entry for a line, on THIS recording
+    var tr = trackKey();
+    var sh = state.sharedMarks && state.sharedMarks[lid] && state.sharedMarks[lid][tr];
+    var loc = state.segments && state.segments[lid] && state.segments[lid][tr];
+    var a = sh && sh[li], b = loc && loc[li];
+    if (!a) return b || null;
+    if (!b) return a;
+    return (entryAt(b) >= entryAt(a)) ? b : a;   // compare takes by their newest time
+  }
+  function writeTake(store, li, t) {          // put a time into the take on screen
+    var e = store[li], ts = takesOf(e);
+    var at = Date.now();
+    if (!ts) { store[li] = { takes: [{ name: defaultTakeName(li, 0), t: t, at: at }], cur: 0 }; return; }
+    var i = Math.min(Math.max(+e.cur || 0, 0), ts.length - 1);
+    if (e.takes && e.takes.length) { e.takes[i].t = t; e.takes[i].at = at; }
+    else store[li] = { takes: [{ name: defaultTakeName(li, 0), t: t, at: at }], cur: 0 };
+  }
+  function addTake(store, li) {               // hang a second time on the same line
+    var e = store[li], ts = takesOf(e);
+    if (!ts) ts = [{ name: defaultTakeName(li, 0), t: 0, at: 0 }];
+    ts = ts.slice();
+    ts.push({ name: defaultTakeName(li, ts.length), t: 0, at: 0 });
+    store[li] = { takes: ts, cur: ts.length - 1 };
+    return ts.length - 1;
+  }
   function localSegs() {                     // this device's marks for the CURRENT audio file
     var k = state.lessonId;
     if (!state.segments[k]) state.segments[k] = {};
@@ -1468,8 +1557,13 @@
     var sh = state.sharedMarks && state.sharedMarks[k] && state.sharedMarks[k][tr];
     if (sh) { try { base = JSON.parse(JSON.stringify(sh)); } catch (e) { base = {}; } }
     var loc = localSegs();
-    Object.keys(loc).forEach(function (i) { base[i] = newer(base[i], loc[i]); });
-    return base;
+    Object.keys(loc).forEach(function (i) {
+      var a = base[i], b = loc[i];
+      base[i] = !a ? b : (!b ? a : ((entryAt(b) >= entryAt(a)) ? b : a));
+    });
+    var out = {};
+    Object.keys(base).forEach(function (i) { var s2 = segOfEntry(base[i]); if (s2) out[i] = s2; });
+    return out;
   }
   function saveSegs() { try { localStorage.setItem("sk_seg_" + state.lessonId, JSON.stringify(state.segments[state.lessonId] || {})); } catch (e) {} }
   /* ---------- which recording does a line belong to ----------
@@ -1493,8 +1587,9 @@
       if (!isLine(String(li))) return;
       var a = sh[tr] && sh[tr][li], b = loc[tr] && loc[tr][li];
       var e = newer(a, b);
-      if (!e || typeof e.t !== "number") return;
-      if (!best || ((e.at || 0) > (best.at || 0))) best = { track: +tr, t: e.t, at: e.at || 0, of: e.of || "" };
+      var sg = segOfEntry(e);
+      if (!sg) return;
+      if (!best || (sg.at > best.at)) best = { track: +tr, t: sg.t, at: sg.at, of: e.of || "" };
     });
     return best;
   }
@@ -1530,7 +1625,9 @@
     if (!state.audio) return;
     delete state.cleared[state.lessonId];
     var _l = lesson(state.lessonId);
-    localSegs()[li] = { t: +state.audio.currentTime.toFixed(2), at: Date.now(), of: mediaNameOf(_l, state.mediaIdx) };
+    var _store = localSegs();
+    writeTake(_store, li, +state.audio.currentTime.toFixed(2));
+    _store[li].of = mediaNameOf(_l, state.mediaIdx);
     saveAllLocal();
     renderNotation(lesson(state.lessonId));
     var r = state.lineRows[li]; if (r) r.classList.add("marked");
