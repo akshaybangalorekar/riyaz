@@ -750,7 +750,7 @@
           '<span class="pl-time" id="plTime">0:00 / 0:00</span>' +
           '<button class="pl-btn sm" id="plFwd" type="button">+5</button>' +
         "</div>" +
-        '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
+        '<audio id="au" preload="metadata" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
         '<div class="sk-dim' + (state.editMode ? "" : " pl-hidden") + '">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
@@ -773,7 +773,13 @@
       au.addEventListener("play", function () { playBtn.textContent = "❚❚"; });
       au.addEventListener("pause", function () { playBtn.textContent = "▶"; });
       au.addEventListener("timeupdate", upd);
-      au.addEventListener("loadedmetadata", upd);
+      au.addEventListener("loadedmetadata", function () {
+        if (au._pendingSeek != null) { try { au.currentTime = au._pendingSeek; } catch (e) {} au._pendingSeek = null; }
+        upd();
+      });
+      au.addEventListener("canplay", function () {
+        if (au._pendingSeek != null) { try { au.currentTime = au._pendingSeek; } catch (e) {} au._pendingSeek = null; }
+      });
       au.addEventListener("durationchange", upd);
       $("#plBack").onclick = function () { au.currentTime = Math.max(0, au.currentTime - 5); upd(); };
       $("#plFwd").onclick = function () { var d = au.duration || (au.currentTime + 5); au.currentTime = Math.min(d, au.currentTime + 5); upd(); };
@@ -1698,9 +1704,17 @@
   }
   function toggleLine(li) {
     var au = state.audio;
-    if (state.playingLine === li && au) {          // same line: pause, or resume where it stopped
-      if (au.paused) au.play().catch(function () {});
-      else au.pause();
+    if (state.playingLine === li && au) {          // same line: pause, or resume
+      if (au.paused) {
+        /* A re-render (the background sync does one) rebuilds the audio element, which
+           drops it back to 0:00. Resuming naively would then play the top of the file
+           while the timestamp on screen still reads correctly. Put the playhead back on
+           the line first unless we are genuinely paused inside it. */
+        var s2 = segsOf()[li], e2 = lineEnds();
+        var stop = (e2[li] != null) ? e2[li] : 1e9;
+        if (s2 && (au.currentTime < s2.t - 0.25 || au.currentTime >= stop - 0.05)) seekTo(au, s2.t);
+        au.play().catch(function () {});
+      } else au.pause();
       syncLineBtns();
       return;
     }
@@ -1747,7 +1761,7 @@
   function startSeg(li) {
     var au = state.audio, s = segsOf()[li]; if (!au || !s) return;
     var ends = lineEnds();
-    au.currentTime = s.t;
+    seekTo(au, s.t);
     state.segPlay = { line: li, start: s.t, end: (ends[li] != null ? ends[li] : 1e9), loop: state.segLoop };
     ensureLoop();
     au.play().catch(function () {});
@@ -2044,6 +2058,15 @@
     updateMarksMsg();
   }
 
+  /* Setting currentTime on an <audio> that has not loaded yet is silently dropped,
+     and the file then plays from 0:00 — which looks exactly like "the wrong line
+     played". Remember the seek and apply it the moment the media is ready. */
+  function seekTo(au, t) {
+    if (!au) return;
+    t = +t || 0;
+    if (au.readyState >= 1) { try { au.currentTime = t; } catch (e) {} au._pendingSeek = null; return; }
+    au._pendingSeek = t;
+  }
   function ensureLoop() { if (!state.raf) loop(); }
   function loop() {
     state.raf = requestAnimationFrame(loop);
@@ -2052,6 +2075,11 @@
     // per-line segment: loop it, or stop at its end
     if (state.segPlay) {
       var sp = state.segPlay;
+      if (au.readyState >= 1 && sp.start > 0.5 && t < sp.start - 0.75 && !sp._fixed) {
+        sp._fixed = true;                  // a dropped seek left us at the top; go back
+        try { au.currentTime = sp.start; } catch (e) {}
+        return;
+      }
       if (t >= sp.end - 0.03) {
         if (sp.loop) { try { au.currentTime = sp.start; } catch (e) {} }
         else { au.pause(); state.segPlay = null; clearLineHL(); }
