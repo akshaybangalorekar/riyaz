@@ -867,7 +867,12 @@
         return !(state.edits[l.id][k] || {}).del;          // tombstones are gone for good
       }).map(function (k) {
         var v = state.edits[l.id][k] || {};
-        return { label: v.label || "Added line", text: v.t || "", added: true, idx: +k };
+        var lab = v.label;
+        if (!lab) {
+          // an older entry may have lost its label; put it back in the right part
+          lab = (v.sect ? (raagSectLabel(v.sect) || "Added line") : "Added line") + " (added)";
+        }
+        return { label: lab, text: v.t || "", added: true, idx: +k };
       });
       l.lines = l._base.concat(extra);
     });
