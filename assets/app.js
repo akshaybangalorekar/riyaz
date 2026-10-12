@@ -35,6 +35,45 @@
 
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
+  /* ---------- when was it last saved to GitHub ---------- */
+  var MELB = "Australia/Melbourne";
+  function melbTime(ts) {
+    try {
+      return new Date(ts).toLocaleString("en-AU", {
+        timeZone: MELB, day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true
+      }).replace(/\u202f/g, " ") + " Melbourne";
+    } catch (e) {
+      try { return new Date(ts).toLocaleString() + " (local)"; } catch (e2) { return ""; }
+    }
+  }
+  function savedAtValue() { try { return +localStorage.getItem("sk_last_push") || 0; } catch (e) { return 0; } }
+  function showSavedAt() {
+    var el = document.getElementById("savedAt");
+    if (!el) return;
+    var t = savedAtValue();
+    el.textContent = t ? ("Last saved " + melbTime(t)) : "Not saved to GitHub yet";
+    el.title = t ? ("Last push to GitHub: " + new Date(t).toISOString()) : "Nothing has been pushed from this device yet";
+  }
+  // a save from any device counts, so take the newest stamp we ever see
+  function noteSavedAt(t) {
+    t = +t || 0;
+    if (!t) return;
+    if (t > savedAtValue()) { try { localStorage.setItem("sk_last_push", String(t)); } catch (e) {} }
+    showSavedAt();
+  }
+  function newestAt(o) {
+    var best = 0;
+    (function walk(x) {
+      if (!x || typeof x !== "object") return;
+      Object.keys(x).forEach(function (k) {
+        if (k === "at") { var v = +x[k]; if (v > best) best = v; return; }
+        walk(x[k]);
+      });
+    })(o);
+    return best;
+  }
+
   /* ---------- notation tokeniser ---------- */
   function tokenize(text) {
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
@@ -182,7 +221,7 @@
       if (cur.sha) body.sha = cur.sha;
       var h = ghHdr(tok); h["Content-Type"] = "application/json";
       return fetch(FAVS, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
-    }).then(function (r) { if (cb) cb(r && r.ok ? "ok" : "fail"); })
+    }).then(function (r) { if (r && r.ok) noteSavedAt(Date.now()); if (cb) cb(r && r.ok ? "ok" : "fail"); })
       .catch(function () { if (cb) cb("net"); });
   }
   function favPull(cb) {
@@ -191,6 +230,7 @@
                 : fetchPublic("favs.json?t=" + Date.now());
     p.then(function (j) {
       if (!j || typeof j !== "object" || !j.list) { if (cb) cb("fail"); return; }
+      noteSavedAt(j.at);
       if ((j.at || 0) > (state.favAt || 0)) {          // the other device has the newer list
         state.fav = j.list || []; state.favAt = j.at || 0;
         favWriteLocal();
@@ -999,7 +1039,7 @@
       var h = ghHdr(tok); h["Content-Type"] = "application/json";
       return fetch(EDITS, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
     }).then(function (r) {
-      if (r && r.ok) { if (cb) cb("ok"); } else if (cb) cb("fail", r && r.status);
+      if (r && r.ok) { noteSavedAt(Date.now()); if (cb) cb("ok"); } else if (cb) cb("fail", r && r.status);
     }).catch(function (e) { if (cb) cb(e && e.status ? "fail" : "net", e && e.status); });
   }
   function pullEdits(cb) {
@@ -1010,6 +1050,7 @@
     p.then(function (j) {
       if (j === null || typeof j !== "object") { if (cb) cb("fail"); return; }
       state.edits = mergeEdits(state.edits || {}, j);
+      noteSavedAt(newestAt(j));
       saveEdits();
       applyAdds();                 // added lines that arrived from another device
       renderList();
@@ -1636,7 +1677,7 @@
       var h = ghHdr(tok); h["Content-Type"] = "application/json";
       return fetch(GH, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
     }).then(function (r) {
-      if (r && r.ok) { try { localStorage.setItem("sk_marks_pushed", String(Date.now())); } catch (e) {} if (cb) cb("ok"); }
+      if (r && r.ok) { try { localStorage.setItem("sk_marks_pushed", String(Date.now())); } catch (e) {} noteSavedAt(Date.now()); if (cb) cb("ok"); }
       else if (cb) cb("fail", r && r.status);
     }).catch(function (e) { if (cb) cb(e && e.status ? "fail" : "net", e && e.status); });
   }
@@ -1699,6 +1740,7 @@
     p.then(function (j) {
       if (j === null || typeof j !== "object") { state.pullFailed = true; setSyncProblem("pull", badRead ? "noread" : "noreach"); if (cb) cb("fail"); retryPull(); return; }
       state.sharedMarks = normalizeAll(j);
+      noteSavedAt(newestAt(j));
       saveSharedCache();
       try { localStorage.setItem("sk_marks_pulled", String(Date.now())); } catch (e) {}
       // Redraw the open lesson with the marks we just loaded. This used to call an
@@ -1860,6 +1902,7 @@
   if (vb) vb.onclick = toggleVadya;
   if (/[?&]vadya=1/.test(location.search)) toggleVadya();
   if (GROUPS.indexOf(state.group) < 0) { state.group = GROUPS[0]; }
+  showSavedAt();
   renderList();
   if (state.group === "Favourites") { renderList(); renderFavStage(); }
   else {

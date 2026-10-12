@@ -298,6 +298,7 @@ body{
 .sk-sep{display:inline-block; padding:1px 6px; color:var(--dim); font-weight:700}
 
 /* ---------- footer ---------- */
+.sk-saved{color:var(--saffron); font-size:12.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
 .sk-foot{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
   padding:14px calc(16px + var(--safe-r)) calc(14px + var(--safe-b)) calc(16px + var(--safe-l));
   border-top:1px solid var(--line); font-size:13px; color:var(--dim); background:var(--bg2)}
