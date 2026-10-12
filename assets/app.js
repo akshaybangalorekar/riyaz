@@ -1628,6 +1628,10 @@
     return best;
   }
   function markInOtherFile(l, li) {         // a mark that lives on a different recording
+    /* Only when THIS recording has nothing for the line. If it has its own time,
+       that is the one to use — a newer time on a sibling recording (the shuddha
+       take of an alankar, say) must never pull you out of the komal one. */
+    if (segsOf()[li]) return null;
     var mk = markAnywhere(l.id, li);
     if (!mk || mk.track === state.mediaIdx) return null;
     if (!l.media || !l.media[mk.track]) return null;
