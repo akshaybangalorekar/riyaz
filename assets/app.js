@@ -40,12 +40,45 @@
       if (tok === "|" || tok === "/" || tok === "।" || tok === "-" || tok === ",") {
         return { sep: true, t: tok === "," ? "," : (tok === "-" ? "–" : "|") };
       }
-      var oct = 0, t = tok;
-      if (t[0] === "^") { oct = 1; t = t.slice(1); }
-      else if (t[0] === "_") { oct = -1; t = t.slice(1); }
+      var t = tok, mkOpen = false, mkClose = false;
+      if (t[0] === "{") { mkOpen = true; t = t.slice(1); }        // murki / khatka — a curve over the group
+      if (t[t.length - 1] === "}") { mkClose = true; t = t.slice(0, -1); }
+      var oct = 0, komal = false, guard = 0;
+      while (guard++ < 6) {                                        // markers may come in any order
+        if (t[0] === "^") { oct = 1; t = t.slice(1); continue; }
+        if (t[0] === "_") { oct = -1; t = t.slice(1); continue; }
+        if (t[0] === "~") { komal = true; t = t.slice(1); continue; }   // komal — a horizontal underline
+        break;
+      }
+      var kan = "";
+      var km = /\(([^)]*)\)$/.exec(t);                            // kan-swar — a small note above
+      if (km) { kan = km[1]; t = t.slice(0, km.index); }
       if (t.indexOf("\u093c") >= 0) { oct = -1; t = t.replace(/\u093c/g, ""); }
-      return { sep: false, t: t, oct: oct };
+      return { sep: false, t: t, oct: oct, komal: komal, kan: kan, mkOpen: mkOpen, mkClose: mkClose };
     });
+  }
+
+  // one swar, with any of the three marks it may carry
+  function swarEl(tk, unit, noteN) {
+    var sw = document.createElement("span");
+    sw.className = "sk-sw" + (tk.oct === 1 ? " oct1" : tk.oct === -1 ? " octm" : "") + (tk.komal ? " komal" : "");
+    if (unit > 1) {
+      var g = Math.floor(noteN / unit);
+      sw.className += (g % 2 ? " grpB" : " grpA") + (noteN % unit === 0 ? " gstart" : "");
+    }
+    sw.textContent = tk.t;
+    if (tk.kan) {                       // the small note rides above the main one
+      sw.className += " kan-host";
+      var k = document.createElement("span");
+      k.className = "kan"; k.textContent = tk.kan;
+      sw.appendChild(k);
+    }
+    return sw;
+  }
+  function sepEl(txt) {
+    var sp = document.createElement("span");
+    sp.className = "sk-sep"; sp.textContent = txt;
+    return sp;
   }
 
   /* ---------- media url ---------- */
@@ -709,25 +742,16 @@
         if (state.editMode) box.appendChild(bandishEditor(l, li, line));
         return;
       }
-      var unit = line.unit || 0, noteN = 0;
+      var unit = line.unit || 0, noteN = 0, mk = null;
       tokenize(lineText(l, li)).forEach(function (tk) {
-        if (tk.sep) {
-          var sp = document.createElement("span");
-          sp.className = "sk-sep"; sp.textContent = tk.t;
-          row.appendChild(sp);
-        } else {
-          var sw = document.createElement("span");
-          sw.className = "sk-sw" + (tk.oct === 1 ? " oct1" : tk.oct === -1 ? " octm" : "");
-          if (unit > 1) {
-            var g = Math.floor(noteN / unit);
-            sw.className += (g % 2 ? " grpB" : " grpA") + (noteN % unit === 0 ? " gstart" : "");
-          }
-          noteN++;
-          sw.textContent = tk.t;
-          row.appendChild(sw);
-        }
+        if (tk.sep) { (mk || row).appendChild(sepEl(tk.t)); return; }
+        if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; row.appendChild(mk); }
+        (mk || row).appendChild(swarEl(tk, unit, noteN));
+        noteN++;
+        if (tk.mkClose && mk) mk = null;
       });
       box.appendChild(row);
+      if (state.editMode) box.appendChild(notationEditor(l, li));
     });
   }
 
@@ -853,6 +877,12 @@
       }
       return el;
     }
+    if (line.review) {
+      var rv = document.createElement("div"); rv.className = "bnd-review";
+      rv.innerHTML = '<b>\u26a0 Check this one</b> \u2014 I read it from a small photo and could not be sure of every swar. ' +
+        'Tap <b>\u270e Edit notation</b> above and correct any note.';
+      wrap.appendChild(rv);
+    }
     var nums = lane("bnd-nums");
     for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
     wrap.appendChild(nums);
@@ -861,7 +891,13 @@
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
       for (var i = 0; i < N; i++) {
-        sl.children[i].textContent = r.swar[i] || "";
+        var cell = sl.children[i], mk = null;
+        tokenize(r.swar[i] || "").forEach(function (tk) {
+          if (tk.sep) { (mk || cell).appendChild(sepEl(tk.t)); return; }
+          if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; cell.appendChild(mk); }
+          (mk || cell).appendChild(swarEl(tk, 0, 0));
+          if (tk.mkClose && mk) mk = null;
+        });
         ll.children[i].textContent = r.lyric[i] || "";
       }
       rw.appendChild(sl);
@@ -886,6 +922,42 @@
   }
 
   /* ---------- the editors ---------- */
+  function swarTools(ta) {
+    var box = document.createElement("span"); box.className = "ed-tools";
+    [["Komal", "komal", "Underline this swar (komal)"],
+     ["Murki", "murki", "Curve over these swar \u2014 murki / khatka"],
+     ["Kan", "kan", "A small note above this one \u2014 kan / sparsh swar"]].forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "ed-tool"; b.textContent = p[0]; b.title = p[2];
+      b.onclick = function () { if (ta) applyMark(ta, p[1]); };
+      box.appendChild(b);
+    });
+    return box;
+  }
+  function applyMark(ta, kind) {
+    var v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+    if (s === e) {                       // nothing selected? take the swar the caret sits on
+      var a = s; while (a > 0 && !/\s/.test(v[a - 1])) a--;
+      var b = e; while (b < v.length && !/\s/.test(v[b])) b++;
+      s = a; e = b;
+    }
+    var sel = v.slice(s, e);
+    if (!sel) return;
+    var out;
+    if (kind === "komal") {
+      out = sel.split(/\s+/).map(function (w) { return w[0] === "~" ? w.slice(1) : "~" + w; }).join(" ");
+    } else if (kind === "murki") {
+      out = sel[0] === "{" ? sel.slice(1, -1) : "{" + sel + "}";
+    } else {
+      var m = /^([^{}~^_]*)(\([^)]*\))?$/.exec(sel);
+      out = (m ? m[1] : sel) + "()";
+    }
+    ta.value = v.slice(0, s) + out + v.slice(e);
+    ta.focus();
+    if (kind === "kan") ta.setSelectionRange(s + out.length - 1, s + out.length - 1);
+    else ta.setSelectionRange(s, s + out.length);
+  }
+
   function notationEditor(l, li) {
     var d = document.createElement("div"); d.className = "ed";
     var ta = document.createElement("textarea");
@@ -897,8 +969,11 @@
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
+    bar.appendChild(swarTools(ta));
     var tip = document.createElement("span"); tip.className = "ed-tip";
-    tip.textContent = "swar separated by spaces \u00b7 ^ upper octave \u00b7 _ lower \u00b7 | a bar";
+    tip.textContent = "Swar are separated by spaces. Select one and tap Komal / Murki / Kan to add a mark. " +
+      "\u007e underlines a komal swar \u00b7 { } draws a curve over a murki group \u00b7 a small note goes in ( ) \u00b7 " +
+      "^ upper octave \u00b7 _ lower \u00b7 | a bar.";
     bar.appendChild(tip);
     d.appendChild(bar);
     return d;
@@ -934,8 +1009,10 @@
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
+    bar.appendChild(swarTools(fields.length ? fields[0].a : null));
     var tip = document.createElement("span"); tip.className = "ed-tip";
-    tip.textContent = "first box = swar for each of the 16 matras \u00b7 second box = the song's letters";
+    tip.textContent = "First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
+      "Tap Komal / Murki / Kan to add a mark to the swar you have selected.";
     bar.appendChild(tip);
     d.appendChild(bar);
     return d;
