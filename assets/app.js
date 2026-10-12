@@ -611,7 +611,7 @@
       if (l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
       tabMs.push({ m: m, i: i });
     });
-    if (tabMs.length > 1) {
+    if (state.editMode && tabMs.length > 1) {   // which recording you are on is an editing concern
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
@@ -719,15 +719,14 @@
       showCtl();
     } else {
       p.innerHTML =
-        '<div class="pl">' +
+        '<div class="pl' + (state.editMode ? "" : " pl-hidden") + '">' +
           '<button class="pl-btn" id="plPlay" type="button" aria-label="play">▶</button>' +
           '<button class="pl-btn sm" id="plBack" type="button">−5</button>' +
-          '<div class="pl-track" id="plTrack"><div class="pl-bar"><div class="pl-fill" id="plFill"></div></div></div>' +
           '<span class="pl-time" id="plTime">0:00 / 0:00</span>' +
           '<button class="pl-btn sm" id="plFwd" type="button">+5</button>' +
         "</div>" +
         '<audio id="au" preload="none" referrerpolicy="no-referrer" src="' + mediaURL(m) + '"></audio>' +
-        '<div class="sk-dim">🎧 ' + esc(m.name) + "</div>";
+        '<div class="sk-dim' + (state.editMode ? "" : " pl-hidden") + '">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
       var srcs = audioSources(m), si = 0;
@@ -739,11 +738,11 @@
       au.addEventListener("pause", function () { syncLineBtns(); });
       au.addEventListener("ended", function () { state.segPlay = null; clearLineHL(); state.playingLine = -1; syncLineBtns(); });
       /* compact player */
-      var playBtn = $("#plPlay"), fill = $("#plFill"), timeEl = $("#plTime"), track = $("#plTrack"), bar = track.firstChild;
+      var playBtn = $("#plPlay"), fill = $("#plFill"), timeEl = $("#plTime"), track = $("#plTrack"), bar = track && track.firstChild;
       function upd() {
         var d = au.duration;
-        fill.style.width = (d ? (au.currentTime / d * 100) : 0) + "%";
-        timeEl.textContent = fmtTime(au.currentTime) + " / " + fmtTime(d);
+        if (fill) fill.style.width = (d ? (au.currentTime / d * 100) : 0) + "%";
+        if (timeEl) timeEl.textContent = fmtTime(au.currentTime) + " / " + fmtTime(d);
       }
       playBtn.onclick = function () { if (au.paused) au.play().catch(function () {}); else au.pause(); };
       au.addEventListener("play", function () { playBtn.textContent = "❚❚"; });
@@ -755,15 +754,18 @@
       $("#plFwd").onclick = function () { var d = au.duration || (au.currentTime + 5); au.currentTime = Math.min(d, au.currentTime + 5); upd(); };
       var dragging = false;
       function seekAt(e) {
+        if (!bar) return;
         var r = bar.getBoundingClientRect();
         var f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
         if (au.duration) au.currentTime = f * au.duration;
         upd();
       }
-      track.addEventListener("pointerdown", function (e) { dragging = true; try { this.setPointerCapture(e.pointerId); } catch (x) {} seekAt(e); });
-      track.addEventListener("pointermove", function (e) { if (dragging) seekAt(e); });
-      track.addEventListener("pointerup", function () { dragging = false; });
-      track.addEventListener("pointercancel", function () { dragging = false; });
+      if (track) {                     // the seek bar is gone, so there is nothing to drag
+        track.addEventListener("pointerdown", function (e) { dragging = true; try { this.setPointerCapture(e.pointerId); } catch (x) {} seekAt(e); });
+        track.addEventListener("pointermove", function (e) { if (dragging) seekAt(e); });
+        track.addEventListener("pointerup", function () { dragging = false; });
+        track.addEventListener("pointercancel", function () { dragging = false; });
+      }
     }
   }
 
@@ -825,12 +827,14 @@
       pb.title = "Play or pause this line";
       pb.onclick = function () { toggleLine(li); };
       state.lineBtns[li] = pb;
-      var mb = document.createElement("button");
-      mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
-      mb.title = "Set this line's start at the current position";
-      mb.onclick = function () { markLine(li); };
       ctl.appendChild(pb);
-      ctl.appendChild(mb);
+      if (state.editMode) {            // the clock writes a time, so it lives in edit mode only
+        var mb = document.createElement("button");
+        mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
+        mb.title = "Set this line's start at the current position";
+        mb.onclick = function () { markLine(li); };
+        ctl.appendChild(mb);
+      }
       var sunb = document.createElement("button");
       sunb.className = "ln-btn sunb" + (favHas(l.id, secKey, li) ? " on" : "");
       sunb.type = "button"; sunb.textContent = "\u2600";
