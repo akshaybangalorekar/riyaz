@@ -361,6 +361,15 @@
       ' title="' + (on ? "Remove from favourites" : "Add to favourites") + '">\u2600</button>';
   }
   function alNumber(l) { var m = /(\d+)/.exec(l.title || ""); return m ? +m[1] : 0; }
+  function bestOf(list, lid) {        // of several recordings serving one part, the one you timed
+    if (!list || !list.length) return -1;
+    var best = list[0], bestN = marksOn(lid, list[0]);
+    for (var i = 1; i < list.length; i++) {
+      var n = marksOn(lid, list[i]);
+      if (n > bestN) { best = list[i]; bestN = n; }
+    }
+    return best;
+  }
   function marksOn(lid, i) {          // how many lines carry a time on this recording
     var n = 0;
     [state.sharedMarks && state.sharedMarks[lid], state.segments && state.segments[lid]].forEach(function (src) {
@@ -581,7 +590,7 @@
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
     if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
-    else if (part && part.media.length) state.mediaIdx = part.media[0];
+    else if (part && part.media.length) state.mediaIdx = bestOf(part.media, id);
     else if (part) state.mediaIdx = -1;
     else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
