@@ -59,7 +59,17 @@
         break;
       }
       if (t.indexOf("\u093c") >= 0) { oct = -1; t = t.replace(/\u093c/g, ""); }
-      return { sep: false, t: t, oct: oct, komal: komal, kan: kan, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
+      // the small kan note can itself be komal, or sit in another octave
+      var kanKomal = false, kanOct = 0, g4 = 0, kt = kan;
+      while (g4++ < 4) {
+        if (kt[0] === "~") { kanKomal = true; kt = kt.slice(1); continue; }
+        if (kt[0] === "^") { kanOct = 1; kt = kt.slice(1); continue; }
+        if (kt[0] === "_") { kanOct = -1; kt = kt.slice(1); continue; }
+        break;
+      }
+      kan = kt;
+      return { sep: false, t: t, oct: oct, komal: komal, kan: kan, kanKomal: kanKomal, kanOct: kanOct,
+               shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
     });
   }
 
@@ -75,7 +85,9 @@
     if (tk.kan) {                       // the small note rides above the main one
       sw.className += " kan-host";
       var k = document.createElement("span");
-      k.className = "kan"; k.textContent = tk.kan;
+      k.className = "kan" + (tk.kanKomal ? " komal" : "") +
+        (tk.kanOct === 1 ? " oct1" : tk.kanOct === -1 ? " octm" : "");
+      k.textContent = tk.kan;
       sw.appendChild(k);
     }
     if (tk.shruti) {                    // the shruti number sits at the top right
@@ -1093,55 +1105,21 @@
     ta.setSelectionRange(pos, pos);
   }
 
-  function swarTools(ta) {
-    var box = document.createElement("span"); box.className = "ed-tools";
-    [["Komal", "komal", "Underline this swar (komal)"],
-     ["Murki", "murki", "Curve over these swar \u2014 murki / khatka"],
-     ["Kan", "kan", "A small note above this one \u2014 kan / sparsh swar"],
-     ["Shruti", "shruti", "Mark which of the 22 shrutis this swar is sung on"]].forEach(function (p) {
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "ed-tool"; b.textContent = p[0]; b.title = p[2];
-      b.onclick = function () { if (ta) applyMark(ta, p[1]); };
-      box.appendChild(b);
-    });
-    return box;
-  }
-  function applyMark(ta, kind) {
-    var v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
-    if (s === e) {                       // nothing selected? take the swar next to the caret
-      var a = s, b = e;
-      while (a > 0 && /\s/.test(v[a - 1])) a--;        // step back over spaces
-      var st = a;
-      while (st > 0 && !/\s/.test(v[st - 1])) st--;    // then to the start of that swar
-      if (a > st) { s = st; e = a; }                   // the swar just before the caret wins
-      else {
-        while (b < v.length && /\s/.test(v[b])) b++;
-        var en = b;
-        while (en < v.length && !/\s/.test(v[en])) en++;
-        s = b; e = en;
-      }
-    }
-    var sel = v.slice(s, e);
-    if (!sel) return;
-    var out;
-    if (kind === "komal") {
-      out = sel.split(/\s+/).map(function (w) { return w[0] === "~" ? w.slice(1) : "~" + w; }).join(" ");
-    } else if (kind === "murki") {
-      out = sel[0] === "{" ? sel.slice(1, -1) : "{" + sel + "}";
-    } else if (kind === "shruti") {
-      var m2 = /^(.*?)(\[[0-9]*\])?$/.exec(sel);
-      out = (m2 ? m2[1] : sel) + "[]";
-    } else {
-      var m = /^([^{}~^_]*)(\([^)]*\))?$/.exec(sel);
-      out = (m ? m[1] : sel) + "()";
-    }
-    ta.value = v.slice(0, s) + out + v.slice(e);
-    ta.focus();
-    var end2 = s + out.length;
-    // a kan or shruti wants the caret inside its brackets so you can type the note;
-    // the others leave the caret just after, ready for the next swar
-    if (kind === "kan" || kind === "shruti") ta.setSelectionRange(end2 - 1, end2 - 1);
-    else ta.setSelectionRange(end2, end2);
+
+  // how to write each mark, since there are no buttons for them any more
+  function markHelp(lead) {
+    var d = document.createElement("div"); d.className = "ed-tip";
+    d.innerHTML =
+      '<div class="ed-tip-lead">' + lead + "</div>" +
+      '<div class="ed-tip-h">How to write each mark</div>' +
+      '<div class="ed-tip-line"><code>~</code> in front of a swar makes it <b>komal</b> \u2014 <code>~\u0930\u0947</code> shows \u0930\u0947 underlined.</div>' +
+      '<div class="ed-tip-line"><code>{ }</code> around two or three swar draws the <b>murki / khatka</b> curve \u2014 <code>{\u0938\u093e \u0930\u0947 \u0917}</code>.</div>' +
+      '<div class="ed-tip-line"><code>( )</code> after a swar puts a small <b>kan / sparsh</b> note above it \u2014 <code>\u092a(\u0927)</code>. ' +
+        'The small note can be komal or in another octave as well: <code>\u092a(~\u0927)</code>, <code>\u092a(_\u0927)</code>, <code>\u092a(^\u0927)</code>.</div>' +
+      '<div class="ed-tip-line"><code>[ ]</code> after a swar marks which <b>shruti</b> it is sung on \u2014 <code>\u0930\u0947[2]</code>.</div>' +
+      '<div class="ed-tip-line"><code>^</code> upper octave \u00b7 <code>_</code> lower octave \u00b7 <code>|</code> bar \u00b7 <code>\u2013</code> rest. ' +
+        "Swar are separated by spaces.</div>";
+    return d;
   }
 
   function notationEditor(l, li) {
@@ -1157,12 +1135,7 @@
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
     bar.appendChild(swarPad());
-    bar.appendChild(swarTools(ta));
-    var tip = document.createElement("span"); tip.className = "ed-tip";
-    tip.textContent = "Tap a swar to drop it in \u2014 it lands where your cursor is. Then tap Komal / Murki / Kan / Shruti to mark it. " +
-      "Swar are separated by spaces: \u007e underlines a komal swar \u00b7 { } curves a murki group \u00b7 a small note goes in ( ) \u00b7 " +
-      "a shruti number goes in [ ].";
-    bar.appendChild(tip);
+    bar.appendChild(markHelp("Tap a swar to drop it in \u2014 it lands where your cursor is."));
     d.appendChild(bar);
     return d;
   }
@@ -1199,11 +1172,8 @@
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
     bar.appendChild(swarPad());
-    bar.appendChild(swarTools(fields.length ? fields[0].a : null));
-    var tip = document.createElement("span"); tip.className = "ed-tip";
-    tip.textContent = "First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
-      "Tap a swar to drop it into whichever box you last touched, then tap Komal / Murki / Kan / Shruti to mark it.";
-    bar.appendChild(tip);
+    bar.appendChild(markHelp("First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
+      "A swar lands in whichever box you last touched."));
     d.appendChild(bar);
     return d;
   }
