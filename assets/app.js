@@ -38,12 +38,20 @@
   /* ---------- notation tokeniser ---------- */
   function tokenize(text) {
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
-      if (tok === "|" || tok === "/" || tok === "।" || tok === "-" || tok === ",") {
-        return { sep: true, t: tok === "," ? "," : (tok === "-" ? "–" : "|") };
-      }
       var t = tok, mkOpen = false, mkClose = false;
-      if (t[0] === "{") { mkOpen = true; t = t.slice(1); }        // murki / khatka — a curve over the group
-      if (t[t.length - 1] === "}") { mkClose = true; t = t.slice(0, -1); }
+      // the brace can sit against other characters ("}|", "{सा", "ग}"), so look anywhere in the token
+      if (t.indexOf("{") >= 0 || t.indexOf("}") >= 0) {
+        mkOpen = t.indexOf("{") >= 0;
+        mkClose = t.indexOf("}") >= 0;
+        t = t.replace(/[{}]/g, "");
+      }
+      if (t === "|" || t === "/" || t === "।" || t === "-" || t === ",") {
+        return { sep: true, t: t === "," ? "," : (t === "-" ? "–" : "|"), mkOpen: mkOpen, mkClose: mkClose };
+      }
+      if (!t) {                       // a brace standing on its own
+        return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
+                 shruti: "", mkOpen: mkOpen, mkClose: mkClose };
+      }
       var oct = 0, komal = false, guard = 0;
       while (guard++ < 6) {                                        // markers may come in any order
         if (t[0] === "^") { oct = 1; t = t.slice(1); continue; }
@@ -806,11 +814,14 @@
       }
       var unit = line.unit || 0, noteN = 0, mk = null;
       tokenize(lineText(l, li)).forEach(function (tk) {
-        if (tk.sep) { (mk || row).appendChild(sepEl(tk.t)); return; }
         if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; row.appendChild(mk); }
-        (mk || row).appendChild(swarEl(tk, unit, noteN));
-        noteN++;
-        if (tk.mkClose && mk) mk = null;
+        if (tk.sep) {
+          if (tk.mkClose && mk) mk = null;        // a bar right after the brace sits outside the curve
+          (mk || row).appendChild(sepEl(tk.t));
+        } else if (tk.t) {
+          (mk || row).appendChild(swarEl(tk, unit, noteN)); noteN++;
+          if (tk.mkClose && mk) mk = null;        // the last swar of the group is inside it
+        } else if (tk.mkClose && mk) { mk = null; }
       });
       box.appendChild(row);
       if (state.editMode) box.appendChild(notationEditor(l, li));
@@ -1154,10 +1165,14 @@
       for (var i = 0; i < N; i++) {
         var cell = sl.children[i], mk = null;
         tokenize(r.swar[i] || "").forEach(function (tk) {
-          if (tk.sep) { (mk || cell).appendChild(sepEl(tk.t)); return; }
           if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; cell.appendChild(mk); }
-          (mk || cell).appendChild(swarEl(tk, 0, 0));
-          if (tk.mkClose && mk) mk = null;
+          if (tk.sep) {
+            if (tk.mkClose && mk) mk = null;
+            (mk || cell).appendChild(sepEl(tk.t));
+          } else if (tk.t) {
+            (mk || cell).appendChild(swarEl(tk, 0, 0));
+            if (tk.mkClose && mk) mk = null;
+          } else if (tk.mkClose && mk) { mk = null; }
         });
         ll.children[i].textContent = r.lyric[i] || "";
       }
