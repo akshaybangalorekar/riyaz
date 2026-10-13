@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.0.6";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.0.8";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -885,7 +885,7 @@
         state.lineBtns[li] = pb;
         ctl.appendChild(pb);
       }
-      if (state.editMode) {            // the clock writes a time, so it lives in edit mode only
+      if (state.editMode && !curIsVideo) {   // a clock on a video page has nothing it can time
         var mb = document.createElement("button");
         mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
         mb.title = "Set this line's start at the current position";
@@ -898,7 +898,7 @@
       sunb.title = "Add this line to favourites";
       sunb.onclick = function () { favToggle(l.id, secKey, li, state.mediaIdx); renderNotation(l); };
       ctl.appendChild(sunb);
-      var seg = segsOf()[li];
+      var seg = !curIsVideo ? segsOf()[li] : null;   // a video page shows no times at all
       if (seg) {
         var tm = document.createElement("span");
         tm.className = "ln-time";
@@ -906,7 +906,7 @@
         tm.title = "Starts here; runs until the next line's offset begins"
           + (_ends[li] != null ? "" : " (no later line is timed, so this one runs to the end)")
         ctl.appendChild(tm);
-      } else {
+      } else if (!curIsVideo) {            // no "timed elsewhere" chip on a video page either
         var other = markInOtherFile(l, li);
         if (other) {                       // timed on a different recording — say so
           var ob = document.createElement("button");
@@ -918,9 +918,9 @@
         }
       }
       // more than one take on this line?  show which one, and let it be changed
-      var _e = entryOf(l.id, li);
+      var _e = !curIsVideo ? entryOf(l.id, li) : null;
       var _all = takesOf(_e);
-      if (_all && _all.length > 1) {
+      if (!curIsVideo && _all && _all.length > 1) {
         var tc = document.createElement("button");
         tc.type = "button"; tc.className = "ln-take";
         tc.textContent = (_all[+_e.cur || 0].name || "Take " + ((+_e.cur || 0) + 1)) + " \u25be";
@@ -932,7 +932,7 @@
         };
         ctl.appendChild(tc);
       }
-      if (state.editMode) {              // a second take is a deliberate act, so it lives in edit mode
+      if (state.editMode && !curIsVideo) {   // takes are about times, so not on a video page
         var addb = document.createElement("button");
         addb.type = "button"; addb.className = "ln-addtake";
         addb.textContent = "+";
