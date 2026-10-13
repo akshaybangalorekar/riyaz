@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.0.5";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.0.6";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -874,12 +874,17 @@
       state.lineRows[li] = row;
       var ctl = document.createElement("span");
       ctl.className = "ln-ctl";
-      var pb = document.createElement("button");
-      pb.className = "ln-btn playb"; pb.type = "button"; pb.textContent = "▶";
-      pb.title = "Play or pause this line";
-      pb.onclick = function () { toggleLine(li); };
-      state.lineBtns[li] = pb;
-      ctl.appendChild(pb);
+      /* On a page whose recording is a video there is no per-line play button.
+         Drive serves those videos through its own player, which cannot be seeked
+         from here, so a play button would only promise something it cannot do. */
+      if (!curIsVideo) {
+        var pb = document.createElement("button");
+        pb.className = "ln-btn playb"; pb.type = "button"; pb.textContent = "▶";
+        pb.title = "Play or pause this line";
+        pb.onclick = function () { toggleLine(li); };
+        state.lineBtns[li] = pb;
+        ctl.appendChild(pb);
+      }
       if (state.editMode) {            // the clock writes a time, so it lives in edit mode only
         var mb = document.createElement("button");
         mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
