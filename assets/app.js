@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.3";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.4";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -83,9 +83,15 @@
   /* ---------- notation tokeniser ---------- */
   function tokenize(text) {
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
-      var t = tok, mkOpen = false, mkClose = false;
-      // the brace can sit against other characters ("}|", "{सा", "ग}"), so look anywhere in the token
-      if (t.indexOf("{") >= 0 || t.indexOf("}") >= 0) {
+      var t = tok, mkOpen = false, mkClose = false, kanMk = false;
+      /* If the braces sit inside the brackets — र({गरे}) — the murki belongs to the small
+         note above, not to the whole swar. Only a brace outside the brackets wraps the
+         main swar. */
+      var pmk = /\(([^)]*)\)$/.exec(t);
+      if (pmk && /[{}]/.test(pmk[1])) {
+        kanMk = true;
+        t = t.replace(/[{}]/g, "");           // keep the braces out of the kan text
+      } else if (t.indexOf("{") >= 0 || t.indexOf("}") >= 0) {
         mkOpen = t.indexOf("{") >= 0;
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
@@ -124,7 +130,7 @@
       kan = kt;
       return { sep: false, t: t, oct: oct, octUp: octUp, octDn: octDn, komal: komal,
                kan: kan, kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
-               shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
+               kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
     });
   }
 
@@ -181,8 +187,21 @@
       var k = document.createElement("span");
       k.className = "kan" + (tk.kanKomal ? " komal" : "") +
         ((tk.kanOctUp || tk.kanOct === 1) ? " oct1" : "") +
-        ((tk.kanOctDn || tk.kanOct === -1) ? " octm" : "");
-      k.textContent = tk.kan;
+        ((tk.kanOctDn || tk.kanOct === -1) ? " octm" : "") +
+        (tk.kanMk ? " kan-mk" : "");       // a murki over the small notes themselves
+      var kparts = splitSwar(tk.kan);
+      if (kparts) {                        // the small note may hold two swar with their own marks
+        kparts.forEach(function (p) {
+          var ks = document.createElement("span");
+          ks.className = "kan-p" + (tk.kanKomal || p.komal ? " komal" : "") +
+            ((tk.kanOctUp || tk.kanOct === 1 || p.oct === 1) ? " oct1" : "") +
+            ((tk.kanOctDn || tk.kanOct === -1 || p.oct === -1) ? " octm" : "");
+          ks.textContent = p.t;
+          k.appendChild(ks);
+        });
+      } else {
+        k.textContent = tk.kan;
+      }
       sw.appendChild(k);
     }
     if (tk.shruti) {                    // the shruti number sits at the top right
