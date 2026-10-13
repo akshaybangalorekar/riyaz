@@ -14,6 +14,7 @@
     cur: -1,
     raf: 0,
     audio: null,
+    video: null,     // when the page is showing a video, this is it
     segments: {},     // lessonId -> { lineIndex: {track, t} }   (local overrides)
     segPlay: null,     // {line, start, end, loop}
     segLoop: true,
@@ -36,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.0.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.0.5";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -555,6 +556,7 @@
     if (state.raf) cancelAnimationFrame(state.raf);
     state.raf = 0;
     if (state.audio) { try { state.audio.pause(); } catch (e) {} state.audio = null; }
+    if (state.video) { try { state.video.pause(); } catch (e) {} state.video = null; }
     state.segPlay = null; state.lineRows = [];
   }
 
@@ -712,8 +714,13 @@
             '<div class="vtrack" id="vTrack"><div class="vfill" id="vFill"></div></div>' +
             '<span class="vtime" id="vTime">0:00 / 0:00</span>' +
           "</div>" +
-        "</div>";
+        "</div>" +
+        '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";   // outside the wrapper, so the fallback cannot wipe it
       var vd = $("#vid"), ctl = $("#vctl"), vfill = $("#vFill"), vtime = $("#vTime"), vtr = $("#vTrack");
+      /* A page showing a video must play that video and nothing else. Clearing the
+         audio stops a line's play button from reaching for an mp3 left over from
+         another part of the lesson. */
+      state.video = vd; state.audio = null;
       function vupd() {
         var d = vd.duration;
         vfill.style.width = (d ? (vd.currentTime / d * 100) : 0) + "%";
@@ -732,6 +739,7 @@
       vd.addEventListener("timeupdate", vupd);
       vd.addEventListener("loadedmetadata", vupd);
       vd.addEventListener("error", function () {      // can't play natively? fall back to Drive's player
+        state.video = null;                            // nothing on this page can be seeked any more
         var w = p.querySelector(".vidwrap");
         if (w) w.innerHTML = '<iframe class="sk-iframe" src="' + mediaURL(m) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>';
       });
@@ -1706,15 +1714,23 @@
     if (r) { r.classList.add("playing"); if (r.scrollIntoView) r.scrollIntoView({ block: "center", behavior: "smooth" }); }
   }
   function syncLineBtns() {
-    var au = state.audio;
+    var au = state.audio, vd = state.video;
     Object.keys(state.lineBtns).forEach(function (k) {
       var b = state.lineBtns[k]; if (!b) return;
-      var playing = (state.playingLine === +k && au && !au.paused);
+      var live = vd || au;
+      var playing = (state.playingLine === +k && live && !live.paused);
       b.textContent = playing ? "\u275a\u275a" : "▶";
       b.classList.toggle("on", !!playing);
     });
   }
   function toggleLine(li) {
+    var vd = state.video, l0 = lesson(state.lessonId);
+    if (vd && l0 && (l0.media[state.mediaIdx] || {}).kind === "video") {
+      if (state.playingLine === li) { if (vd.paused) vd.play().catch(function () {}); else vd.pause(); }
+      else videoLine(li);
+      syncLineBtns();
+      return;
+    }
     var au = state.audio;
     if (state.playingLine === li && au) {          // same line: pause, or resume
       if (au.paused) {
@@ -1751,8 +1767,24 @@
     }
     mkMsg(why);
   }
+  function videoLine(li) {                   // play this line on the video that is on screen
+    var vd = state.video; if (!vd) return false;
+    var s2 = segsOf()[li], e2 = lineEnds();
+    var t = (s2 && typeof s2.t === "number") ? s2.t : 0;
+    try { vd.currentTime = t; } catch (e) {}
+    state.segPlay = { line: li, start: t, end: (e2[li] != null ? e2[li] : 1e9), loop: state.segLoop };
+    vd.play().catch(function () {});
+    highlightLine(li);
+    syncLineBtns();
+    return true;
+  }
   function playLine(li) {
     var l = lesson(state.lessonId); if (!l) return;
+    if ((l.media[state.mediaIdx] || {}).kind === "video") {
+      if (state.video) { videoLine(li); return; }        // a video we can drive
+      noTimeYet(li, "this recording plays in the player above \u2014 use its own play button");
+      return;
+    }
     /* A line's time belongs to one recording. If this recording has none but a
        sibling does (the komal and shuddha takes of an alankar, say), follow it
        there rather than refusing: that time is real and was set on purpose. */
@@ -2082,7 +2114,7 @@
   function ensureLoop() { if (!state.raf) loop(); }
   function loop() {
     state.raf = requestAnimationFrame(loop);
-    var au = state.audio; if (!au) return;
+    var au = state.video || state.audio; if (!au) return;
     var t = au.currentTime;
     // per-line segment: loop it, or stop at its end
     if (state.segPlay) {
