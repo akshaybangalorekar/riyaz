@@ -458,3 +458,222 @@
 
   window.RIYAZ = { vadya: { mount: mount, state: S, ensureTick: ensureTick } };
 })();
+
+/* Riyaz — Swar: hear what is being sung and name it.
+   Listens on the microphone, works out the pitch, and shows the nearest swar in
+   Devanagari with the usual notation — komal underlined, teevra ticked, and a dot
+   below for mandra saptak or above for taar. Alongside it shows how many cents
+   sharp or flat the note is, which is the part that tells you whether a swar is
+   landing true. Nothing is recorded and nothing leaves the device. */
+(function () {
+  "use strict";
+
+  /* semitones above Sa, in the order the swar sit */
+  var SWAR = [
+    { s: "\u0938\u093e", n: "Sa",  k: 0 },   // Sa
+    { s: "\u0930\u0947", n: "Re",  k: 1 },   // komal Re
+    { s: "\u0930\u0947", n: "Re",  k: 0 },   // shuddha Re
+    { s: "\u0917",  n: "Ga",  k: 1 },   // komal Ga
+    { s: "\u0917",  n: "Ga",  k: 0 },   // shuddha Ga
+    { s: "\u092e",  n: "Ma",  k: 0 },   // shuddha Ma
+    { s: "\u092e",  n: "Ma",  k: 2 },   // teevra Ma
+    { s: "\u092a",  n: "Pa",  k: 0 },   // Pa
+    { s: "\u0927",  n: "Dha", k: 1 },   // komal Dha
+    { s: "\u0927",  n: "Dha", k: 0 },   // shuddha Dha
+    { s: "\u0928\u093f", n: "Ni", k: 1 },   // komal Ni
+    { s: "\u0928\u093f", n: "Ni", k: 0 }    // shuddha Ni
+  ];
+  var SA_CHOICES = [
+    { hz: 130.81, n: "C3" }, { hz: 138.59, n: "C#3" }, { hz: 146.83, n: "D3" },
+    { hz: 155.56, n: "D#3" }, { hz: 164.81, n: "E3" }, { hz: 174.61, n: "F3" },
+    { hz: 185.00, n: "F#3" }, { hz: 196.00, n: "G3" }, { hz: 207.65, n: "G#3" },
+    { hz: 220.00, n: "A3" }, { hz: 233.08, n: "A#3" }, { hz: 246.94, n: "B3" },
+    { hz: 261.63, n: "C4" }, { hz: 277.18, n: "C#4" }, { hz: 293.66, n: "D4" },
+    { hz: 311.13, n: "D#4" }, { hz: 329.63, n: "E4" }
+  ];
+
+  /* hz -> the nearest swar, relative to a given Sa */
+  function swarOf(hz, sa) {
+    var semi = 12 * Math.log2(hz / sa);
+    var oct = Math.floor(semi / 12), step = Math.round(semi - oct * 12);
+    if (step >= 12) { step -= 12; oct += 1; }
+    if (step < 0) { step += 12; oct -= 1; }
+    var target = sa * Math.pow(2, (oct * 12 + step) / 12);
+    var cents = 1200 * Math.log2(hz / target);
+    return { sw: SWAR[step], oct: oct, cents: cents, hz: hz };
+  }
+  function mount(box) {
+    if (!box) return;
+    var audio = null, ctx = null, stream = null, analyser = null, buf = null;
+    var raf = 0, lastAt = 0, history = [], on = false;
+
+    box.innerHTML =
+      '<div class="sw-head">\u0938\u094d\u0935\u0930 \u2014 what is being sung</div>' +
+      '<div class="sw-intro">Switch this on and sing. The box listens on the microphone, works out the pitch and names the nearest swar. ' +
+      'It shows how many cents sharp or flat you are \u2014 the smaller that number, the truer the swar. Nothing is recorded.</div>' +
+      '<div class="sw-bar"><button class="sw-on" id="swOn" type="button">Switch on</button>' +
+        '<label for="swSa">Sa is</label><select id="swSa" class="v-sel">' +
+        SA_CHOICES.map(function (c) { return '<option value="' + c.hz + '"' + (c.n === "A3" ? " selected" : "") + '>Sa = ' + c.n + '</option>'; }).join("") +
+        '</select><span class="sw-msg" id="swMsg"></span></div>' +
+      '<div class="sw-stage">' +
+        '<div class="sw-now"><span class="sw-swar" id="swSwar">\u2014</span>' +
+          '<span class="sw-flav" id="swFlav"></span></div>' +
+        '<div class="sw-tune"><span class="sw-hz" id="swHz">\u2014</span>' +
+          '<span class="sw-cents" id="swCents"></span></div>' +
+        '<div class="sw-needle"><span class="sw-mid"></span><span class="sw-mark" id="swMark"></span></div>' +
+        '<div class="sw-hint" id="swHint">Sing a steady note and hold it.</div>' +
+      '</div>';
+
+    var elOn = box.querySelector("#swOn"), elSa = box.querySelector("#swSa"), elMsg = box.querySelector("#swMsg");
+    var elSwar = box.querySelector("#swSwar"), elFlav = box.querySelector("#swFlav");
+    var elHz = box.querySelector("#swHz"), elCents = box.querySelector("#swCents");
+    var elMark = box.querySelector("#swMark"), elHint = box.querySelector("#swHint");
+
+    function saHz() { return elSa ? +elSa.value : 220; }
+    function say(t) { if (elMsg) elMsg.textContent = t || ""; }
+
+    /* ---------- pitch ---------- */
+    /* Autocorrelation: look for the delay at which the wave most resembles
+       itself. That delay is the period, and its inverse is the pitch. */
+    function pitchOf(d, sr) {
+      var n = d.length, rms = 0, i;
+      for (i = 0; i < n; i++) rms += d[i] * d[i];
+      rms = Math.sqrt(rms / n);
+      if (rms < 0.008) return -1;                       // too quiet to be a note
+      var lo = Math.floor(sr / 1000), hi = Math.min(n - 1, Math.floor(sr / 55));   // 55-1000 Hz
+      var best = -1, bestC = 0;
+      for (var off = lo; off <= hi; off++) {
+        var c = 0;
+        for (i = 0; i < n - off; i++) c += d[i] * d[i + off];
+        c /= (n - off);
+        if (c > bestC) { bestC = c; best = off; }
+      }
+      if (best < 0) return -1;
+      // refine around the peak
+      var a = best > lo ? best - 1 : best, b = best, cc = best < hi ? best + 1 : best;
+      function ac(o) { var s = 0; for (var k = 0; k < n - o; k++) s += d[k] * d[k + o]; return s / (n - o); }
+      var ya = ac(a), yb = ac(b), yc = ac(cc);
+      var den = (ya - 2 * yb + yc);
+      var shift = den ? (0.5 * (ya - yc) / den) : 0;
+      if (shift > 1 || shift < -1) shift = 0;
+      var period = b + shift;
+      var hz = sr / period;
+      if (!isFinite(hz) || hz < 55 || hz > 1200) return -1;
+      return hz;
+    }
+
+    /* ---------- hz -> swar ---------- */
+    function nameOf(hz) {
+      return swarOf(hz, saHz());
+    }
+    function unusedNameOf(hz) {
+      var sa = saHz();
+      var semi = 12 * Math.log2(hz / sa);               // semitones above Sa
+      var oct = Math.floor(semi / 12);
+      var step = Math.round(semi - oct * 12);
+      if (step >= 12) { step -= 12; oct += 1; }
+      if (step < 0) { step += 12; oct -= 1; }
+      var target = sa * Math.pow(2, (oct * 12 + step) / 12);
+      var cents = 1200 * Math.log2(hz / target);
+      return { sw: SWAR[step], oct: oct, cents: cents, hz: hz };
+    }
+
+    function paint(r) {
+      if (!r) { elSwar.textContent = "\u2014"; elFlav.textContent = ""; elHz.textContent = "\u2014"; elCents.textContent = ""; elMark.style.left = "50%"; elMark.className = "sw-mark"; return; }
+      var sw = r.sw, oct = r.oct;
+      var letter = sw.s;
+      elSwar.innerHTML = "";
+      var sp = document.createElement("span");
+      sp.className = "sw-glyph" + (sw.k === 1 ? " komal" : "") + (sw.k === 2 ? " tivra" : "") + (oct < 0 ? " mandra" : (oct > 0 ? " taar" : ""));
+      sp.textContent = letter;
+      elSwar.appendChild(sp);
+      var flav = sw.n + (sw.k === 1 ? " komal" : (sw.k === 2 ? " teevra" : ""));
+      if (oct < 0) flav += " \u00b7 mandra saptak";
+      else if (oct > 0) flav += " \u00b7 taar saptak";
+      else flav += " \u00b7 madhya saptak";
+      elFlav.textContent = flav;
+      elHz.textContent = r.hz.toFixed(1) + " Hz";
+      var c = r.cents;
+      elCents.textContent = (c >= 0 ? "+" : "") + c.toFixed(0) + " cents";
+      elCents.className = "sw-cents" + (Math.abs(c) <= 15 ? " good" : (Math.abs(c) <= 35 ? " near" : " off"));
+      var pos = Math.max(-50, Math.min(50, c / 1.0));   // ±50 cents across the bar
+      elMark.style.left = (50 + pos) + "%";
+      elMark.className = "sw-mark" + (Math.abs(c) <= 15 ? " good" : "");
+      elHint.textContent = Math.abs(c) <= 15 ? "On the swar." :
+        (c > 0 ? "A little sharp \u2014 ease down." : "A little flat \u2014 lift it.");
+    }
+
+    function tick(now) {
+      raf = requestAnimationFrame(tick);
+      if (!analyser || now - lastAt < 55) return;        // ~18 readings a second is plenty
+      lastAt = now;
+      analyser.getFloatTimeDomainData(buf);
+      var hz = pitchOf(buf, ctx.sampleRate);
+      if (hz < 0) {
+        history.length = 0;
+        paint(null);
+        if (elHint) elHint.textContent = "Listening\u2026 sing a steady note.";
+        return;
+      }
+      history.push(hz);
+      if (history.length > 5) history.shift();
+      var sorted = history.slice().sort(function (a, b) { return a - b; });
+      var med = sorted[Math.floor(sorted.length / 2)];    // median smooths the wobble
+      paint(nameOf(med));
+    }
+
+    function start() {
+      if (on) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        say("This browser will not give the page a microphone."); return;
+      }
+      say("Asking for the microphone\u2026");
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+        .then(function (st) {
+          stream = st;
+          ctx = new (window.AudioContext || window.webkitAudioContext)();
+          var src = ctx.createMediaStreamSource(st);
+          analyser = ctx.createAnalyser();
+          analyser.fftSize = 2048;
+          buf = new Float32Array(analyser.fftSize);
+          src.connect(analyser);                        // not to the speakers — no feedback
+          on = true;
+          elOn.textContent = "Switch off";
+          elOn.classList.add("on");
+          say("");
+          lastAt = 0;
+          raf = requestAnimationFrame(tick);
+        })
+        .catch(function (e) {
+          var m = (e && e.name) || "";
+          say(m === "NotAllowedError" ? "The microphone was refused. Allow it for this page and try again."
+            : m === "NotFoundError" ? "No microphone was found on this device."
+            : "Could not open the microphone.");
+        });
+    }
+
+    function stop() {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      if (stream) { stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} }); stream = null; }
+      if (ctx) { try { ctx.close(); } catch (e) {} ctx = null; }
+      analyser = null; on = false; history.length = 0;
+      if (elOn) { elOn.textContent = "Switch on"; elOn.classList.remove("on"); }
+      paint(null);
+      say("");
+      if (elHint) elHint.textContent = "Switched off.";
+    }
+
+    if (elOn) elOn.onclick = function () { if (on) stop(); else start(); };
+    if (elSa) elSa.onchange = function () { history.length = 0; };
+
+    /* leaving the page must release the microphone */
+    window.addEventListener("pagehide", stop);
+    window.addEventListener("beforeunload", stop);
+    box._swarStop = stop;
+  }
+
+  window.RIYAZ = window.RIYAZ || {};
+  /* _test lets the display be checked without a microphone: give it a frequency
+     and it paints exactly as a live reading would. */
+  window.RIYAZ.swar = { mount: mount, _test: function (hz, sa) { return swarOf(hz, sa || 220); } };
+})();

@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.0.8";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2180,6 +2180,26 @@
     var on = p.classList.toggle("on");
     sb2.classList.toggle("on", on);
     if (on) { var o1 = $("#skVadya"); if (o1) o1.classList.remove("on"); var v1 = $("#btnVadya"); if (v1) v1.classList.remove("on"); }
+    var swp0 = $("#skSwar"); if (on && swp0 && swp0.classList.contains("on")) { swp0.classList.remove("on"); var swb0 = $("#btnSwar"); if (swb0) swb0.classList.remove("on"); var sbox0 = $("#skSwarBox"); if (sbox0 && sbox0._swarStop) sbox0._swarStop(); }
+  };
+  /* Swar — listens on the microphone and names the note being sung */
+  var swbox = $("#skSwarBox");
+  if (swbox && window.RIYAZ && window.RIYAZ.swar) window.RIYAZ.swar.mount(swbox);
+  var swb = $("#btnSwar");
+  function stopSwar() {
+    var p = $("#skSwar"); if (p) p.classList.remove("on");
+    var b = $("#btnSwar"); if (b) b.classList.remove("on");
+    var x = $("#skSwarBox"); if (x && x._swarStop) x._swarStop();
+  }
+  if (swb) swb.onclick = function () {
+    var p = $("#skSwar"); if (!p) return;
+    var on = p.classList.toggle("on");
+    swb.classList.toggle("on", on);
+    if (on) {
+      var o3 = $("#skVadya"); if (o3) o3.classList.remove("on"); var v3 = $("#btnVadya"); if (v3) v3.classList.remove("on");
+      var o4 = $("#skShruti"); if (o4) o4.classList.remove("on"); var s4 = $("#btnShruti"); if (s4) s4.classList.remove("on");
+      var cl = $("#skSettings"); if (cl) cl.classList.remove("on");
+    } else stopSwar();
   };
   var vb = $("#btnVadya");
   function toggleVadya() {
@@ -2189,6 +2209,7 @@
     if (on) { var close = $("#skSettings"); if (close) close.classList.remove("on"); }
     var o2 = $("#skShruti"); if (on && o2) o2.classList.remove("on");
     var s2b = $("#btnShruti"); if (on && s2b) s2b.classList.remove("on");
+    if (on) { var swp = $("#skSwar"); if (swp && swp.classList.contains("on")) { swp.classList.remove("on"); var swb2 = $("#btnSwar"); if (swb2) swb2.classList.remove("on"); var sbox2 = $("#skSwarBox"); if (sbox2 && sbox2._swarStop) sbox2._swarStop(); } }
   }
   if (vb) vb.onclick = toggleVadya;
   if (/[?&]vadya=1/.test(location.search)) toggleVadya();
