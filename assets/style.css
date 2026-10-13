@@ -644,3 +644,17 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   border:1.5px solid var(--saffron); border-top:0; border-radius:0 0 7px 7px}
 .sk-sw .kan .kan-p{padding:0 1px}
 .sk-sw .kan .kan-p.komal{text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:2px}
+
+/* the notation rules as a write-it / see-it table */
+.ed-syn{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:8px;background:var(--bg2)}
+.ed-syn-row{display:grid;grid-template-columns:130px minmax(90px,1fr) 1.4fr;gap:10px;align-items:center;
+  padding:9px 12px;border-top:1px solid var(--line);font-size:13px;min-height:52px}
+.ed-syn-row:first-child{border-top:0}
+.ed-syn-head{color:var(--dim);font-size:11px;letter-spacing:.5px;text-transform:uppercase;
+  background:var(--panel2);min-height:0;padding:6px 12px}
+.ed-syn-in{color:var(--saffron);font-weight:700;font-size:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  word-break:break-all}
+.ed-syn-out{color:var(--ink);font-weight:700;font-size:18px;line-height:1.2;padding-top:26px}
+.ed-syn-say{color:var(--dim);font-size:12.5px;line-height:1.4}
+.ed-syn-out .sk-sw.kan-host{padding-top:30px}
+.ed-syn-out .kan{top:4px}

@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.4";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.8";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -919,6 +919,7 @@
     var useGroups = Object.keys(grpCount).length >= 2;
     var lastG = null;
     var _ends = lineEnds();   // a line runs until the next line's offset begins
+    helpFirst = true;         // the notation table is shown once, on the first line drawn
 
     l.lines.forEach(function (line, li) {
       if (line.onlyVideo && !curIsVideo) return;
@@ -1452,23 +1453,72 @@
 
 
   // how to write each mark, since there are no buttons for them any more
-  function markHelp(lead) {
+  /* The notation rules, shown rather than described: for every rule the box on the
+     left is exactly what you type, and the box on the right is what comes out. */
+  function swarRun(text) {                 // draw a fragment the same way the notation does
+    var box = document.createElement("span");
+    box.className = "ed-syn-out";
+    var mk = null;
+    tokenize(text).forEach(function (tk) {
+      if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; box.appendChild(mk); }
+      if (tk.sep) { (mk || box).appendChild(sepEl(tk.t)); if (tk.mkClose && mk) mk = null; }
+      else if (tk.t) { (mk || box).appendChild(swarEl(tk, 0, 0)); if (tk.mkClose && mk) mk = null; }
+      else if (tk.mkClose && mk) { mk = null; }
+    });
+    return box;
+  }
+  var SYNTAX = [
+    ["रे",                    "a plain swar"],
+    ["~रे",                   "komal — underlined"],
+    ["^सा",                   "tār saptak — dot above"],
+    ["_प",                         "mandra saptak — dot below"],
+    ["गरे",              "two swar on one matra"],
+    ["{~ग~रे}",          "two komal swar on one matra"],
+    ["{सा रे ग}", "murki — curve under the group"],
+    ["प(ध)",                  "kan — small note above"],
+    ["र({गरे})",    "kan, with the murki under the small notes"],
+    ["रे[2]",                 "shruti number, top right"],
+    ["|",                               "bar"],
+    ["-",                               "rest"]
+  ];
+  var helpFirst = true;
+  function markHelp(lead, first) {
+    /* The full table is long, so it is shown once — on the first line of the page —
+       and the later lines carry only the one-line reminder. */
     var d = document.createElement("div"); d.className = "ed-tip";
-    d.innerHTML =
-      '<div class="ed-tip-lead">' + lead + "</div>" +
-      '<div class="ed-tip-h">How to write each mark</div>' +
-      '<div class="ed-tip-line"><code>~</code> in front of a swar makes it <b>komal</b> \u2014 <code>~\u0930\u0947</code> shows \u0930\u0947 underlined.</div>' +
-      '<div class="ed-tip-line"><code>{ }</code> around two or three swar draws the <b>murki / khatka</b> curve \u2014 <code>{\u0938\u093e \u0930\u0947 \u0917}</code>.</div>' +
-      '<div class="ed-tip-line">Two swar on <b>one matra</b>: write them with no space between — <code>गरे</code>. ' +
-        'When both are komal, write <code>~ग~रे</code> — or one <code>~</code> for the pair, <code>~गरे</code>. ' +
-        'A <b>murki of two swar inside one matra</b> is <code>{~ग~रे}</code>.</div>' +
-      '<div class="ed-tip-line"><code>( )</code> after a swar puts a small <b>kan / sparsh</b> note above it \u2014 <code>\u092a(\u0927)</code>. ' +
-        'The small note can be komal or in another octave as well: <code>\u092a(~\u0927)</code>, <code>\u092a(_\u0927)</code>, <code>\u092a(^\u0927)</code>.</div>' +
-      '<div class="ed-tip-line"><code>[ ]</code> after a swar marks which <b>shruti</b> it is sung on \u2014 <code>\u0930\u0947[2]</code>.</div>' +
-      '<div class="ed-tip-line"><code>^</code> before a swar puts a dot <b>above</b> it — <b>तार सप्तक</b>, the upper octave.</div>' +
-      '<div class="ed-tip-line"><code>_</code> before a swar puts a dot <b>below</b> it — <b>मंद्र सप्तक</b>, the lower octave. ' +
-        'A swar with no dot is <b>मध्य सप्तक</b>, the middle octave.</div>' +
-      '<div class="ed-tip-line"><code>|</code> bar · <code>–</code> rest. Swar are separated by spaces.</div>';
+    if (!first) {
+      var short = document.createElement("div"); short.className = "ed-tip-line";
+      short.innerHTML = "Swar separated by spaces. <b>No space</b> = one matra. " +
+        "Marks: <code>~</code> komal \u00b7 <code>^</code> t\u0101r \u00b7 <code>_</code> mandra \u00b7 " +
+        "<code>{ }</code> murki \u00b7 <code>( )</code> kan \u00b7 <code>[ ]</code> shruti. " +
+        "The full table is at the top of this page.";
+      d.appendChild(short);
+      return d;
+    }
+    var head = document.createElement("div"); head.className = "ed-tip-h";
+    head.textContent = "How to write each mark";
+    d.appendChild(head);
+    if (lead) {
+      var ld = document.createElement("div"); ld.className = "ed-tip-lead";
+      ld.innerHTML = lead; d.appendChild(ld);
+    }
+    var tbl = document.createElement("div"); tbl.className = "ed-syn";
+    var hr = document.createElement("div"); hr.className = "ed-syn-row ed-syn-head";
+    hr.innerHTML = "<span>you type</span><span>you get</span><span>what it means</span>";
+    tbl.appendChild(hr);
+    SYNTAX.forEach(function (r) {
+      var row = document.createElement("div"); row.className = "ed-syn-row";
+      var a = document.createElement("code"); a.className = "ed-syn-in"; a.textContent = r[0];
+      var b = swarRun(r[0]);
+      var c = document.createElement("span"); c.className = "ed-syn-say"; c.textContent = r[1];
+      row.appendChild(a); row.appendChild(b); row.appendChild(c);
+      tbl.appendChild(row);
+    });
+    d.appendChild(tbl);
+    var note = document.createElement("div"); note.className = "ed-tip-line";
+    note.innerHTML = "Swar are separated by spaces. <b>No space</b> means one matra: " +
+      "<code>गरे</code> is two swar on a single beat.";
+    d.appendChild(note);
     return d;
   }
 
@@ -1491,7 +1541,7 @@
       bar.appendChild(rm);
     }
     bar.appendChild(swarPad());
-    bar.appendChild(markHelp("Tap a swar to drop it in \u2014 it lands where your cursor is."));
+    bar.appendChild(markHelp("Tap a swar to drop it in \u2014 it lands where your cursor is.", helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
     return d;
   }
@@ -1529,7 +1579,7 @@
     bar.appendChild(sv); bar.appendChild(rs);
     bar.appendChild(swarPad());
     bar.appendChild(markHelp("First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
-      "A swar lands in whichever box you last touched."));
+      "A swar lands in whichever box you last touched.", helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
     return d;
   }
