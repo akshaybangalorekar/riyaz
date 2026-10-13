@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.3";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -129,7 +129,45 @@
   }
 
   // one swar, with any of the three marks it may carry
+  /* A token may hold more than one swar — two swar on a single matra, say.
+     Each marker that follows a letter starts a new swar, so ~ग~रे is two komal
+     swar rather than one swar with a stray tilde. */
+  function splitSwar(t) {
+    if (!/[~^_]/.test(t)) return null;
+    var bits = t.split(/(?=[~^_])/).filter(Boolean);
+    if (bits.length < 2) return null;
+    var out = [];
+    bits.forEach(function (b) {
+      var komal = false, oct = 0, g = 0;
+      while (g++ < 4) {
+        if (b[0] === "~") { komal = true; b = b.slice(1); continue; }
+        if (b[0] === "^") { oct = 1; b = b.slice(1); continue; }
+        if (b[0] === "_") { oct = -1; b = b.slice(1); continue; }
+        break;
+      }
+      if (b) out.push({ t: b, komal: komal, oct: oct });
+    });
+    return out.length > 1 ? out : null;
+  }
   function swarEl(tk, unit, noteN) {
+    var parts = splitSwar(tk.t);
+    if (parts) {                        // several swar inside one token
+      var grp = document.createElement("span");
+      grp.className = "sk-sw-grp";
+      parts.forEach(function (p, i) {
+        var sub = {};
+        for (var k in tk) { if (Object.prototype.hasOwnProperty.call(tk, k)) sub[k] = tk[k]; }
+        sub.t = p.t;
+        sub.komal = tk.komal || p.komal;          // a leading ~ covers the whole group
+        sub.oct = p.oct || tk.oct;
+        sub.kan = ""; sub.shruti = "";            // a mark belongs to one swar
+        grp.appendChild(oneSwar(sub, unit, noteN + i));
+      });
+      return grp;
+    }
+    return oneSwar(tk, unit, noteN);
+  }
+  function oneSwar(tk, unit, noteN) {
     var sw = document.createElement("span");
     sw.className = "sk-sw" + ((tk.octUp || tk.oct === 1) ? " oct1" : "") +
       ((tk.octDn || tk.oct === -1) ? " octm" : "") + (tk.komal ? " komal" : "");
@@ -1402,6 +1440,9 @@
       '<div class="ed-tip-h">How to write each mark</div>' +
       '<div class="ed-tip-line"><code>~</code> in front of a swar makes it <b>komal</b> \u2014 <code>~\u0930\u0947</code> shows \u0930\u0947 underlined.</div>' +
       '<div class="ed-tip-line"><code>{ }</code> around two or three swar draws the <b>murki / khatka</b> curve \u2014 <code>{\u0938\u093e \u0930\u0947 \u0917}</code>.</div>' +
+      '<div class="ed-tip-line">Two swar on <b>one matra</b>: write them with no space between — <code>गरे</code>. ' +
+        'When both are komal, write <code>~ग~रे</code> — or one <code>~</code> for the pair, <code>~गरे</code>. ' +
+        'A <b>murki of two swar inside one matra</b> is <code>{~ग~रे}</code>.</div>' +
       '<div class="ed-tip-line"><code>( )</code> after a swar puts a small <b>kan / sparsh</b> note above it \u2014 <code>\u092a(\u0927)</code>. ' +
         'The small note can be komal or in another octave as well: <code>\u092a(~\u0927)</code>, <code>\u092a(_\u0927)</code>, <code>\u092a(^\u0927)</code>.</div>' +
       '<div class="ed-tip-line"><code>[ ]</code> after a swar marks which <b>shruti</b> it is sung on \u2014 <code>\u0930\u0947[2]</code>.</div>' +
