@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.2.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.2.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -752,13 +752,6 @@
 
     // controls: audio lessons only, and never on Alankar (just the per-line buttons there)
     var bareLesson = l.group === "Alankar";
-    if (l.lines && l.lines.length && !curVideo && !bareLesson) {
-      html += '<div class="sk-controls">' +
-        '<button class="sk-btn' + (state.segLoop ? " on" : "") + '" id="btnLoop">Repeat line</button>' +
-        
-        '<div class="sk-ctl"><label>Rate</label><input type="range" id="rngRate" min="0.5" max="1.25" step="0.05" value="1"><span class="sk-rate" id="lblRate">1.00×</span></div>' +
-        "</div>";
-    }
     s.innerHTML = html;
 
     // wire media tabs
@@ -902,8 +895,15 @@
     return "";
   }
   function grpKey(l, g) { return l.id + "|" + (state.raagSect || "") + "|" + g; }
+  /* The स्थाई and अंतरा headings start folded — twenty lines at once is a lot to
+     scroll past — and open when you tap them. */
+  function grpStartsClosed(g) { return g === "स्थाई" || g === "अंतरा"; }
+  function grpOpen(l, g) {
+    var f = state.grp[grpKey(l, g)];
+    return f === undefined ? !grpStartsClosed(g) : f !== false;
+  }
   function groupHeader(l, g) {
-    var open = state.grp[grpKey(l, g)] !== false;
+    var open = grpOpen(l, g);
     var n = 0;
     (l.lines || []).forEach(function (ln) {
       if (raagSect(ln.label) === state.raagSect && subGroup(ln.label) === g) n++;
@@ -942,7 +942,7 @@
       if (secKey && raagSect(line.label) !== secKey) return;
       var grp = useGroups ? subGroup(line.label) : "";
       if (useGroups && grp && grp !== lastG) { box.appendChild(groupHeader(l, grp)); lastG = grp; }
-      if (useGroups && grp && state.grp[grpKey(l, grp)] === false) return;   // this heading is folded away
+      if (useGroups && grp && !grpOpen(l, grp)) return;   // this heading is folded away
       var row = document.createElement("div");
       row.className = "sk-line";
       state.lineRows[li] = row;
@@ -1607,18 +1607,9 @@
   }
 
   function wireControls(l) {
-    var bl = $("#btnLoop");
-    if (bl) bl.onclick = function () {
-      state.segLoop = !state.segLoop; this.classList.toggle("on", state.segLoop);
-      if (state.segPlay) state.segPlay.loop = state.segLoop;
-    };
+    /* The Repeat line button and the Rate scrub bar are gone; a line still repeats
+       as it always did. This now only refreshes the marks message. */
     updateMarksMsg();
-    var rr = $("#rngRate");
-    if (rr) rr.oninput = function () {
-      var r = +this.value;
-      $("#lblRate").textContent = r.toFixed(2) + "×";
-      if (state.audio) state.audio.playbackRate = r;
-    };
   }
 
   /* ---------- per-line segments (listen to one line at a time) ---------- */
