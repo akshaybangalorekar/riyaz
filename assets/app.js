@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.8";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.9";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -138,9 +138,12 @@
   /* A token may hold more than one swar — two swar on a single matra, say.
      Each marker that follows a letter starts a new swar, so ~ग~रे is two komal
      swar rather than one swar with a stray tilde. */
+  /* Split a group into its individual swar. It splits before every marker and
+     before every swar letter, so ~गम becomes two swar that each carry the komal
+     underline — the mark applies to the whole group, and each swar shows it. */
+  var SWAR_START = /[\u0938\u0930\u0917\u092e\u092a\u0927\u0928]/;   // स र ग म प ध न
   function splitSwar(t) {
-    if (!/[~^_]/.test(t)) return null;
-    var bits = t.split(/(?=[~^_])/).filter(Boolean);
+    var bits = t.split(/(?=[~^_])|(?=[\u0938\u0930\u0917\u092e\u092a\u0927\u0928])/).filter(Boolean);
     if (bits.length < 2) return null;
     var out = [];
     bits.forEach(function (b) {
