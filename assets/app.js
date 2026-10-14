@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.2.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.2.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -737,7 +737,7 @@
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
         
-        (curVideo || !secHasLines ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
+        (curVideo || !secHasLines || state.group === "Favourites" ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
         '<button class="sk-editbtn' + (state.editMode ? " on" : "") + '" id="btnEditNotation" type="button">\u270e ' +
         (state.editMode ? "Done editing" : "Edit notation") + "</button>" +
         "</div>";
@@ -951,7 +951,11 @@
       /* On a page whose recording is a video there is no per-line play button.
          Drive serves those videos through its own player, which cannot be seeked
          from here, so a play button would only promise something it cannot do. */
-      if (!curIsVideo) {
+      /* No play button when the page was opened from the Favourites list: tapping a
+         favourite already starts that line, so the button would only repeat it. On the
+         lesson's own page the button stays. */
+      var fromFav = state.group === "Favourites";
+      if (!curIsVideo && !fromFav) {
         var pb = document.createElement("button");
         pb.className = "ln-btn playb"; pb.type = "button"; pb.textContent = "▶";
         pb.title = "Play or pause this line";
