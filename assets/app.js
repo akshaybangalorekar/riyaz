@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.14";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.15";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -147,7 +147,7 @@
        with its own swar: ग~म gives ["ग", "~म"] and the ~ marks म, while ~गम gives
        ["ग", "म"] and the ~ (lifted off the front) marks only ग. */
     var bits = t.match(/[~^_]*[\u0938\u0930\u0917\u092e\u092a\u0927\u0928][\u093e-\u094d\u0901\u0902]*/g);
-    if (bits.length < 2) return null;
+    if (!bits || bits.length < 2) return null;   // a bar or a rest has no swar to split
     var out = [];
     bits.forEach(function (b) {
       var komal = false, oct = 0, g = 0;
