@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.9";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.10";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1476,6 +1476,7 @@
     ["^सा",                   "tār saptak — dot above"],
     ["_प",                         "mandra saptak — dot below"],
     ["गरे",              "two swar on one matra"],
+    ["~गम",                   "one ~ covers the whole group"],
     ["{~ग~रे}",          "two komal swar on one matra"],
     ["{सा रे ग}", "murki — curve under the group"],
     ["प(ध)",                  "kan — small note above"],
