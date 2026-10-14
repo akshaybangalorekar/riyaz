@@ -526,10 +526,8 @@
    "at": 1791800146206
   },
   "1004": {
-   "t": "",
-   "label": "⚠ Tanas 4, 6, 7 and 9 need your eye — the photo was not sharp enough on those four to settle them",
-   "sect": "tana",
-   "at": 1791852000000
+   "del": true,
+   "at": 1791981001015
   },
   "1005": {
    "del": true,

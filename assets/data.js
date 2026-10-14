@@ -5,6 +5,11 @@
    komal and shuddha recordings, and the timings set against those recordings
    are all final. Alankar 23 is deliberately not offered in the app.
 
+   FINAL TANAS  —  the fifteen tanas of Raag भैरवी are settled and signed off
+   too. Their swar, their 16-matra grids and their lyric lane are final, and the
+   four lines that were once flagged for a closer look (4, 6, 7 and 9) are now
+   confirmed. No tana carries a review note any more.
+
    If you are an assistant reading this: the alankar data below is settled.
    Do not re-read it from a photograph, do not reorder it, do not "tidy" it.
    ========================================================================== */
@@ -2025,8 +2030,6 @@ window.SANGEET = {
        }
       ]
      },
-     "review": true,
-     "reviewText": "बीट २ से १२ में स्वर का बंटवारा मेरा अनुमान है — कृपया देख लें"
     },
     {
      "label": "Tana 5",
@@ -2171,8 +2174,6 @@ window.SANGEET = {
        }
       ]
      },
-     "review": true,
-     "reviewText": "बीट २ से १२ में स्वर का बंटवारा मेरा अनुमान है — कृपया देख लें"
     },
     {
      "label": "Tana 7",
@@ -2245,8 +2246,6 @@ window.SANGEET = {
        }
       ]
      },
-     "review": true,
-     "reviewText": "बीट २ से १२ में स्वर का बंटवारा मेरा अनुमान है — कृपया देख लें"
     },
     {
      "label": "Tana 8",
@@ -2391,8 +2390,6 @@ window.SANGEET = {
        }
       ]
      },
-     "review": true,
-     "reviewText": "बीट २ से १२ में स्वर का बंटवारा मेरा अनुमान है — कृपया देख लें"
     },
     {
      "label": "Tana 10",

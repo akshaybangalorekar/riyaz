@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.15";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.2.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -436,6 +436,9 @@
     return '<button class="sun' + (on ? " on" : "") + (cls ? " " + cls : "") + '" type="button" ' + (attrs || "") +
       ' title="' + (on ? "Remove from favourites" : "Add to favourites") + '">\u2600</button>';
   }
+  /* FINAL TANAS — the fifteen tanas of Raag भैरवी are settled and signed off.
+     Nothing in them is provisional any more, so no tana line carries a review
+     note. Do not change them without being asked. */
   /* FINAL ALANKARS — alankars 1 to 22 are settled and signed off, and that is the
      end of the list. Alankar 23 exists in the data but is deliberately kept out of
      the rail, so nothing after 22 is ever offered. Do not change this without
