@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.1.10";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.1.14";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -143,7 +143,10 @@
      underline — the mark applies to the whole group, and each swar shows it. */
   var SWAR_START = /[\u0938\u0930\u0917\u092e\u092a\u0927\u0928]/;   // स र ग म प ध न
   function splitSwar(t) {
-    var bits = t.split(/(?=[~^_])|(?=[\u0938\u0930\u0917\u092e\u092a\u0927\u0928])/).filter(Boolean);
+    /* Take each swar together with the marks written just before it, so a mark stays
+       with its own swar: ग~म gives ["ग", "~म"] and the ~ marks म, while ~गम gives
+       ["ग", "म"] and the ~ (lifted off the front) marks only ग. */
+    var bits = t.match(/[~^_]*[\u0938\u0930\u0917\u092e\u092a\u0927\u0928][\u093e-\u094d\u0901\u0902]*/g);
     if (bits.length < 2) return null;
     var out = [];
     bits.forEach(function (b) {
@@ -167,8 +170,15 @@
         var sub = {};
         for (var k in tk) { if (Object.prototype.hasOwnProperty.call(tk, k)) sub[k] = tk[k]; }
         sub.t = p.t;
-        sub.komal = tk.komal || p.komal;          // a leading ~ covers the whole group
-        sub.oct = p.oct || tk.oct;
+        /* A mark belongs to the swar it sits before. The marks the tokeniser lifted
+           off the front were written before the first swar, so only that one takes
+           them — ~गम underlines ग alone, and ~ग~म underlines both. */
+        sub.komal = p.komal || (i === 0 && tk.komal);
+        sub.oct = p.oct || (i === 0 ? tk.oct : 0);
+        sub.octUp = (i === 0) && tk.octUp;      // the octave flags are separate fields,
+        sub.octDn = (i === 0) && tk.octDn;      // so they must be cleared per part too
+        if (p.oct === 1) { sub.octUp = true; sub.octDn = false; }
+        if (p.oct === -1) { sub.octDn = true; sub.octUp = false; }
         sub.kan = ""; sub.shruti = "";            // a mark belongs to one swar
         grp.appendChild(oneSwar(sub, unit, noteN + i));
       });
@@ -194,11 +204,11 @@
         (tk.kanMk ? " kan-mk" : "");       // a murki over the small notes themselves
       var kparts = splitSwar(tk.kan);
       if (kparts) {                        // the small note may hold two swar with their own marks
-        kparts.forEach(function (p) {
+        kparts.forEach(function (p, i) {
           var ks = document.createElement("span");
-          ks.className = "kan-p" + (tk.kanKomal || p.komal ? " komal" : "") +
-            ((tk.kanOctUp || tk.kanOct === 1 || p.oct === 1) ? " oct1" : "") +
-            ((tk.kanOctDn || tk.kanOct === -1 || p.oct === -1) ? " octm" : "");
+          ks.className = "kan-p" + (p.komal || (i === 0 && tk.kanKomal) ? " komal" : "") +
+            (((i === 0) && (tk.kanOctUp || tk.kanOct === 1)) || p.oct === 1 ? " oct1" : "") +
+            (((i === 0) && (tk.kanOctDn || tk.kanOct === -1)) || p.oct === -1 ? " octm" : "");
           ks.textContent = p.t;
           k.appendChild(ks);
         });
@@ -1476,7 +1486,8 @@
     ["^सा",                   "tār saptak — dot above"],
     ["_प",                         "mandra saptak — dot below"],
     ["गरे",              "two swar on one matra"],
-    ["~गम",                   "one ~ covers the whole group"],
+    ["ग~म",                   "the ~ marks the swar it sits before"],
+    ["~ग~म",                  "both marked"],
     ["{~ग~रे}",          "two komal swar on one matra"],
     ["{सा रे ग}", "murki — curve under the group"],
     ["प(ध)",                  "kan — small note above"],
