@@ -1,6 +1,6 @@
 :root{
   --bg:#15110f; --bg2:#1b1512; --panel:#221b17; --panel2:#2a221d;
-  --line:#3b2f26; --ink:#f4eadc; --dim:#ab9a85;
+  --line:#3b2f26; --ink:#f4eadc; --dim:#ab9a85; --lyric:#dca24c;
   --maroon:#8f2b2b; --maroon2:#651c1c; --saffron:#e8a63e; --gold:#d9a441;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
@@ -56,12 +56,12 @@ body{
 .bnd-vs{border-left:1px solid var(--line)}
 .bnd-nums .bnd-cell{font-size:11px; color:var(--dim); padding-bottom:6px}
 .bnd-swar .bnd-cell{font-weight:700; font-size:16px; color:var(--ink); line-height:1.35}
-.bnd-lyr .bnd-cell{font-size:15px; color:var(--dim); line-height:1.35; padding-bottom:9px}   /* as big as the swar line */
+.bnd-lyr .bnd-cell{font-size:17px; color:var(--lyric); line-height:1.35; padding-bottom:9px}   /* a touch bigger than the swar, in a warm orange */
 /* the lyric lane is written in the same notation, so the marks are drawn here too —
    the same shapes as the swar lane, in the quieter lyric colour */
 .bnd-lyr .mk-grp{padding-bottom:12px}
-.bnd-lyr .sk-sw{padding:1px 2px; font-size:15px; font-weight:400; color:var(--dim)}
-.bnd-lyr .sk-sep{color:var(--dim)}
+.bnd-lyr .sk-sw{padding:1px 2px; font-size:17px; font-weight:400; color:var(--lyric)}
+.bnd-lyr .sk-sep{color:var(--lyric)}
 .bnd-lyr .sk-sw.komal{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}
 .bnd-lyr .sk-sw.kan-host{padding-top:26px}
 .bnd-lyr .sk-sw .kan{font-size:12px}

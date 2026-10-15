@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.3.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.3.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -99,12 +99,12 @@
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
       }
-      /* One dash on its own is an empty matra — leave the cell blank. Two dashes ask
-         for a dash to be shown instead. Same reach as the avagraha rule: every page. */
-      if (t === "--" || t === "\u2013\u2013" || t === "-\u2013" || t === "\u2013-") {
+      /* One dash on its own is an empty matra — leave the cell blank. Two or more
+         dashes ask for a single dash to be shown instead. Every page, like the avagraha. */
+      if (/^[-\u2010-\u2015\u2212]{2,}$/.test(t)) {
         return { sep: true, t: "\u2013", mkOpen: mkOpen, mkClose: mkClose };
       }
-      if (t === "-" || t === "\u2013") {
+      if (/^[-\u2010-\u2015\u2212]$/.test(t)) {
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
                  shruti: "", mkOpen: mkOpen, mkClose: mkClose };
       }
@@ -661,7 +661,15 @@
   function saveUserRaags(list) {
     try { localStorage.setItem("sk_raags", JSON.stringify(list)); } catch (e) {}
   }
+  function blankBandish() {                 // a 16-matra grid, empty, ready to fill
+    var sw = [], ly = [];
+    for (var i = 0; i < 16; i++) { sw.push("-"); ly.push(""); }
+    return { taal: "\u0924\u0940\u0928\u0924\u093e\u0932", matras: 16, vibhag: [4, 4, 4, 4],
+             rows: [{ swar: sw, lyric: ly, arc: [] }] };
+  }
   function raagLesson(id, title) {
+    /* Every part works the same way it does in the built-in raags: the sung parts are
+       written lines, and the tana and bandish are 16-matra grids. */
     return {
       id: id, group: "Raag", title: title || "New Raag", mine: true, media: [],
       lines: [
@@ -671,9 +679,9 @@
         { label: "Mukt Aalap 1", text: "" },
         { label: "Sthayi Laikari 1", text: "" },
         { label: "Antara Laikari 1", text: "" },
-        { label: "Tana 1", text: "" },
-        { label: "Bandish (Sthayi)", text: "" },
-        { label: "Bandish (Antara)", text: "" }
+        { label: "Tana 1", text: "", bandish: blankBandish() },
+        { label: "Bandish (Sthayi)", text: "", bandish: blankBandish() },
+        { label: "Bandish (Antara)", text: "", bandish: blankBandish() }
       ]
     };
   }
@@ -986,6 +994,7 @@
     /* Sthayi / Antara anywhere in the name, so the bandish's "Bandish (Sthayi)" and
        "Bandish (Antara)" fold just like the laikari headings do. Both start folded. */
     var t = label || "";
+    if (t.indexOf("\u26a0") >= 0) return "";   // a check-note is not a part heading
     if (/Sthayi|\u0938\u094d\u0925\u093e\u0908/i.test(t)) return "\u0938\u094d\u0925\u093e\u0908";
     if (/Antara|\u0905\u0902?\u0924\u0930/i.test(t)) return "\u0905\u0902\u0924\u0930\u093e";
     return "";
