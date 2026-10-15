@@ -56,7 +56,7 @@ body{
 .bnd-vs{border-left:1px solid var(--line)}
 .bnd-nums .bnd-cell{font-size:11px; color:var(--dim); padding-bottom:6px}
 .bnd-swar .bnd-cell{font-weight:700; font-size:16px; color:var(--ink); line-height:1.35}
-.bnd-lyr .bnd-cell{font-size:13px; color:var(--dim); line-height:1.3; padding-bottom:9px}
+.bnd-lyr .bnd-cell{font-size:15px; color:var(--dim); line-height:1.35; padding-bottom:9px}   /* as big as the swar line */
 .bnd-row + .bnd-row{border-top:1px dashed var(--line); padding-top:6px; margin-top:4px}
 .bnd-lyrwrap{position:relative}
 .bnd-arcs{position:absolute; left:0; right:0; bottom:1px; height:11px; pointer-events:none}
