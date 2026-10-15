@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.2.9";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.2.10";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -680,9 +680,11 @@
     stopAll();
     state.lessonId = id;
     state.raagSect = sect || null;
-    if (l.group === "Raag" && !state.raagSect) {      // one part per page, never the whole raag
+    if (l.group === "Raag") {                          // one part per page, never the whole raag
       var rs = raagSections(l);
-      if (rs.length) state.raagSect = rs[0].k;
+      /* a section remembered from last time is only honoured if this raag really has it */
+      if (state.raagSect && !rs.some(function (x) { return x.k === state.raagSect; })) state.raagSect = null;
+      if (!state.raagSect && rs.length) state.raagSect = rs[0].k;
     }
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
@@ -691,6 +693,7 @@
     else if (part) state.mediaIdx = -1;
     else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
+    localStorage.setItem("sk_sect", state.raagSect || "");   // so a refresh lands back here
     renderList();
     renderStage(l);
   }
@@ -899,9 +902,11 @@
   /* Sthayi and Antara sit side by side on one page, each behind its own
      collapsible heading. */
   function subGroup(label) {
+    /* Sthayi / Antara anywhere in the name, so the bandish's "Bandish (Sthayi)" and
+       "Bandish (Antara)" fold just like the laikari headings do. Both start folded. */
     var t = label || "";
-    if (/^Sthayi/i.test(t) || /^\u0938\u094d\u0925\u093e\u0908/.test(t)) return "\u0938\u094d\u0925\u093e\u0908";
-    if (/^Antara/i.test(t) || /^\u0905\u0902?\u0924\u0930/.test(t)) return "\u0905\u0902\u0924\u0930\u093e";
+    if (/Sthayi|\u0938\u094d\u0925\u093e\u0908/i.test(t)) return "\u0938\u094d\u0925\u093e\u0908";
+    if (/Antara|\u0905\u0902?\u0924\u0930/i.test(t)) return "\u0905\u0902\u0924\u0930\u093e";
     return "";
   }
   function grpKey(l, g) { return l.id + "|" + (state.raagSect || "") + "|" + g; }
@@ -2359,6 +2364,8 @@
   if (state.group === "Favourites") { renderList(); renderFavStage(); }
   else {
     var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
-    if (start) open(start);
+    var lastSect = null;
+    try { lastSect = localStorage.getItem("sk_sect") || null; } catch (e) {}
+    if (start) open(start, null, lastSect);   // open() drops it if this raag has no such part
   }
 })();
