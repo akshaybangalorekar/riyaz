@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.2.10";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.3.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -99,9 +99,11 @@
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
       }
-      /* A dash on its own is an empty matra, not a rest to be shown — leave the cell
-         blank. A dash that sits with a swar is still a rest, and so is one inside a
-         line of notation. Same reach as the avagraha rule: every page. */
+      /* One dash on its own is an empty matra — leave the cell blank. Two dashes ask
+         for a dash to be shown instead. Same reach as the avagraha rule: every page. */
+      if (t === "--" || t === "\u2013\u2013" || t === "-\u2013" || t === "\u2013-") {
+        return { sep: true, t: "\u2013", mkOpen: mkOpen, mkClose: mkClose };
+      }
       if (t === "-" || t === "\u2013") {
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
                  shruti: "", mkOpen: mkOpen, mkClose: mkClose };
@@ -589,6 +591,10 @@
             '<span class="car">' + (open ? "\u25be" : "\u25b8") + "</span>" + esc(l.title) + "</button>" +
           sunHTML(scopeAllFav({ kind: "raag", id: l.id }), "rail", 'data-scope="' + l.id + '" data-kind="raag"') +
           '<span class="sk-move">' +
+            (l.mine && state.editMode
+              ? '<button class="mv" data-name="' + l.id + '" title="Rename this raag">\u270e</button>' +
+                '<button class="mv" data-drop="' + l.id + '" title="Remove this raag">\u2715</button>'
+              : "") +
             '<button class="mv" data-r="' + l.id + '" data-d="-1" title="Move up">\u25b2</button>' +
             '<button class="mv" data-r="' + l.id + '" data-d="1" title="Move down">\u25bc</button>' +
           "</span></div>" +
@@ -600,8 +606,18 @@
                 'data-scope="' + l.id + '" data-sect="' + x.k + '" data-kind="part"') + "</div>";
           }).join("") : "") + "</div>";
       }).join("");
+      if (state.editMode) {                       // adding a raag is an editing job
+        el.innerHTML += '<div class="sk-sec"><button class="sk-btn sk-addraag" id="btnAddRaag" type="button">+ Add Raag</button></div>';
+        var ar = el.querySelector("#btnAddRaag");
+        if (ar) ar.onclick = function () { addRaag(); };
+      }
       Array.prototype.forEach.call(el.querySelectorAll(".mv"), function (b) {
-        b.onclick = function (e) { if (e) e.stopPropagation(); moveRaag(b.dataset.r, +b.dataset.d); };
+        b.onclick = function (e) {
+          if (e) e.stopPropagation();
+          if (b.dataset.name) { renameRaag(b.dataset.name); return; }
+          if (b.dataset.drop) { removeRaag(b.dataset.drop); return; }
+          moveRaag(b.dataset.r, +b.dataset.d);
+        };
       });
       Array.prototype.forEach.call(el.querySelectorAll(".raagtoggle"), function (b) {
         b.onclick = function () {
@@ -634,6 +650,71 @@
 
   /* ---------- lesson ---------- */
   function lesson(id) { return D.lessons.filter(function (l) { return l.id === id; })[0]; }
+
+  /* ---------- raags you add yourself ----------
+     A raag you add is one lesson holding a blank line for each part, ready to fill in
+     with the notation editor. Its name lives in sk_raags, so it can be renamed from
+     the rail; its lines are edited like any other page. */
+  function userRaags() {
+    try { return JSON.parse(localStorage.getItem("sk_raags") || "[]") || []; } catch (e) { return []; }
+  }
+  function saveUserRaags(list) {
+    try { localStorage.setItem("sk_raags", JSON.stringify(list)); } catch (e) {}
+  }
+  function raagLesson(id, title) {
+    return {
+      id: id, group: "Raag", title: title || "New Raag", mine: true, media: [],
+      lines: [
+        { label: "Aaroh", text: "" },
+        { label: "Avroh", text: "" },
+        { label: "Pakad", text: "" },
+        { label: "Mukt Aalap 1", text: "" },
+        { label: "Sthayi Laikari 1", text: "" },
+        { label: "Antara Laikari 1", text: "" },
+        { label: "Tana 1", text: "" },
+        { label: "Bandish (Sthayi)", text: "" },
+        { label: "Bandish (Antara)", text: "" }
+      ]
+    };
+  }
+  function mergeUserRaags() {
+    userRaags().forEach(function (r) {
+      if (!r || !r.id) return;
+      var cur = lesson(r.id);
+      if (cur) { cur.title = r.title || cur.title; cur.mine = true; return; }
+      D.lessons.push(raagLesson(r.id, r.title));
+    });
+  }
+  function addRaag() {
+    var id = "my_" + Date.now().toString(36);
+    var list = userRaags();
+    list.push({ id: id, title: "New Raag" });
+    saveUserRaags(list);
+    D.lessons.push(raagLesson(id, "New Raag"));
+    state.raagOpen[id] = true;
+    open(id);
+    renderList();
+  }
+  function renameRaag(id) {
+    var l = lesson(id); if (!l) return;
+    var name = window.prompt("Name this raag", l.title || "");
+    if (name == null) return;
+    name = name.trim(); if (!name) return;
+    l.title = name;
+    var list = userRaags(), hit = false;
+    list.forEach(function (r) { if (r.id === id) { r.title = name; hit = true; } });
+    if (!hit) list.push({ id: id, title: name });
+    saveUserRaags(list);
+    renderList();
+  }
+  function removeRaag(id) {
+    var l = lesson(id); if (!l) return;
+    if (!window.confirm("Remove " + (l.title || "this raag") + " from the rail?")) return;
+    saveUserRaags(userRaags().filter(function (r) { return r.id !== id; }));
+    D.lessons = D.lessons.filter(function (x) { return x.id !== id; });
+    if (state.lessonId === id) state.lessonId = null;
+    renderList();
+  }
 
   function stopAll() {
     if (state.raf) cancelAnimationFrame(state.raf);
@@ -775,7 +856,7 @@
     renderPlayer(l);
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
     var ebtn = $("#btnEditNotation");
-    if (ebtn) ebtn.onclick = function () { state.editMode = !state.editMode; renderStage(l); };
+    if (ebtn) ebtn.onclick = function () { state.editMode = !state.editMode; renderStage(l); renderList(); };
   }
 
   function renderPlayer(l) {
@@ -2294,6 +2375,7 @@
   loadAllLocal();
   loadSharedCache();
   loadEdits();
+  mergeUserRaags();
   applyAdds();
   renderSyncNote();
   renderTabs();
