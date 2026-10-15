@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.2.8";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.2.9";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -99,8 +99,15 @@
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
       }
-      if (t === "|" || t === "/" || t === "।" || t === "-" || t === ",") {
-        return { sep: true, t: t === "," ? "," : (t === "-" ? "–" : "|"), mkOpen: mkOpen, mkClose: mkClose };
+      /* A dash on its own is an empty matra, not a rest to be shown — leave the cell
+         blank. A dash that sits with a swar is still a rest, and so is one inside a
+         line of notation. Same reach as the avagraha rule: every page. */
+      if (t === "-" || t === "\u2013") {
+        return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
+                 shruti: "", mkOpen: mkOpen, mkClose: mkClose };
+      }
+      if (t === "|" || t === "/" || t === "।" || t === ",") {
+        return { sep: true, t: t === "," ? "," : "|", mkOpen: mkOpen, mkClose: mkClose };
       }
       if (!t) {                       // a brace standing on its own
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
