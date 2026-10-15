@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.2.6";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.2.7";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -82,6 +82,9 @@
 
   /* ---------- notation tokeniser ---------- */
   function tokenize(text) {
+    /* s is shorthand for the avagraha ऽ — the sign that stands where an अ has been
+       swallowed by sandhi. Type it in either lane and it comes out as ऽ. */
+    text = String(text == null ? "" : text).replace(/s/g, "\u093d");
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
       var t = tok, mkOpen = false, mkClose = false, kanMk = false;
       /* If the braces sit inside the brackets — र({गरे}) — the murki belongs to the small
@@ -1383,22 +1386,27 @@
     for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
     wrap.appendChild(nums);
 
+    /* Both lanes are written in the same notation, so both are drawn the same way:
+       a murki in the lyric lane draws its curve just as it does in the swar lane. */
+    function fillCell(cell, text) {
+      var mk = null;
+      tokenize(text || "").forEach(function (tk) {
+        if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; cell.appendChild(mk); }
+        if (tk.sep) {
+          if (tk.mkClose && mk) mk = null;
+          (mk || cell).appendChild(sepEl(tk.t));
+        } else if (tk.t) {
+          (mk || cell).appendChild(swarEl(tk, 0, 0));
+          if (tk.mkClose && mk) mk = null;
+        } else if (tk.mkClose && mk) { mk = null; }
+      });
+    }
     rows.forEach(function (r) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
       for (var i = 0; i < N; i++) {
-        var cell = sl.children[i], mk = null;
-        tokenize(r.swar[i] || "").forEach(function (tk) {
-          if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; cell.appendChild(mk); }
-          if (tk.sep) {
-            if (tk.mkClose && mk) mk = null;
-            (mk || cell).appendChild(sepEl(tk.t));
-          } else if (tk.t) {
-            (mk || cell).appendChild(swarEl(tk, 0, 0));
-            if (tk.mkClose && mk) mk = null;
-          } else if (tk.mkClose && mk) { mk = null; }
-        });
-        ll.children[i].textContent = (r.lyric || [])[i] || "";   // a tana grid has no lyric lane
+        fillCell(sl.children[i], r.swar[i]);
+        fillCell(ll.children[i], (r.lyric || [])[i]);   // a tana grid has no lyric lane
       }
       rw.appendChild(sl);
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";

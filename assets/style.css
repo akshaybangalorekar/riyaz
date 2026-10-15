@@ -57,6 +57,16 @@ body{
 .bnd-nums .bnd-cell{font-size:11px; color:var(--dim); padding-bottom:6px}
 .bnd-swar .bnd-cell{font-weight:700; font-size:16px; color:var(--ink); line-height:1.35}
 .bnd-lyr .bnd-cell{font-size:15px; color:var(--dim); line-height:1.35; padding-bottom:9px}   /* as big as the swar line */
+/* the lyric lane is written in the same notation, so the marks are drawn here too —
+   the same shapes as the swar lane, in the quieter lyric colour */
+.bnd-lyr .mk-grp{padding-bottom:12px}
+.bnd-lyr .sk-sw{padding:1px 2px; font-size:15px; font-weight:400; color:var(--dim)}
+.bnd-lyr .sk-sep{color:var(--dim)}
+.bnd-lyr .sk-sw.komal{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}
+.bnd-lyr .sk-sw.kan-host{padding-top:26px}
+.bnd-lyr .sk-sw .kan{font-size:12px}
+.bnd-lyr .sk-sw.shr-host{padding-top:11px}
+.bnd-lyr .sk-sw .shr{font-size:8px;right:-3px}
 .bnd-row + .bnd-row{border-top:1px dashed var(--line); padding-top:6px; margin-top:4px}
 .bnd-lyrwrap{position:relative}
 .bnd-arcs{position:absolute; left:0; right:0; bottom:1px; height:11px; pointer-events:none}
