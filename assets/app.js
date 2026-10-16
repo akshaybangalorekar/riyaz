@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.5";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.7";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1674,19 +1674,30 @@
       if (span < 2) return null;
       var raw = String(text == null ? "" : text);
       var m = /^\s*\{([^}]*)\}\s*[x\u00d7]?\s*\d*\s*([\s\S]*)$/.exec(raw);
-      var body = m ? m[1] : raw;                 // a braced group, or plain words
+      var body = (m ? m[1] : raw).trim();
       var tail = m ? (m[2] || "").trim() : "";
-      var toks = body.trim().split(/\s+/).filter(Boolean);
+      /* Written with spaces (re ma pa dha) the words are already separated. Written as one
+         run (remapadhamapadha) they are not, so divide it by swar instead — after turning
+         the English letters into Devanagari, which is what splits it into single notes. */
+      var toks, glue;
+      if (/\s/.test(body)) {
+        toks = body.split(/\s+/).filter(Boolean); glue = " ";
+      } else {
+        var dev = devSwar(body);
+        var found = dev.match(/[~^_+]*[\u0938\u0930\u0917\u092e\u092a\u0927\u0928][\u093e-\u094d\u0901\u0902\u093c]*/g);
+        toks = (found && found.length > 1) ? found : [body];
+        glue = "";
+      }
       if (!toks.length) return null;
       var parts = [], base = Math.floor(toks.length / span), rem = toks.length % span, at = 0;
       for (var i = 0; i < span; i++) {
         var take = base + (i < rem ? 1 : 0);
         if (at >= toks.length) take = 0;
-        parts.push(toks.slice(at, at + take).join(" "));
+        parts.push(toks.slice(at, at + take).join(glue));
         at += take;
       }
-      if (tail) parts[parts.length - 1] = (parts[parts.length - 1] + " " + tail).trim();
-      return parts;
+      /* anything written after the group is not part of it — it gets its own matra */
+      return { parts: parts, tail: tail };
     }
     function applySpans(rowEl, spans) {
       var skip = 0;
@@ -1755,20 +1766,29 @@
     rows.forEach(function (r) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
+      var used = [];
       for (var i = 0; i < N; i++) {
+        if (used[i]) continue;
         var swTxt = r.swar[i], lyTxt = (r.lyric || [])[i];
         /* The count drives both lanes: write {sa re ga ma pa}2 on the swar line and the
            words spread over the same two matras, and the other way round. */
         var span = Math.max(spanOf(swTxt, null), spanOf(null, lyTxt));
-        var swParts = splitInto(swTxt, span);
-        var lyParts = splitInto(lyTxt, span);
-        if (swParts || lyParts) {
+        var swR = splitInto(swTxt, span);
+        var lyR = splitInto(lyTxt, span);
+        if (swR || lyR) {
           for (var k = 0; k < span && i + k < N; k++) {
-            if (swParts) fillCell(sl.children[i + k], swParts[k] || "");
-            if (lyParts) fillCell(ll.children[i + k], lyParts[k] || "");
+            if (swR) fillCell(sl.children[i + k], swR.parts[k] || "");
+            if (lyR) fillCell(ll.children[i + k], lyR.parts[k] || "");
+            used[i + k] = 1;
             var cls = " mk-span" + (k === 0 ? " mk-s" : "") + (k === span - 1 ? " mk-e" : "");
-            if (swParts) sl.children[i + k].className += cls;
-            if (lyParts) ll.children[i + k].className += cls;
+            if (swR) sl.children[i + k].className += cls;
+            if (lyR) ll.children[i + k].className += cls;
+          }
+          /* a swar written after the group is its own matra, and stays out of the curve */
+          var after = i + span;
+          if (after < N && !used[after]) {
+            if (swR && swR.tail) { fillCell(sl.children[after], swR.tail); used[after] = 1; }
+            else if (lyR && lyR.tail) { fillCell(ll.children[after], lyR.tail); used[after] = 1; }
           }
           continue;
         }
