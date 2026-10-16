@@ -1240,7 +1240,6 @@ window.SANGEET = {
     {
      "label": "Bandish (Sthayi)",
      "text": "महादेव महेश्वर देवन पति , चंद्र भाल धर गरे मुंड माल , कर त्रिशूल डमरु धर नीलकंठ",
-     "review": true,
      "bandish": {
       "taal": "तीनताल",
       "matras": 16,
@@ -1413,7 +1412,6 @@ window.SANGEET = {
     {
      "label": "Bandish (Antara)",
      "text": "पंचवदन शिव पिनाक विषधर , गौरीहर गिरिजापति शंकर , त्रिपुरारी गंगाधर हर हर , रसदास कहत सुमिरन कर मन",
-     "review": true,
      "bandish": {
       "taal": "तीनताल",
       "matras": 16,
