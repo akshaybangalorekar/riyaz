@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.9";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.9.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -167,6 +167,10 @@
         mkOpen = t.indexOf("{") >= 0;
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
+        /* {2.re.ma.pa} — the count comes first and the dots separate the swar */
+        var lead = /^\s*(\d+)\s*[.\s]/.exec(t);
+        if (lead) { mkSpan = parseInt(lead[1], 10); t = t.replace(/^\s*\d+\s*[.\s]/, ""); }
+        t = t.replace(/\./g, " ");
       }
       /* < > wrap a meend — a slide from one swar to the next. Its curve is drawn above,
          so it is never confused with a murki's curve below. */
@@ -1662,11 +1666,15 @@
     }
     /* how many matras does the group written in this cell take?  { ... }2 says two. */
     function spanOf(a, b) {
-      var rx = /\}\s*[x\u00d7]?\s*(\d+)/;   /* the count sits right after the brace, even if swar follow */
-      var s1 = rx.exec(String(a == null ? "" : a));
-      var s2 = rx.exec(String(b == null ? "" : b));
-      var n = Math.max(s1 ? +s1[1] : 1, s2 ? +s2[1] : 1);
-      return Math.max(1, Math.min(8, n));
+      /* two ways to say it: {re ma pa dha}2 after the brace, or {2.re.ma.pa.dha} up front */
+      function one(t) {
+        t = String(t == null ? "" : t);
+        var lead = /^\s*\{\s*(\d+)\s*[.\s]/.exec(t);
+        if (lead) return +lead[1];
+        var tail = /\}\s*[x\u00d7]?\s*(\d+)/.exec(t);
+        return tail ? +tail[1] : 1;
+      }
+      return Math.max(1, Math.min(8, Math.max(one(a), one(b))));
     }
     /* {रे म प ध म प ध}2 — the group's swar are shared out over the matras it claims,
        so the matra line falls inside the group instead of the whole thing sitting in one. */
@@ -1676,12 +1684,15 @@
       var m = /^\s*\{([^}]*)\}\s*[x\u00d7]?\s*\d*\s*([\s\S]*)$/.exec(raw);
       var body = (m ? m[1] : raw).trim();
       var tail = m ? (m[2] || "").trim() : "";
+      /* a leading count inside the braces: {2.re.ma.pa.dha} */
+      var lead2 = /^(\d+)\s*[.\s]/.exec(body);
+      if (lead2) body = body.replace(/^\d+\s*[.\s]/, "").trim();
       /* Written with spaces (re ma pa dha) the words are already separated. Written as one
          run (remapadhamapadha) they are not, so divide it by swar instead — after turning
          the English letters into Devanagari, which is what splits it into single notes. */
       var toks, glue;
-      if (/\s/.test(body)) {
-        toks = body.split(/\s+/).filter(Boolean); glue = " ";
+      if (/[.\s]/.test(body)) {
+        toks = body.split(/[.\s]+/).filter(Boolean); glue = " ";
       } else {
         var dev = devSwar(body);
         var found = dev.match(/[~^_+]*[\u0938\u0930\u0917\u092e\u092a\u0927\u0928][\u093e-\u094d\u0901\u0902\u093c]*/g);
@@ -2036,8 +2047,10 @@
     var res = [];
     out.forEach(function (tok) {
       res.push(tok);
+      var lead3 = /^\s*\{\s*(\d+)\s*[.\s]/.exec(tok);
       var m = /\}\s*[x\u00d7]?\s*(\d+)/.exec(tok);
-      var n = m ? Math.max(1, Math.min(8, +m[1])) : 1;
+      var n = lead3 ? +lead3[1] : (m ? +m[1] : 1);
+      n = Math.max(1, Math.min(8, n));
       for (var k = 1; k < n; k++) res.push("");
     });
     return res;
