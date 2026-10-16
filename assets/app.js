@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.9.4";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.9.6";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1779,9 +1779,10 @@
     rows.forEach(function (r) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
-      var used = [];
+      /* each lane keeps its own record, so a count on one line never skips the other's note */
+      var usedSw = [], usedLy = [];
       for (var i = 0; i < N; i++) {
-        if (used[i]) continue;
+        if (usedSw[i] && usedLy[i]) continue;
         var swTxt = r.swar[i], lyTxt = (r.lyric || [])[i];
         /* The count drives both lanes: write {sa re ga ma pa}2 on the swar line and the
            words spread over the same two matras, and the other way round. */
@@ -1790,26 +1791,35 @@
         var lyR = splitInto(lyTxt, span);
         if (swR || lyR) {
           for (var k = 0; k < span && i + k < N; k++) {
-            if (swR) fillCell(sl.children[i + k], swR.parts[k] || "");
-            if (lyR) fillCell(ll.children[i + k], lyR.parts[k] || "");
-            used[i + k] = 1;
+            /* A lane only takes a covered matra if it has something to put there, or the
+               matra is empty. So a count on one line never eats the other line's notes. */
+            var swPart = swR ? (swR.parts[k] || "") : null;
+            var lyPart = lyR ? (lyR.parts[k] || "") : null;
+            var swTake = swR && (swPart || !String(r.swar[i + k] || "").trim());
+            var lyTake = lyR && (lyPart || !String((r.lyric || [])[i + k] || "").trim());
             var cls = " mk-span" + (k === 0 ? " mk-s" : "") + (k === span - 1 ? " mk-e" : "");
-            if (swR) sl.children[i + k].className += cls;
-            if (lyR) ll.children[i + k].className += cls;
+            if (swTake) {
+              fillCell(sl.children[i + k], swPart); usedSw[i + k] = 1;
+              sl.children[i + k].className += cls;
+            }
+            if (lyTake) {
+              fillCell(ll.children[i + k], lyPart); usedLy[i + k] = 1;
+              ll.children[i + k].className += cls;
+            }
           }
           /* a swar written after the group is its own matra, and stays out of the curve */
           var after = i + span;
-          if (after < N && !used[after]) {
-            if (swR && swR.tail && !String(r.swar[after] || "").trim()) {
-              fillCell(sl.children[after], swR.tail); used[after] = 1;
-            } else if (lyR && lyR.tail && !String((r.lyric || [])[after] || "").trim()) {
-              fillCell(ll.children[after], lyR.tail); used[after] = 1;
+          if (after < N) {
+            if (swR && swR.tail && !usedSw[after] && !String(r.swar[after] || "").trim()) {
+              fillCell(sl.children[after], swR.tail); usedSw[after] = 1;
+            } else if (lyR && lyR.tail && !usedLy[after] && !String((r.lyric || [])[after] || "").trim()) {
+              fillCell(ll.children[after], lyR.tail); usedLy[after] = 1;
             }
           }
           continue;
         }
-        fillCell(sl.children[i], swTxt);
-        fillCell(ll.children[i], lyTxt);   // a tana grid has no lyric lane
+        if (!usedSw[i]) fillCell(sl.children[i], swTxt);
+        if (!usedLy[i]) fillCell(ll.children[i], lyTxt);   // a tana grid has no lyric lane
       }
       /* every row has the same shape — a label column, the lane, and a matching gap —
          so the marks, the matra numbers and both lanes all start at the same place */
