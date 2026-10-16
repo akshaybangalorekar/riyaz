@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1667,6 +1667,22 @@
       var n = Math.max(s1 ? +s1[1] : 1, s2 ? +s2[1] : 1);
       return Math.max(1, Math.min(8, n));
     }
+    /* {रे म प ध म प ध}2 — the group's swar are shared out over the matras it claims,
+       so the matra line falls inside the group instead of the whole thing sitting in one. */
+    function splitGroup(text, span) {
+      var m = /^\s*\{([^}]*)\}\s*\d*\s*$/.exec(String(text == null ? "" : text));
+      if (!m || span < 2) return null;
+      var toks = m[1].trim().split(/\s+/).filter(Boolean);
+      if (toks.length < 2) return null;
+      var parts = [], base = Math.floor(toks.length / span), rem = toks.length % span, at = 0;
+      for (var i = 0; i < span; i++) {
+        var take = base + (i < rem ? 1 : 0);
+        if (take < 1) take = 1;
+        parts.push(toks.slice(at, at + take).join(" "));
+        at += take;
+      }
+      return parts;
+    }
     function applySpans(rowEl, spans) {
       var skip = 0;
       for (var i = 0; i < spans.length; i++) {
@@ -1683,15 +1699,6 @@
         ' <b>\u270e Edit notation</b>';
       wrap.appendChild(rv);
     }
-    /* the number row must agree with the rows below it, so take the widest span at each matra */
-    var numSpan = [];
-    for (var q = 0; q < N; q++) numSpan[q] = 1;
-    rows.forEach(function (r) {
-      for (var q2 = 0; q2 < N; q2++) {
-        var sp2 = spanOf(r.swar[q2], (r.lyric || [])[q2]);
-        if (sp2 > numSpan[q2]) numSpan[q2] = sp2;
-      }
-    });
     /* the taal marks sit above the numbers: × sam, ० khali, the taali numbers for the rest */
     var tmarks = taalMarksFor(b.taal);
     if (tmarks) {
@@ -1707,12 +1714,10 @@
         if (m) mkLane.children[at].setAttribute("data-mark",
           m === "\u00d7" ? "\u0938\u092e" : (m === "\u0966" ? "\u0916\u093e\u0932\u0940" : "\u0924\u093e\u0932\u0940"));
       }
-      applySpans(mkLane, numSpan);
       wrap.appendChild(mkLane);
     }
     var nums = lane("bnd-nums");
     for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
-    applySpans(nums, numSpan);
     wrap.appendChild(nums);
 
     /* Both lanes are written in the same notation, so both are drawn the same way:
@@ -1733,14 +1738,22 @@
     rows.forEach(function (r) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
-      var spans = [];
-      for (var q3 = 0; q3 < N; q3++) spans[q3] = spanOf(r.swar[q3], (r.lyric || [])[q3]);
       for (var i = 0; i < N; i++) {
-        fillCell(sl.children[i], r.swar[i]);
-        fillCell(ll.children[i], (r.lyric || [])[i]);   // a tana grid has no lyric lane
+        var swTxt = r.swar[i], lyTxt = (r.lyric || [])[i];
+        var sp = spanOf(swTxt, lyTxt);
+        var parts = sp > 1 ? splitGroup(swTxt, sp) : null;
+        if (parts) {
+          for (var k = 0; k < parts.length && i + k < N; k++) {
+            fillCell(sl.children[i + k], parts[k]);
+            sl.children[i + k].className += " mk-span" + (k === 0 ? " mk-s" : "") +
+              (k === parts.length - 1 ? " mk-e" : "");
+          }
+          fillCell(ll.children[i], lyTxt);
+          continue;
+        }
+        fillCell(sl.children[i], swTxt);
+        fillCell(ll.children[i], lyTxt);   // a tana grid has no lyric lane
       }
-      applySpans(sl, spans);
-      applySpans(ll, spans);
       rw.appendChild(sl);
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
       lw.appendChild(ll);

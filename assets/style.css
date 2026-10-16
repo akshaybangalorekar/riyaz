@@ -728,3 +728,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd-marks .bnd-cell{font-size:12px; font-weight:700; color:var(--dim); padding-bottom:1px}
 .bnd-marks .bnd-cell[data-mark="सम"]{color:var(--saffron)}
 .bnd-marks .bnd-cell[data-mark="खाली"]{color:var(--maroon)}
+
+/* ---------- a group spread over several matras: one line runs under them ---------- */
+.bnd-swar .bnd-cell.mk-span{border-bottom:2px solid var(--saffron); opacity:.9}
+.bnd-swar .bnd-cell.mk-s{border-bottom-left-radius:100% 12px}
+.bnd-swar .bnd-cell.mk-e{border-bottom-right-radius:100% 12px}
