@@ -1743,15 +1743,20 @@
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
       for (var i = 0; i < N; i++) {
         var swTxt = r.swar[i], lyTxt = (r.lyric || [])[i];
-        var sp = spanOf(swTxt, lyTxt);
-        var parts = sp > 1 ? splitGroup(swTxt, sp) : null;
-        if (parts) {
-          for (var k = 0; k < parts.length && i + k < N; k++) {
-            fillCell(sl.children[i + k], parts[k]);
-            sl.children[i + k].className += " mk-span" + (k === 0 ? " mk-s" : "") +
-              (k === parts.length - 1 ? " mk-e" : "");
+        /* either lane may hold a group that claims several matras — the swar lane and the
+           lyric lane are spread independently, so a long group in the words works too */
+        var swSp = spanOf(swTxt, null), lySp = spanOf(null, lyTxt);
+        var swParts = swSp > 1 ? splitGroup(swTxt, swSp) : null;
+        var lyParts = lySp > 1 ? splitGroup(lyTxt, lySp) : null;
+        if (swParts || lyParts) {
+          var span = Math.max(swParts ? swParts.length : 1, lyParts ? lyParts.length : 1);
+          for (var k = 0; k < span && i + k < N; k++) {
+            if (swParts) fillCell(sl.children[i + k], swParts[k] || "");
+            if (lyParts) fillCell(ll.children[i + k], lyParts[k] || "");
+            var cls = " mk-span" + (k === 0 ? " mk-s" : "") + (k === span - 1 ? " mk-e" : "");
+            if (swParts) sl.children[i + k].className += cls;
+            if (lyParts) ll.children[i + k].className += cls;
           }
-          fillCell(ll.children[i], lyTxt);
           continue;
         }
         fillCell(sl.children[i], swTxt);

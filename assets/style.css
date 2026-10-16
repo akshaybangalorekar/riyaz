@@ -733,3 +733,6 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd-swar .bnd-cell.mk-span{border-bottom:2px solid var(--saffron); opacity:.9}
 .bnd-swar .bnd-cell.mk-s{border-bottom-left-radius:100% 12px}
 .bnd-swar .bnd-cell.mk-e{border-bottom-right-radius:100% 12px}
+.bnd-lyr .bnd-cell.mk-span{border-bottom:2px solid var(--saffron); opacity:.9}
+.bnd-lyr .bnd-cell.mk-s{border-bottom-left-radius:100% 12px}
+.bnd-lyr .bnd-cell.mk-e{border-bottom-right-radius:100% 12px}
