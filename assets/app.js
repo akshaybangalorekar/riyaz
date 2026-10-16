@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.4";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.5";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1670,16 +1670,18 @@
     }
     /* {रे म प ध म प ध}2 — the group's swar are shared out over the matras it claims,
        so the matra line falls inside the group instead of the whole thing sitting in one. */
-    function splitGroup(text, span) {
-      var m = /^\s*\{([^}]*)\}\s*[x\u00d7]?\s*\d*\s*([\s\S]*)$/.exec(String(text == null ? "" : text));
-      if (!m || span < 2) return null;
-      var toks = m[1].trim().split(/\s+/).filter(Boolean);
-      if (toks.length < 2) return null;
-      var tail = (m[2] || "").trim();
+    function splitInto(text, span) {
+      if (span < 2) return null;
+      var raw = String(text == null ? "" : text);
+      var m = /^\s*\{([^}]*)\}\s*[x\u00d7]?\s*\d*\s*([\s\S]*)$/.exec(raw);
+      var body = m ? m[1] : raw;                 // a braced group, or plain words
+      var tail = m ? (m[2] || "").trim() : "";
+      var toks = body.trim().split(/\s+/).filter(Boolean);
+      if (!toks.length) return null;
       var parts = [], base = Math.floor(toks.length / span), rem = toks.length % span, at = 0;
       for (var i = 0; i < span; i++) {
         var take = base + (i < rem ? 1 : 0);
-        if (take < 1) take = 1;
+        if (at >= toks.length) take = 0;
         parts.push(toks.slice(at, at + take).join(" "));
         at += take;
       }
@@ -1719,9 +1721,21 @@
       }
       wrap.appendChild(mkLane);
     }
+    function laneLabel(txt) {
+      var el = document.createElement("span");
+      el.className = "bnd-lab"; el.textContent = txt;
+      return el;
+    }
+    function laneGap() {
+      var el = document.createElement("span");
+      el.className = "bnd-lab bnd-lab-gap";
+      return el;
+    }
     var nums = lane("bnd-nums");
     for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
-    wrap.appendChild(nums);
+    var numsRow = document.createElement("div"); numsRow.className = "bnd-rowb";
+    numsRow.appendChild(laneGap()); numsRow.appendChild(laneGap()); numsRow.appendChild(nums);
+    wrap.appendChild(numsRow);
 
     /* Both lanes are written in the same notation, so both are drawn the same way:
        a murki in the lyric lane draws its curve just as it does in the swar lane. */
@@ -1743,13 +1757,12 @@
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
       for (var i = 0; i < N; i++) {
         var swTxt = r.swar[i], lyTxt = (r.lyric || [])[i];
-        /* either lane may hold a group that claims several matras — the swar lane and the
-           lyric lane are spread independently, so a long group in the words works too */
-        var swSp = spanOf(swTxt, null), lySp = spanOf(null, lyTxt);
-        var swParts = swSp > 1 ? splitGroup(swTxt, swSp) : null;
-        var lyParts = lySp > 1 ? splitGroup(lyTxt, lySp) : null;
+        /* The count drives both lanes: write {sa re ga ma pa}2 on the swar line and the
+           words spread over the same two matras, and the other way round. */
+        var span = Math.max(spanOf(swTxt, null), spanOf(null, lyTxt));
+        var swParts = splitInto(swTxt, span);
+        var lyParts = splitInto(lyTxt, span);
         if (swParts || lyParts) {
-          var span = Math.max(swParts ? swParts.length : 1, lyParts ? lyParts.length : 1);
           for (var k = 0; k < span && i + k < N; k++) {
             if (swParts) fillCell(sl.children[i + k], swParts[k] || "");
             if (lyParts) fillCell(ll.children[i + k], lyParts[k] || "");
@@ -1762,7 +1775,9 @@
         fillCell(sl.children[i], swTxt);
         fillCell(ll.children[i], lyTxt);   // a tana grid has no lyric lane
       }
+      rw.appendChild(laneLabel("\u0938\u094d\u0935\u0930"));
       rw.appendChild(sl);
+      rw.appendChild(laneLabel("\u092c\u094b\u0932"));
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
       lw.appendChild(ll);
       var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

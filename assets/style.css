@@ -736,3 +736,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd-lyr .bnd-cell.mk-span{border-bottom:2px solid var(--saffron); opacity:.9}
 .bnd-lyr .bnd-cell.mk-s{border-bottom-left-radius:100% 12px}
 .bnd-lyr .bnd-cell.mk-e{border-bottom-right-radius:100% 12px}
+
+/* ---------- the lane labels: स्वर on the top line, बोल on the words ---------- */
+.bnd-rowb{display:flex; align-items:flex-end}
+.bnd-lab{flex:0 0 34px; font-size:10.5px; color:var(--dim); text-align:right; padding-right:6px;
+  align-self:center; letter-spacing:.2px}
+.bnd-lab-gap{flex:0 0 40px}
+.bnd-nums{flex:1 1 auto}
+.bnd-swar, .bnd-lyrwrap{flex:1 1 auto}
