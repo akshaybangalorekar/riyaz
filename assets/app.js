@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.3";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1368,7 +1368,8 @@
       addb.type = "button"; addb.className = "ed-addbtn";
       var where = "";
       if (state.raagSect === "bandish") where = " to " + (openSubHead(l) || SUBHEADS[0]);
-      addb.textContent = "+ Add another " + (raagSectLabel(state.raagSect) || "line") + where;
+      addb.textContent = (state.raagSect === "bandish" ? "+ Add a line" : "+ Add another " +
+        (raagSectLabel(state.raagSect) || "line")) + where;
       addb.onclick = function () { addLine(l, state.raagSect); };
       box.appendChild(addb);
     }
@@ -1450,6 +1451,10 @@
     if (s === "bandish") {
       var head = openSubHead(l);
       if (!head) { head = SUBHEADS[0]; state.grp[grpKey(l, SUBHEADS[0])] = true; }
+      /* A bandish line is a row of the heading's grid, not a section of its own — the same
+         way भैरवी's स्थाई is one grid with several rows. So add a row to that grid. */
+      var at = headLineIndex(l, head);
+      if (at >= 0) { addRowToGrid(l, at); applyAdds(); renderList(); renderStage(l); return; }
       lab = "Bandish (" + (head === SUBHEADS[0] ? "Sthayi" : "Antara") + ")";
       var sib = null;
       (l.lines || []).forEach(function (ln) { if (!sib && ln.bandish) sib = ln.bandish; });
@@ -1489,10 +1494,42 @@
     var b = l.lines[li].bandish;
     if (!b) return [];
     var e = editOf(l.id, li), ov = (e && e.b) || {};
-    return b.rows.map(function (r, ri) {
-      var o = ov[String(ri)] || {};
-      return { swar: o.swar || r.swar, lyric: o.lyric || r.lyric, arc: o.arc || r.arc };
+    var n = b.rows.length, m = b.matras || 16;
+    /* a row added by hand exists only in the edit, so allow for rows past the sheet's */
+    Object.keys(ov).forEach(function (k) { var i = +k; if (i + 1 > n) n = i + 1; });
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var r = b.rows[i];
+      if (!r) {
+        var sw = [], ly = [];
+        for (var j = 0; j < m; j++) { sw.push("-"); ly.push(""); }
+        r = { swar: sw, lyric: ly, arc: [] };
+      }
+      var o = ov[String(i)] || {};
+      out.push({ swar: o.swar || r.swar, lyric: o.lyric || r.lyric, arc: o.arc || r.arc });
+    }
+    return out;
+  }
+
+  /* Add a blank line (row) to a grid, keeping every row that is already there. */
+  function addRowToGrid(l, li) {
+    var b = l.lines[li].bandish;
+    if (!b) return;
+    var rows = bandishRows(l, li), m = b.matras || 16, sw = [], ly = [];
+    for (var i = 0; i < m; i++) { sw.push("-"); ly.push(""); }
+    var map = {};
+    rows.forEach(function (r, i) { map[String(i)] = { swar: r.swar, lyric: r.lyric }; });
+    map[String(rows.length)] = { swar: sw, lyric: ly };
+    setLineEdit(l.id, li, { b: map });
+  }
+
+  /* The line that carries a heading's grid, so a new line can be added to it. */
+  function headLineIndex(l, head) {
+    var at = -1;
+    (l.lines || []).forEach(function (ln, i) {
+      if (at < 0 && ln.bandish && raagSect(ln.label) === "bandish" && subGroup(ln.label) === head) at = i;
     });
+    return at;
   }
   function setLineEdit(id, li, obj) {
     var e = editsFor(id), k = String(li);

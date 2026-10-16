@@ -72,7 +72,7 @@ window.RIYAZ_PROMPT = [
 "- \u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a and \u0932\u092f\u0915\u093e\u0930\u0940 are FINAL \u2014 never touch their content.",
 "- \u0905\u0932\u0902\u0915\u093e\u0930 1\u201322 are FINAL; alankar 23 was deliberately not offered.",
 "- \u0924\u093e\u0928 are FINAL.",
-"- Adding a line to a bandish: it is labelled Bandish (Sthayi) or Bandish (Antara), goes into whichever\n  heading is open (\u0938\u094d\u0925\u093e\u0908 first if both are, and that heading opens if neither is), and carries its own\n  grid so it gets the swar and bol fields. Lines of one heading are kept together, so an added line\n  joins that heading rather than starting a second one at the end.",
+"- Adding a line to a bandish adds a ROW to the grid of whichever heading is open \u2014 \u0938\u094d\u0925\u093e\u0908 first\n  if both are, and that heading opens if neither is. It does NOT create a new section. A line of the\n  bandish is a row of the grid, the way \u092d\u0948\u0930\u0935\u0940's \u0938\u094d\u0925\u093e\u0908 is one grid with several rows.",
 "- A murki fits inside one matra unless a count says otherwise.",
 "- Teen taal: laikari spans beats 1\u201316 (| after 4, 8 and 12); a tana enters on beat 5, so it needs",
 "  4 empty lead-in beats and only two bars inside.",
