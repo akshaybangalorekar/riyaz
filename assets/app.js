@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.9.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.9.4";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1741,7 +1741,9 @@
         if (m) mkLane.children[at].setAttribute("data-mark",
           m === "\u00d7" ? "\u0938\u092e" : (m === "\u0966" ? "\u0916\u093e\u0932\u0940" : "\u0924\u093e\u0932\u0940"));
       }
-      wrap.appendChild(mkLane);
+      var mkRow = document.createElement("div"); mkRow.className = "bnd-row hd";
+      mkRow.appendChild(laneGap()); mkRow.appendChild(mkLane); mkRow.appendChild(laneGap());
+      wrap.appendChild(mkRow);
     }
     function laneLabel(txt) {
       var el = document.createElement("span");
@@ -1755,8 +1757,8 @@
     }
     var nums = lane("bnd-nums");
     for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
-    var numsRow = document.createElement("div"); numsRow.className = "bnd-rowb";
-    numsRow.appendChild(laneGap()); numsRow.appendChild(laneGap()); numsRow.appendChild(nums);
+    var numsRow = document.createElement("div"); numsRow.className = "bnd-row hd";
+    numsRow.appendChild(laneGap()); numsRow.appendChild(nums); numsRow.appendChild(laneGap());
     wrap.appendChild(numsRow);
 
     /* Both lanes are written in the same notation, so both are drawn the same way:
@@ -1809,11 +1811,15 @@
         fillCell(sl.children[i], swTxt);
         fillCell(ll.children[i], lyTxt);   // a tana grid has no lyric lane
       }
+      /* every row has the same shape — a label column, the lane, and a matching gap —
+         so the marks, the matra numbers and both lanes all start at the same place */
       rw.appendChild(laneLabel("\u0938\u094d\u0935\u0930"));
       rw.appendChild(sl);
-      rw.appendChild(laneLabel("\u092c\u094b\u0932"));
+      rw.appendChild(laneGap());
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
+      lw.appendChild(laneLabel("\u092c\u094b\u0932"));
       lw.appendChild(ll);
+      lw.appendChild(laneGap());
       var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("class", "bnd-arcs");
       svg.setAttribute("viewBox", "0 0 " + (N * 10) + " 10");

@@ -48,7 +48,13 @@ body{
 .bnd-head b{font-size:16px}
 .bnd-head span{font-size:12px; color:var(--dim)}
 .bnd-nums,.bnd-row{min-width:560px}
-.bnd-lane{display:flex; width:100%}
+.bnd-lane{display:flex; min-width:0}
+/* one grid for every row — label column, the lane, then a matching gap — so the marks,
+   the matra numbers, the swar and the words all start at exactly the same x */
+.bnd-row, .bnd-lyrwrap{display:grid; grid-template-columns:34px minmax(0,1fr) 34px;
+  align-items:end; width:100%}
+.bnd-row.hd{border-top:0; padding-top:0; margin-top:0}   /* the marks and number rows are a header */
+.bnd-lyrwrap{grid-column:1 / -1; position:relative}
 .bnd-cell{
   flex:1 1 0; min-width:0; text-align:center; padding:3px 2px;
   white-space:nowrap; overflow:visible;
@@ -746,8 +752,7 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 
 /* ---------- the lane labels: स्वर on the top line, बोल on the words ---------- */
 .bnd-rowb{display:flex; align-items:flex-end}
-.bnd-lab{flex:0 0 34px; font-size:10.5px; color:var(--dim); text-align:right; padding-right:6px;
+.bnd-lab{font-size:10.5px; color:var(--dim); text-align:right; padding-right:6px;
   align-self:center; letter-spacing:.2px}
-.bnd-lab-gap{flex:0 0 40px}
-.bnd-nums{flex:1 1 auto}
-.bnd-swar, .bnd-lyrwrap{flex:1 1 auto}
+.bnd-lab-gap{}   /* the gap column is the same width as the label, so rows line up */
+.bnd-nums, .bnd-swar, .bnd-lyr{min-width:0}
