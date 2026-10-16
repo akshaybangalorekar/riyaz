@@ -757,3 +757,16 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   align-self:center; letter-spacing:.2px}
 .bnd-lab-gap{}   /* the gap column is the same width as the label, so rows line up */
 .bnd-nums, .bnd-swar, .bnd-lyr{min-width:0}
+
+/* ---------- the project prompt in Settings ---------- */
+.set-prompt{margin-top:16px; border-top:1px solid var(--line); padding-top:10px}
+.set-prompt-s{list-style:none; cursor:pointer; font-weight:700; font-size:13.5px; color:var(--saffron);
+  display:flex; align-items:center; gap:7px; padding:2px 0}
+.set-prompt-s::-webkit-details-marker{display:none}
+.set-prompt-s::marker{content:""}
+.set-prompt-s::before{content:"\25b8"; font-size:11px; line-height:1}
+.set-prompt[open] > .set-prompt-s::before{content:"\25be"}
+.set-prompt-b{margin-top:9px}
+.set-prompt-ta{width:100%; min-height:170px; max-height:320px; font-family:inherit; font-size:12px;
+  line-height:1.5; color:var(--ink); background:var(--bg2); border:1px solid var(--line);
+  border-radius:8px; padding:9px 11px; white-space:pre; overflow:auto; margin-bottom:8px}

@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.9.8";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2011,6 +2011,12 @@
       "and a dot above or below for the octave."));
     box.appendChild(helpSection("Two small things",
       "A single <code>-</code> is an empty matra and stays blank; write <code>--</code> if you want a dash to show."));
+    box.appendChild(helpSection("Resuming this project in a new chat",
+      "Open <b>Settings</b> (\u2699) and expand <b>Project prompt</b>, then press <b>Copy prompt</b>. " +
+      "Paste that as the first message in a new chat and whoever picks it up has the whole picture \u2014 " +
+      "the files, the notation, the preferences and the way it is deployed.<br><br>" +
+      "Use it when something breaks and you want it fixed, or when you want to add to the app in a fresh chat. " +
+      "Copy it fresh each time, since it is updated whenever the app changes."));
   }
 
   function markHelp(lead, first) {
@@ -2750,7 +2756,44 @@
     };
     $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "Token removed"; updateMarksMsg(); };
     $("#setClose").onclick = closeSettings;
+    appendProjectPrompt(box);
     updateMarksMsg();
+  }
+
+  /* ---------- the project prompt ----------
+     A full description of the app, kept in assets/prompt.js, so that if anything breaks or
+     work moves to a new chat it can simply be copied and pasted to pick up where we left off. */
+  function appendProjectPrompt(box) {
+    var txt = window.RIYAZ_PROMPT || "";
+    if (!txt) return;
+    var d = document.createElement("details"); d.className = "set-prompt";
+    var s = document.createElement("summary"); s.className = "set-prompt-s";
+    s.textContent = "Project prompt \u2014 copy this to start a new chat";
+    d.appendChild(s);
+    var body = document.createElement("div"); body.className = "set-prompt-b";
+    var p = document.createElement("div"); p.className = "set-lab";
+    p.textContent = "If something breaks, or you want to carry on in a fresh chat, copy this and paste it " +
+      "as your first message. It describes the whole app \u2014 the files, the data, the notation, and how it is deployed.";
+    body.appendChild(p);
+    var ta = document.createElement("textarea");
+    ta.className = "set-prompt-ta"; ta.readOnly = true; ta.spellcheck = false;
+    ta.value = txt;
+    body.appendChild(ta);
+    var cp = document.createElement("button");
+    cp.className = "sk-btn"; cp.type = "button"; cp.textContent = "Copy prompt";
+    cp.onclick = function () {
+      var done = function () { cp.textContent = "Copied"; setTimeout(function () { cp.textContent = "Copy prompt"; }, 2500); };
+      try {
+        ta.select(); ta.setSelectionRange(0, txt.length);
+        if (document.execCommand("copy")) { done(); return; }
+      } catch (e) {}
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, function () { cp.textContent = "Select the text and copy"; });
+      } else { cp.textContent = "Select the text and copy"; }
+    };
+    body.appendChild(cp);
+    d.appendChild(body);
+    box.appendChild(d);
   }
 
   /* Setting currentTime on an <audio> that has not loaded yet is silently dropped,
