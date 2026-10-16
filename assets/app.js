@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.9.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.9.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1941,9 +1941,11 @@
     });
     return tbl;
   }
+  /* Each guide is a folded line: you see what it is about, and open it only if you want it.
+     That way the whole of Help fits on one screen. */
   function helpSection(title, body) {
-    var d = document.createElement("div"); d.className = "hp-sec";
-    var t = document.createElement("div"); t.className = "hp-t"; t.textContent = title;
+    var d = document.createElement("details"); d.className = "hp-sec";
+    var t = document.createElement("summary"); t.className = "hp-t"; t.textContent = title;
     var p = document.createElement("div"); p.className = "hp-b"; p.innerHTML = body;
     d.appendChild(t); d.appendChild(p);
     return d;
@@ -1952,15 +1954,20 @@
     var box = $("#skHelpBox");
     if (!box) return;
     box.innerHTML = "";
-    var head = document.createElement("div"); head.className = "hp-h";
-    head.textContent = "How to write each mark";
-    box.appendChild(head);
+    var hint = document.createElement("div"); hint.className = "hp-hint";
+    hint.textContent = "Tap any line to open it.";
+    box.appendChild(hint);
     box.appendChild(helpSection("Write in English letters",
       "Type in English and it comes out in Devanagari \u2014 <code>sa re ga ma pa dha ni</code> gives \u0938\u093e \u0930\u0947 \u0917 \u092e \u092a \u0927 \u0928\u0940, " +
       "and whole words work too: <code>mahaadev</code> gives \u092e\u0939\u093e\u0926\u0947\u0935. " +
       "A lone <code>s</code> gives the avagraha \u093d. Anything already in Devanagari is left as it is."));
-    var marks = document.createElement("div"); marks.className = "hp-marks";
-    marks.appendChild(syntaxTable());
+    var marks = document.createElement("details"); marks.className = "hp-marks";
+    var ms = document.createElement("summary"); ms.className = "hp-t hp-t-big";
+    ms.textContent = "How to write each mark";
+    marks.appendChild(ms);
+    var mw = document.createElement("div"); mw.className = "hp-b";
+    mw.appendChild(syntaxTable());
+    marks.appendChild(mw);
     box.appendChild(marks);
     box.appendChild(helpSection("Finding your way",
       "The rail on the left lists everything; the tabs across the top pick a group. " +

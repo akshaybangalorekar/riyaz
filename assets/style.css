@@ -669,11 +669,18 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .ed-syn-out .sk-sw.kan-host{padding-top:30px}
 .ed-syn-out .kan{top:4px}
 
-/* ---------- the Help panel ---------- */
-.hp-h{margin:0 0 8px; font-size:16px; font-weight:700; color:var(--saffron)}
-.hp-sec{margin:12px 0 0; padding-top:11px; border-top:1px solid var(--line)}
-.hp-t{font-weight:700; color:var(--ink); margin-bottom:3px}
-.hp-b{font-size:13.5px; line-height:1.6; color:var(--dim)}
+/* ---------- the Help panel: folded lines, so it all fits one screen ---------- */
+.hp-hint{margin:0 0 6px; font-size:12px; color:var(--dim)}
+.hp-sec{margin:0; border-top:1px solid var(--line)}
+.hp-sec:first-of-type{border-top:0}
+.hp-t{list-style:none; cursor:pointer; padding:7px 2px; font-weight:700; font-size:13.5px;
+  color:var(--ink); display:flex; align-items:center; gap:7px}
+.hp-t::-webkit-details-marker{display:none}
+.hp-t::marker{content:""}
+.hp-t::before{content:"\25b8"; color:var(--saffron); font-size:11px; line-height:1}
+.hp-sec[open] > .hp-t::before{content:"\25be"}
+.hp-t-big{font-size:15px; color:var(--saffron); padding:8px 2px}
+.hp-b{font-size:13px; line-height:1.6; color:var(--dim); padding:0 2px 9px 18px}
 .hp-b code{background:var(--bg2); border:1px solid var(--line); border-radius:5px; padding:0 4px; color:var(--ink)}
 .hp-b b{color:var(--ink)}
 
