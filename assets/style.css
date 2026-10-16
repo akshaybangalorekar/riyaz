@@ -711,3 +711,15 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   transition:opacity .1s; background:var(--ink); color:#241a10; font-size:12px; font-weight:700;
   padding:3px 8px; border-radius:7px; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,.35)}
 .mk-tip.on{opacity:1; transform:translateY(0)}
+
+/* ---------- the taal lane: marks, matra numbers, bols ---------- */
+.tl{margin:3px 0 7px; overflow-x:auto; padding-bottom:2px}
+.tl-row{display:flex; align-items:flex-end}
+.tl-cell{min-width:31px; text-align:center; padding:0 2px; flex:0 0 auto}
+.tl-marks .tl-cell{height:15px; font-size:12px; font-weight:700; color:var(--dim)}
+.tl-marks .tl-cell.sam{color:var(--saffron)}
+.tl-marks .tl-cell.khali{color:var(--maroon); opacity:.9}
+.tl-nums .tl-cell{font-size:10.5px; color:var(--dim); border-top:1px solid var(--line); padding-top:2px}
+.tl-bols .tl-cell{font-size:16px; color:var(--ink); padding-bottom:4px; white-space:nowrap}
+.tl-bols .tl-cell.vend{border-right:1px solid var(--line)}
+.tl-cap{font-size:11px; color:var(--dim); margin-top:5px}

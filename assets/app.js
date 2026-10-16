@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.6.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.7.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1131,6 +1131,60 @@
     return b;
   }
 
+  /* ---------- the taal lane ----------
+     A taal is laid out as its matras. On top sit the taal marks — × for sam, ० for
+     khali, and the taali numbers for the rest — then the matra numbers, then the bols.
+     A | in the line divides one vibhag from the next. */
+  var TAAL_MARKS = {
+    "\u0926\u093e\u0926\u0930\u093e": ["\u00d7", "\u0966"],
+    "\u0915\u0947\u0939\u0947\u0930\u0935\u093e": ["\u00d7", "\u0966"],
+    "\u0915\u0939\u0930\u0935\u093e": ["\u00d7", "\u0966"],
+    "\u0930\u0942\u092a\u0915": ["\u0966", "2", "3"],
+    "\u090f\u0915 \u0924\u093e\u0932": ["\u00d7", "\u0966", "2"],
+    "\u091a\u094c \u0924\u093e\u0932": ["\u00d7", "\u0966", "2", "3"],
+    "\u0924\u0940\u0928 \u0924\u093e\u0932": ["\u00d7", "2", "\u0966", "3"],
+    "\u0924\u094d\u0930\u093f\u0924\u093e\u0932": ["\u00d7", "2", "\u0966", "3"],
+    "\u0924\u093f\u0932\u0935\u093e\u0921\u093c\u093e": ["\u00d7", "2", "\u0966", "3"],
+    "\u091d\u092a \u0924\u093e\u0932": ["\u00d7", "2", "\u0966", "3"],
+    "\u091d\u0942\u092e\u0930\u093e": ["\u00d7", "2", "\u0966", "3"],
+    "\u0926\u0940\u092a\u091a\u0902\u0926\u0940": ["\u00d7", "2", "\u0966", "3"],
+    "\u092a\u0902\u091c\u093e\u092c\u0940": ["\u00d7", "2", "\u0966", "3"]
+  };
+  function taalView(l, li, line) {
+    var wrap = document.createElement("div"); wrap.className = "tl";
+    var txt = lineText(l, li) || "";
+    var vib = txt.split(/\s*\|\s*/).map(function (x) {
+      return x.trim().split(/\s+/).filter(Boolean);
+    }).filter(function (a) { return a.length; });
+    if (!vib.length) return wrap;
+    var marks = TAAL_MARKS[String(l.taal || "").trim()] || null;
+    var total = vib.reduce(function (a, b) { return a + b.length; }, 0);
+    var marksRow = document.createElement("div"); marksRow.className = "tl-row tl-marks";
+    var numsRow  = document.createElement("div"); numsRow.className  = "tl-row tl-nums";
+    var bolsRow  = document.createElement("div"); bolsRow.className  = "tl-row tl-bols";
+    var n = 0;
+    vib.forEach(function (grp, gi) {
+      var mk = marks && marks[gi] != null ? marks[gi] : (gi === 0 && !marks ? "\u00d7" : "");
+      grp.forEach(function (bol, bi) {
+        n++;
+        var c1 = document.createElement("div");
+        c1.className = "tl-cell m" + (mk === "\u00d7" ? " sam" : "") + (mk === "\u0966" ? " khali" : "");
+        c1.textContent = bi === 0 ? mk : "";
+        if (mk) c1.setAttribute("data-mark", mk === "\u00d7" ? "\u0938\u092e" : (mk === "\u0966" ? "\u0916\u093e\u0932\u0940" : "\u0924\u093e\u0932\u0940"));
+        var c2 = document.createElement("div"); c2.className = "tl-cell n"; c2.textContent = String(n);
+        var c3 = document.createElement("div");
+        c3.className = "tl-cell b" + (bi === grp.length - 1 ? " vend" : "");
+        c3.textContent = bol; c3.setAttribute("data-mark", "\u092c\u094b\u0932");
+        marksRow.appendChild(c1); numsRow.appendChild(c2); bolsRow.appendChild(c3);
+      });
+    });
+    wrap.appendChild(marksRow); wrap.appendChild(numsRow); wrap.appendChild(bolsRow);
+    var cap = document.createElement("div"); cap.className = "tl-cap";
+    cap.textContent = (l.taal || "Taal") + " \u00b7 " + total + " matras \u00b7 " + vib.length + " vibhag";
+    wrap.appendChild(cap);
+    return wrap;
+  }
+
   function renderNotation(l) {
     var box = $("#notation");
     if (!box) return;
@@ -1241,6 +1295,12 @@
         var lb = document.createElement("span");
         lb.className = "sk-lbl"; lb.textContent = line.label;
         row.appendChild(lb);
+      }
+      if (l.group === "Taal") {           // a taal gets its own lane: marks, matra numbers, bols
+        row.appendChild(taalView(l, li, line));
+        box.appendChild(row);
+        if (state.editMode) box.appendChild(notationEditor(l, li));
+        return;
       }
       if (line.bandish) {                 // a bandish gets the swimlane view, not a swar run
         row.appendChild(bandishView(l, li, line));
@@ -1830,7 +1890,7 @@
       rm.onclick = function () { removeAddedLine(l, li); };
       bar.appendChild(rm);
     }
-    bar.appendChild(markHelp("Tap a swar to drop it in \u2014 it lands where your cursor is.", helpFirst ? (helpFirst = false, true) : false));
+    bar.appendChild(markHelp("", helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
     return d;
   }
