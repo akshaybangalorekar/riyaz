@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1203,6 +1203,26 @@
     return wrap;
   }
 
+  /* Keep the lines of one heading together. An added line sits at the end of the list, so
+     without this it would start a second स्थाई heading instead of joining the first.
+     Lines are ordered by where their heading first appears, and stay in order within it. */
+  function orderedLines(l, secKey) {
+    var list = [];
+    (l.lines || []).forEach(function (line, li) {
+      if (secKey && raagSect(line.label) !== secKey) return;
+      list.push({ line: line, li: li });
+    });
+    var firstAt = {};
+    list.forEach(function (x, i) {
+      var g = subGroup(x.line.label);
+      if (g && firstAt[g] === undefined) firstAt[g] = i;
+    });
+    return list.map(function (x, i) {
+      var g = subGroup(x.line.label);
+      return { x: x, key: (g && firstAt[g] !== undefined) ? firstAt[g] : i, i: i };
+    }).sort(function (a, b) { return (a.key - b.key) || (a.i - b.i); })
+      .map(function (o) { return o.x; });
+  }
   function renderNotation(l) {
     var box = $("#notation");
     if (!box) return;
@@ -1212,7 +1232,8 @@
     var secKey = (l.group === "Raag" && state.raagSect) ? state.raagSect : null;
     // which sub-groups are on screen? (only worth headings when there are two)
     var grpCount = {};
-    l.lines.forEach(function (line) {
+    orderedLines(l, secKey).forEach(function (x) {
+      var line = x.line;
       if (line.onlyVideo && !curIsVideo) return;
       if (secKey && raagSect(line.label) !== secKey) return;
       var g0 = subGroup(line.label);
@@ -1223,7 +1244,8 @@
     var _ends = lineEnds();   // a line runs until the next line's offset begins
     helpFirst = true;         // the notation table is shown once, on the first line drawn
 
-    l.lines.forEach(function (line, li) {
+    orderedLines(l, secKey).forEach(function (x) {
+      var line = x.line, li = x.li;
       if (line.onlyVideo && !curIsVideo) return;
       if (secKey && raagSect(line.label) !== secKey) return;
       var grp = useGroups ? subGroup(line.label) : "";
@@ -1344,7 +1366,9 @@
     if (state.editMode && l.group === "Raag" && state.raagSect) {
       var addb = document.createElement("button");
       addb.type = "button"; addb.className = "ed-addbtn";
-      addb.textContent = "+ Add another " + (raagSectLabel(state.raagSect) || "line");
+      var where = "";
+      if (state.raagSect === "bandish") where = " to " + (openSubHead(l) || SUBHEADS[0]);
+      addb.textContent = "+ Add another " + (raagSectLabel(state.raagSect) || "line") + where;
       addb.onclick = function () { addLine(l, state.raagSect); };
       box.appendChild(addb);
     }
@@ -1397,14 +1421,47 @@
           // an older entry may have lost its label; put it back in the right part
           lab = (v.sect ? (raagSectLabel(v.sect) || "Added line") : "Added line") + " (added)";
         }
-        return { label: lab, text: v.t || "", added: true, idx: +k };
+        var line = { label: lab, text: v.t || "", added: true, idx: +k };
+        if (v.bd) {
+          /* an added bandish line carries its own grid, so it draws the swar and bol lanes
+             and gets the two-field editor, exactly like the bandish lines that came with the raag */
+          var m = v.bd.matras || 16, sw = [], ly = [];
+          for (var i = 0; i < m; i++) { sw.push("-"); ly.push(""); }
+          line.bandish = { taal: v.bd.taal || "\u0924\u0940\u0928\u0924\u093e\u0932", matras: m,
+                           vibhag: (v.bd.vibhag || [4, 4, 4, 4]).slice(),
+                           rows: [{ swar: sw, lyric: ly, arc: [] }] };
+        }
+        return line;
       });
       l.lines = l._base.concat(extra);
     });
   }
+  var SUBHEADS = ["\u0938\u094d\u0925\u093e\u0908", "\u0905\u0902\u0924\u0930\u093e"];
+  /* Which heading a new bandish line belongs to: whichever of स्थाई / अंतरा is open,
+     स्थाई first if both are. If neither is open it goes to स्थाई and that heading opens,
+     so you can see where it landed. */
+  function openSubHead(l) {
+    for (var i = 0; i < SUBHEADS.length; i++) { if (grpOpen(l, SUBHEADS[i])) return SUBHEADS[i]; }
+    return null;
+  }
   function addLine(l, sect, label) {
     var idx = nextAddIndex(l.id);
-    setLineEdit(l.id, String(idx), { t: "", label: label || nextLabel(l, sect), sect: sect || null });
+    var s = sect || null, lab = label || nextLabel(l, s), extra = {};
+    if (s === "bandish") {
+      var head = openSubHead(l);
+      if (!head) { head = SUBHEADS[0]; state.grp[grpKey(l, SUBHEADS[0])] = true; }
+      lab = "Bandish (" + (head === SUBHEADS[0] ? "Sthayi" : "Antara") + ")";
+      var sib = null;
+      (l.lines || []).forEach(function (ln) { if (!sib && ln.bandish) sib = ln.bandish; });
+      var m = sib ? (sib.matras || 16) : 16, sw = [], ly = [];
+      for (var i = 0; i < m; i++) { sw.push("-"); ly.push(""); }
+      extra.bd = { taal: sib ? sib.taal : "\u0924\u0940\u0928\u0924\u093e\u0932", matras: m,
+                   vibhag: (sib && sib.vibhag ? sib.vibhag : [4, 4, 4, 4]).slice() };
+      extra.b = { "0": { swar: sw, lyric: ly } };
+    }
+    var obj = { t: "", label: lab, sect: s };
+    Object.keys(extra).forEach(function (f) { obj[f] = extra[f]; });
+    setLineEdit(l.id, String(idx), obj);
     applyAdds();
     renderList(); renderStage(l);
   }
@@ -1442,7 +1499,7 @@
     if (obj) {
       // merge, so saving the swar of an added line keeps its label and section
       var cur = (e[k] && !e[k].del) ? e[k] : {}, m = {};
-      ["t", "label", "sect", "b"].forEach(function (f) { if (cur[f] !== undefined) m[f] = cur[f]; });
+      ["t", "label", "sect", "b", "bd"].forEach(function (f) { if (cur[f] !== undefined) m[f] = cur[f]; });
       Object.keys(obj).forEach(function (f) { m[f] = obj[f]; });
       m.at = Date.now();
       e[k] = m;
