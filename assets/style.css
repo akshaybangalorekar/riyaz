@@ -668,3 +668,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .ed-syn-say{color:var(--dim);font-size:12.5px;line-height:1.4}
 .ed-syn-out .sk-sw.kan-host{padding-top:30px}
 .ed-syn-out .kan{top:4px}
+
+/* ---------- the Help panel ---------- */
+.hp-h{margin:0 0 8px; font-size:16px; font-weight:700; color:var(--saffron)}
+.hp-sec{margin:12px 0 0; padding-top:11px; border-top:1px solid var(--line)}
+.hp-t{font-weight:700; color:var(--ink); margin-bottom:3px}
+.hp-b{font-size:13.5px; line-height:1.6; color:var(--dim)}
+.hp-b code{background:var(--bg2); border:1px solid var(--line); border-radius:5px; padding:0 4px; color:var(--ink)}
+.hp-b b{color:var(--ink)}

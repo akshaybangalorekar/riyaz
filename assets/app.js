@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.3.3";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.4.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1681,26 +1681,8 @@
     ["ऽ",                          "avagraha — a swallowed अ"]
   ];
   var helpFirst = true;
-  function markHelp(lead, first) {
-    /* The full table is long, so it is shown once — on the first line of the page —
-       and the later lines carry only the one-line reminder. */
-    var d = document.createElement("div"); d.className = "ed-tip";
-    if (!first) {
-      var short = document.createElement("div"); short.className = "ed-tip-line";
-      short.innerHTML = "Swar separated by spaces. <b>No space</b> = one matra. " +
-        "Marks: <code>~</code> komal \u00b7 <code>^</code> t\u0101r \u00b7 <code>_</code> mandra \u00b7 " +
-        "<code>{ }</code> murki \u00b7 <code>( )</code> kan \u00b7 <code>[ ]</code> shruti. " +
-        "The full table is at the top of this page.";
-      d.appendChild(short);
-      return d;
-    }
-    var head = document.createElement("div"); head.className = "ed-tip-h";
-    head.textContent = "How to write each mark";
-    d.appendChild(head);
-    if (lead) {
-      var ld = document.createElement("div"); ld.className = "ed-tip-lead";
-      ld.innerHTML = lead; d.appendChild(ld);
-    }
+  /* the table of marks, drawn with live examples — used by the Help panel */
+  function syntaxTable() {
     var tbl = document.createElement("div"); tbl.className = "ed-syn";
     var hr = document.createElement("div"); hr.className = "ed-syn-row ed-syn-head";
     hr.innerHTML = "<span>you type</span><span>you get</span><span>what it means</span>";
@@ -1713,13 +1695,69 @@
       row.appendChild(a); row.appendChild(b); row.appendChild(c);
       tbl.appendChild(row);
     });
-    d.appendChild(tbl);
-    var note = document.createElement("div"); note.className = "ed-tip-line";
-    note.innerHTML = "Swar are separated by spaces. <b>No space</b> means one matra: " +
-      "<code>गरे</code> is two swar on a single beat.";
-    d.appendChild(note);
+    return tbl;
+  }
+  function helpSection(title, body) {
+    var d = document.createElement("div"); d.className = "hp-sec";
+    var t = document.createElement("div"); t.className = "hp-t"; t.textContent = title;
+    var p = document.createElement("div"); p.className = "hp-b"; p.innerHTML = body;
+    d.appendChild(t); d.appendChild(p);
     return d;
   }
+  function renderHelp() {
+    var box = $("#skHelpBox");
+    if (!box) return;
+    box.innerHTML = "";
+    var head = document.createElement("div"); head.className = "hp-h";
+    head.textContent = "How to write each mark";
+    box.appendChild(head);
+    box.appendChild(helpSection("Write in English letters",
+      "Type in English and it comes out in Devanagari \u2014 <code>sa re ga ma pa dha ni</code> gives \u0938\u093e \u0930\u0947 \u0917 \u092e \u092a \u0927 \u0928\u0940, " +
+      "and whole words work too: <code>mahaadev</code> gives \u092e\u0939\u093e\u0926\u0947\u0935. " +
+      "A lone <code>s</code> gives the avagraha \u093d. Anything already in Devanagari is left as it is."));
+    box.appendChild(syntaxTable());
+    box.appendChild(helpSection("Finding your way",
+      "The rail on the left lists everything; the tabs across the top pick a group. " +
+      "Inside a raag each part \u2014 \u0906\u0930\u094b\u0939 \u00b7 \u0905\u0935\u0930\u094b\u0939 \u00b7 \u092a\u0915\u0921, \u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a, \u0932\u092f\u0915\u093e\u0930\u0940, \u0924\u093e\u0928, \u092c\u0902\u0926\u093f\u0936 \u2014 is its own page. " +
+      "Where a part has a heading with a \u25b8 beside it, tap to open it."));
+    box.appendChild(helpSection("Favourites",
+      "The \u2600 beside a line, or beside a heading in the rail, adds it to your Favourites tab. " +
+      "Open that tab to see your list; tap an item and it opens at that line and starts playing."));
+    box.appendChild(helpSection("Writing notation",
+      "Press <b>Edit notation</b> on a page to open the editors. A sung line has one box for the swar; " +
+      "a bandish grid has two boxes per row \u2014 the swar, and the song\u2019s letters."));
+    box.appendChild(helpSection("Adding your own raag",
+      "Turn on edit mode, then press <b>+ Add Raag</b> at the foot of the rail. " +
+      "It makes a raag with all five parts, each blank and ready to fill. " +
+      "On a raag you made, the \u270e beside the name renames it and the \u2715 removes it."));
+    box.appendChild(helpSection("Playing a line",
+      "\u25b6 beside a line plays just that line. In edit mode \u23f1 sets where the line starts. " +
+      "If a line is timed against a different recording, a small chip says which one."));
+    box.appendChild(helpSection("Vadya, Shruti and Swar",
+      "<b>Vadya</b> is the instrument set. <b>Shruti</b> gives the 22 microtones. " +
+      "<b>Swar</b> listens on the microphone and names the note you are singing, with how far off you are in cents " +
+      "and a dot above or below for the octave."));
+    box.appendChild(helpSection("Two small things",
+      "A single <code>-</code> is an empty matra and stays blank; write <code>--</code> if you want a dash to show."));
+  }
+
+  function markHelp(lead, first) {
+    /* The full list of marks lives in Help now, so the editor carries the lead text
+       and a one-line reminder pointing at it. */
+    var d = document.createElement("div"); d.className = "ed-tip";
+    if (lead) {
+      var ld = document.createElement("div"); ld.className = "ed-tip-lead";
+      ld.innerHTML = lead; d.appendChild(ld);
+    }
+    var short = document.createElement("div"); short.className = "ed-tip-line";
+    short.innerHTML = "Swar separated by spaces. <b>No space</b> = one matra. " +
+      "Marks: <code>~</code> komal \u00b7 <code>^</code> t\u0101r \u00b7 <code>_</code> mandra \u00b7 " +
+      "<code>{ }</code> murki \u00b7 <code>( )</code> kan \u00b7 <code>[ ]</code> shruti. " +
+      "The full list is in <b>Help</b>.";
+    d.appendChild(short);
+    return d;
+  }
+
 
   function notationEditor(l, li) {
     var d = document.createElement("div"); d.className = "ed";
@@ -1739,7 +1777,6 @@
       rm.onclick = function () { removeAddedLine(l, li); };
       bar.appendChild(rm);
     }
-    bar.appendChild(swarPad());
     bar.appendChild(markHelp("Tap a swar to drop it in \u2014 it lands where your cursor is.", helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
     return d;
@@ -1776,7 +1813,6 @@
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
-    bar.appendChild(swarPad());
     bar.appendChild(markHelp("First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
       "A swar lands in whichever box you last touched.", helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
@@ -2466,6 +2502,7 @@
   window.addEventListener("online", function () { flushPush(); });
   var railBtn = $("#btnRail"); if (railBtn) railBtn.onclick = toggleRail;
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
+    var hp = $("#skHelp"); if (hp) hp.classList.remove("on"); var hpb = $("#btnHelp"); if (hpb) hpb.classList.remove("on");
     var b = $("#skSettings");
     if (b && b.classList.contains("on")) closeSettings(); else openSettings();
   };
@@ -2501,6 +2538,23 @@
       var o4 = $("#skShruti"); if (o4) o4.classList.remove("on"); var s4 = $("#btnShruti"); if (s4) s4.classList.remove("on");
       var cl = $("#skSettings"); if (cl) cl.classList.remove("on");
     } else stopSwar();
+  };
+  /* Help — the marks table and how the app works */
+  var hbox = $("#skHelpBox");
+  if (hbox) renderHelp();
+  var hb = $("#btnHelp");
+  if (hb) hb.onclick = function () {
+    var p = $("#skHelp"); if (!p) return;
+    var on = p.classList.toggle("on");
+    hb.classList.toggle("on", on);
+    if (on) {
+      [["skVadya","btnVadya"],["skShruti","btnShruti"],["skSwar","btnSwar"],["skSettings","btnSettings"]].forEach(function (x) {
+        var b1 = $("#" + x[0]); if (b1) b1.classList.remove("on");
+        var b2 = $("#" + x[1]); if (b2) b2.classList.remove("on");
+      });
+      var sx = $("#skSwarBox"); if (sx && sx._swarStop) sx._swarStop();
+      renderHelp();
+    }
   };
   var vb = $("#btnVadya");
   function toggleVadya() {
