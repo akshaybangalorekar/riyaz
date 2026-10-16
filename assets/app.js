@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.3";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -162,8 +162,8 @@
       } else if (t.indexOf("{") >= 0 || t.indexOf("}") >= 0) {
         /* { ... }2 — the count after the closing brace says the group spreads over that
            many matras, so a long murki is not squeezed into a single beat. */
-        var sp = /\}(\d+)\s*$/.exec(t);
-        if (sp) { mkSpan = parseInt(sp[1], 10); t = t.replace(/\}\d+\s*$/, "}"); }
+        var sp = /\}\s*[x\u00d7]?\s*(\d+)\s*$/.exec(t);
+        if (sp) { mkSpan = parseInt(sp[1], 10); t = t.replace(/\}\s*[x\u00d7]?\s*\d+\s*$/, "}"); }
         mkOpen = t.indexOf("{") >= 0;
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
@@ -1662,18 +1662,20 @@
     }
     /* how many matras does the group written in this cell take?  { ... }2 says two. */
     function spanOf(a, b) {
-      var s1 = /\}(\d+)\s*$/.exec(String(a == null ? "" : a));
-      var s2 = /\}(\d+)\s*$/.exec(String(b == null ? "" : b));
+      var rx = /\}\s*[x\u00d7]?\s*(\d+)/;   /* the count sits right after the brace, even if swar follow */
+      var s1 = rx.exec(String(a == null ? "" : a));
+      var s2 = rx.exec(String(b == null ? "" : b));
       var n = Math.max(s1 ? +s1[1] : 1, s2 ? +s2[1] : 1);
       return Math.max(1, Math.min(8, n));
     }
     /* {रे म प ध म प ध}2 — the group's swar are shared out over the matras it claims,
        so the matra line falls inside the group instead of the whole thing sitting in one. */
     function splitGroup(text, span) {
-      var m = /^\s*\{([^}]*)\}\s*\d*\s*$/.exec(String(text == null ? "" : text));
+      var m = /^\s*\{([^}]*)\}\s*[x\u00d7]?\s*\d*\s*([\s\S]*)$/.exec(String(text == null ? "" : text));
       if (!m || span < 2) return null;
       var toks = m[1].trim().split(/\s+/).filter(Boolean);
       if (toks.length < 2) return null;
+      var tail = (m[2] || "").trim();
       var parts = [], base = Math.floor(toks.length / span), rem = toks.length % span, at = 0;
       for (var i = 0; i < span; i++) {
         var take = base + (i < rem ? 1 : 0);
@@ -1681,6 +1683,7 @@
         parts.push(toks.slice(at, at + take).join(" "));
         at += take;
       }
+      if (tail) parts[parts.length - 1] = (parts[parts.length - 1] + " " + tail).trim();
       return parts;
     }
     function applySpans(rowEl, spans) {
@@ -1852,7 +1855,7 @@
     ["<\u0938\u093e \u0930\u0947>",      "\u092e\u0940\u0902\u0921",      "a glide from one swar to the next"],
     ["(\u0930\u0947)",       "\u0915\u0923",       "a small grace note above"],
     ["{\u0938\u093e \u0930\u0947 \u0917}",     "\u092e\u0941\u0930\u094d\u0915\u0940",    "a quick turn \u2014 curve under the group"],
-    ["{\u0938\u093e \u0930\u0947}2",  "\u0938\u092e\u0942\u0939",     "a group spread over two matras \u2014 }3 for three, }4 for four"],
+    ["{\u0938\u093e \u0930\u0947}2",  "\u0938\u092e\u0942\u0939",     "spread over two matras \u2014 the number after the brace is how many: }3, }4"],
     ["!\u0938\u093e",        "\u0916\u091f\u0915\u093e",     "a quick, jerky cluster"],
     ["%\u0938\u093e",        "\u091c\u093c\u092e\u091c\u093c\u092e\u093e",   "an unevenly accented cluster"],
     ["@\u0938\u093e",        "\u0906\u0902\u0926\u094b\u0932\u0928",   "a slow oscillation on the swar"],
