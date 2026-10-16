@@ -89,7 +89,8 @@ body{
 }
 .ed-ta.lyr{color:var(--dim); font-size:14px; margin-top:4px}
 .ed-brow{display:flex; flex-direction:column; gap:2px; margin-bottom:10px}
-.ed-bn{font-size:12px; color:var(--saffron); font-weight:700}
+.ed-bn{font-size:12px; color:var(--saffron); font-weight:700; letter-spacing:.2px}
+.ed-bandish .ed-ta{min-height:40px; line-height:1.7; white-space:pre-wrap}
 .ed-bar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px}
 .ed-btn{
   border:1px solid var(--saffron); background:var(--saffron); color:#241a10;

@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.9.6";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.9.7";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2080,38 +2080,48 @@
   }
   function bandishEditor(l, li, line) {
     var d = document.createElement("div"); d.className = "ed ed-bandish";
-    var rows = bandishRows(l, li), fields = [];
-    rows.forEach(function (r, ri) {
-      var box = document.createElement("div"); box.className = "ed-brow";
-      var n = document.createElement("span"); n.className = "ed-bn"; n.textContent = "Line " + (ri + 1);
-      box.appendChild(n);
-      var a = document.createElement("textarea"); a.className = "ed-ta"; a.rows = 1;
-      a.value = r.swar.join(" "); a.title = "swar, one per matra";
-      var b = document.createElement("textarea"); b.className = "ed-ta lyr"; b.rows = 1;
-      b.value = r.lyric.join(" "); b.title = "the song's letters, one per matra";
-      trackTa(a); trackTa(b);
-      box.appendChild(a); box.appendChild(b);
-      d.appendChild(box);
-      fields.push({ ri: ri, a: a, b: b });
-    });
+    var rows = bandishRows(l, li);
+    var matras = (line.bandish && line.bandish.matras) || 16;
+
+    /* One field for the swar line and one for the words line — the same two lanes the page
+       shows. Each line of the bandish is one line inside the field, one swar per matra. */
+    function laneField(label, cls, value, title) {
+      var wrap = document.createElement("div"); wrap.className = "ed-brow";
+      var lb = document.createElement("span"); lb.className = "ed-bn"; lb.textContent = label;
+      var ta = document.createElement("textarea");
+      ta.className = "ed-ta" + (cls ? " " + cls : "");
+      ta.rows = Math.max(1, String(value).split("\n").length);
+      ta.value = value; ta.title = title;
+      trackTa(ta);
+      wrap.appendChild(lb); wrap.appendChild(ta);
+      return { wrap: wrap, ta: ta };
+    }
+    var sw = laneField("\u0938\u094d\u0935\u0930", "",
+      rows.map(function (r) { return r.swar.join(" "); }).join("\n"),
+      "the swar line \u2014 one line of the bandish per row, one swar per matra");
+    var ly = laneField("\u092c\u094b\u0932", "lyr",
+      rows.map(function (r) { return (r.lyric || []).join(" "); }).join("\n"),
+      "the words line \u2014 one line of the bandish per row");
+    d.appendChild(sw.wrap); d.appendChild(ly.wrap);
+
     var bar = document.createElement("div"); bar.className = "ed-bar";
     var sv = document.createElement("button"); sv.className = "ed-btn"; sv.type = "button"; sv.textContent = "Save";
     sv.onclick = function () {
-      var b = {};
-      fields.forEach(function (f) {
-        b[String(f.ri)] = {
-          swar: splitMatras(f.a.value),
-          lyric: splitMatras(f.b.value)
-        };
-      });
+      var swL = sw.ta.value.split("\n"), lyL = ly.ta.value.split("\n");
+      var n = Math.max(rows.length, swL.length, lyL.length), b = {};
+      for (var i = 0; i < n; i++) {
+        b[String(i)] = { swar: splitMatras(swL[i] || ""), lyric: splitMatras(lyL[i] || "") };
+      }
       setLineEdit(l.id, li, { b: b });
       renderNotation(l);
     };
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
-    bar.appendChild(markHelp("First box = the swar for each of the 16 matras \u00b7 second box = the song's letters. " +
-      "A swar lands in whichever box you last touched.", helpFirst ? (helpFirst = false, true) : false));
+    bar.appendChild(markHelp("\u0938\u094d\u0935\u0930 = the swar line, \u092c\u094b\u0932 = the words. " +
+      "Each line of the bandish is one line in the box, and each matra is one word \u2014 a lone - leaves it empty. " +
+      "Write {2.re.ma.pa} to spread a group over " + matras + " or any number of matras.",
+      helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
     return d;
   }
