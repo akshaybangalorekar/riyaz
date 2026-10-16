@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.9.7";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.9.8";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1786,7 +1786,10 @@
         var swTxt = r.swar[i], lyTxt = (r.lyric || [])[i];
         /* The count drives both lanes: write {sa re ga ma pa}2 on the swar line and the
            words spread over the same two matras, and the other way round. */
-        var span = Math.max(spanOf(swTxt, null), spanOf(null, lyTxt));
+        /* which line actually carries the group? only that line draws the murki curve —
+           the other line still shares out its words over the same matras, but silently */
+        var swDecl = spanOf(swTxt, null) > 1, lyDecl = spanOf(null, lyTxt) > 1;
+        var span = Math.max(swDecl ? spanOf(swTxt, null) : 1, lyDecl ? spanOf(null, lyTxt) : 1);
         var swR = splitInto(swTxt, span);
         var lyR = splitInto(lyTxt, span);
         if (swR || lyR) {
@@ -1800,11 +1803,11 @@
             var cls = " mk-span" + (k === 0 ? " mk-s" : "") + (k === span - 1 ? " mk-e" : "");
             if (swTake) {
               fillCell(sl.children[i + k], swPart); usedSw[i + k] = 1;
-              sl.children[i + k].className += cls;
+              if (swDecl) sl.children[i + k].className += cls;
             }
             if (lyTake) {
               fillCell(ll.children[i + k], lyPart); usedLy[i + k] = 1;
-              ll.children[i + k].className += cls;
+              if (lyDecl) ll.children[i + k].className += cls;
             }
           }
           /* a swar written after the group is its own matra, and stays out of the curve */
