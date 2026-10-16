@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.5.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.6.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -187,11 +187,18 @@
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
                  shruti: "", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
       }
-      var oct = 0, komal = false, guard = 0, octUp = false, octDn = false;
-      while (guard++ < 6) {                                        // markers may come in any order
+      var oct = 0, komal = false, guard = 0, octUp = false, octDn = false, dbl = false, tivra = false, orn = "";
+      while (guard++ < 12) {                                       // markers may come in any order
+        if (t.slice(0, 2) === "^^") { octUp = true; oct = 1; dbl = true; t = t.slice(2); continue; }   // ati-tār
+        if (t.slice(0, 2) === "__") { octDn = true; oct = -1; dbl = true; t = t.slice(2); continue; }  // ati-mandra
         if (t[0] === "^") { octUp = true; oct = 1; t = t.slice(1); continue; }    // dot above
         if (t[0] === "_") { octDn = true; oct = -1; t = t.slice(1); continue; }   // dot below
         if (t[0] === "~") { komal = true; t = t.slice(1); continue; }   // komal — a horizontal underline
+        if (t[0] === "+") { tivra = true; t = t.slice(1); continue; }   // tivra — a line above
+        if (t[0] === "!") { orn = "\u0916\u091f\u0915\u093e"; t = t.slice(1); continue; }               // khatka
+        if (t[0] === "%") { orn = "\u091c\u093c\u092e\u091c\u093c\u092e\u093e"; t = t.slice(1); continue; }  // zamzama
+        if (t[0] === "@") { orn = "\u0906\u0902\u0926\u094b\u0932\u0928"; t = t.slice(1); continue; }        // andolan
+        if (t[0] === "&") { orn = "\u0917\u092e\u0915"; t = t.slice(1); continue; }                    // gamak
         break;
       }
       var kan = "", shruti = "", g2 = 0;
@@ -214,6 +221,7 @@
       kan = kt;
       /* whatever was typed in English letters becomes Devanagari here */
       return { sep: false, t: devSwar(t), oct: oct, octUp: octUp, octDn: octDn, komal: komal,
+               dbl: dbl, tivra: tivra, orn: orn,
                kan: devSwar(kan), kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
                kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
     });
@@ -259,6 +267,9 @@
            off the front were written before the first swar, so only that one takes
            them — ~गम underlines ग alone, and ~ग~म underlines both. */
         sub.komal = p.komal || (i === 0 && tk.komal);
+        sub.tivra = (i === 0) && tk.tivra;
+        sub.dbl = (i === 0) && tk.dbl;
+        sub.orn = (i === 0) ? tk.orn : "";
         sub.oct = p.oct || (i === 0 ? tk.oct : 0);
         sub.octUp = (i === 0) && tk.octUp;      // the octave flags are separate fields,
         sub.octDn = (i === 0) && tk.octDn;      // so they must be cleared per part too
@@ -271,10 +282,26 @@
     }
     return oneSwar(tk, unit, noteN);
   }
+  /* the Devanagari name of a mark, shown when you hover it */
+  function markName(tk) {
+    var out = [];
+    if (tk.tivra) out.push("\u0924\u0940\u0935\u094d\u0930");
+    if (tk.komal) out.push("\u0915\u094b\u092e\u0932");
+    if (tk.octUp || tk.oct === 1) out.push(tk.dbl ? "\u0905\u0924\u093f \u0924\u093e\u0930" : "\u0924\u093e\u0930 \u0938\u092a\u094d\u0924\u0915");
+    if (tk.octDn || tk.oct === -1) out.push(tk.dbl ? "\u0905\u0924\u093f \u092e\u0902\u0926\u094d\u0930" : "\u092e\u0902\u0926\u094d\u0930 \u0938\u092a\u094d\u0924\u0915");
+    if (tk.orn) out.push(tk.orn);
+    if (tk.kan) out.push("\u0915\u0923");
+    if (tk.t === "\u093d") return "\u0905\u0935\u0917\u094d\u0930\u0939";
+    if (!out.length) return "\u0936\u0941\u0926\u094d\u0927 \u0938\u094d\u0935\u0930";
+    return out.join(" ");
+  }
   function oneSwar(tk, unit, noteN) {
     var sw = document.createElement("span");
-    sw.className = "sk-sw" + ((tk.octUp || tk.oct === 1) ? " oct1" : "") +
-      ((tk.octDn || tk.oct === -1) ? " octm" : "") + (tk.komal ? " komal" : "");
+    sw.className = "sk-sw" + ((tk.octUp || tk.oct === 1) ? (tk.dbl ? " oct1 oct2" : " oct1") : "") +
+      ((tk.octDn || tk.oct === -1) ? (tk.dbl ? " octm octm2" : " octm") : "") +
+      (tk.komal ? " komal" : "") + (tk.tivra ? " tivra" : "") +
+      ((tk.kan || tk.orn || tk.shruti) ? " has-mark" : "");
+    sw.setAttribute("data-mark", markName(tk));
     if (unit > 1) {
       var g = Math.floor(noteN / unit);
       sw.className += (g % 2 ? " grpB" : " grpA") + (noteN % unit === 0 ? " gstart" : "");
@@ -302,10 +329,18 @@
       }
       sw.appendChild(k);
     }
+    if (tk.orn) {                       // khatka, zamzama, andolan, gamak — named above the swar
+      sw.className += " orn-host";
+      var ornEl = document.createElement("span");
+      ornEl.className = "orn"; ornEl.textContent = tk.orn;
+      ornEl.setAttribute("data-mark", tk.orn);
+      sw.appendChild(ornEl);
+    }
     if (tk.shruti) {                    // the shruti number sits at the top right
       sw.className += " shr-host";
       var sh = document.createElement("span");
       sh.className = "shr"; sh.textContent = tk.shruti;
+      sh.setAttribute("data-mark", "\u0936\u094d\u0930\u0941\u0924\u093f");
       sw.appendChild(sh);
     }
     return sw;
@@ -313,6 +348,7 @@
   function sepEl(txt) {
     var sp = document.createElement("span");
     sp.className = "sk-sep"; sp.textContent = txt;
+    sp.setAttribute("data-mark", txt === "|" ? "\u0935\u093f\u092d\u093e\u0917" : "\u0935\u093f\u0936\u094d\u0930\u093e\u092e");
     return sp;
   }
 
@@ -1214,7 +1250,7 @@
       }
       var unit = line.unit || 0, noteN = 0, mk = null;
       tokenize(lineText(l, li)).forEach(function (tk) {
-        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); row.appendChild(mk); }
+        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); mk.setAttribute("data-mark", tk.mdOpen ? "\u092e\u0940\u0902\u0921" : "\u092e\u0941\u0930\u094d\u0915\u0940"); row.appendChild(mk); }
         if (tk.sep) {
           if ((tk.mkClose || tk.mdClose) && mk) mk = null;   // a bar right after the brace sits outside the curve
           (mk || row).appendChild(sepEl(tk.t));
@@ -1566,7 +1602,7 @@
     function fillCell(cell, text) {
       var mk = null;
       tokenize(text || "").forEach(function (tk) {
-        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); cell.appendChild(mk); }
+        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); mk.setAttribute("data-mark", tk.mdOpen ? "\u092e\u0940\u0902\u0921" : "\u092e\u0941\u0930\u094d\u0915\u0940"); cell.appendChild(mk); }
         if (tk.sep) {
           if ((tk.mkClose || tk.mdClose) && mk) mk = null;
           (mk || cell).appendChild(sepEl(tk.t));
@@ -1663,7 +1699,7 @@
     box.className = "ed-syn-out";
     var mk = null;
     tokenize(text).forEach(function (tk) {
-      if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); box.appendChild(mk); }
+      if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); mk.setAttribute("data-mark", tk.mdOpen ? "\u092e\u0940\u0902\u0921" : "\u092e\u0941\u0930\u094d\u0915\u0940"); box.appendChild(mk); }
       if (tk.sep) { (mk || box).appendChild(sepEl(tk.t)); if ((tk.mkClose || tk.mdClose) && mk) mk = null; }
       else if (tk.t) { (mk || box).appendChild(swarEl(tk, 0, 0)); if ((tk.mkClose || tk.mdClose) && mk) mk = null; }
       else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
@@ -1671,35 +1707,42 @@
     return box;
   }
   var SYNTAX = [
-    ["रे",                    "a plain swar"],
-    ["~रे",                   "komal — underlined"],
-    ["^सा",                   "tār saptak — dot above"],
-    ["_प",                         "mandra saptak — dot below"],
-    ["गरे",              "two swar on one matra"],
-    ["ग~म",                   "the ~ marks the swar it sits before"],
-    ["~ग~म",                  "both marked"],
-    ["{~ग~रे}",          "two komal swar on one matra"],
-    ["{सा रे ग}", "murki — curve under the group"],
-    ["<सा रे>", "meend — slide from one swar to the next"],
-    ["प(ध)",                  "kan — small note above"],
-    ["र({गरे})",    "kan, with the murki under the small notes"],
-    ["रे[2]",                 "shruti number, top right"],
-    ["|",                               "bar"],
-    ["-",                               "rest"],
-    ["ऽ",                          "avagraha — a swallowed अ"]
+    ["\u0938\u093e \u0930\u0947 \u0917 \u092e",  "\u0936\u0941\u0926\u094d\u0927 \u0938\u094d\u0935\u0930", "the seven plain notes"],
+    ["~\u0930\u0947",        "\u0915\u094b\u092e\u0932",     "flat \u2014 a line under the swar"],
+    ["+\u092e",         "\u0924\u0940\u0935\u094d\u0930",     "sharp \u2014 a line above the swar"],
+    ["^\u0938\u093e",        "\u0924\u093e\u0930 \u0938\u092a\u094d\u0924\u0915",   "higher octave \u2014 a dot above"],
+    ["_\u0938\u093e",        "\u092e\u0902\u0926\u094d\u0930 \u0938\u092a\u094d\u0924\u0915", "lower octave \u2014 a dot below"],
+    ["^^\u0938\u093e",       "\u0905\u0924\u093f \u0924\u093e\u0930",   "two octaves up \u2014 two dots above"],
+    ["__\u0938\u093e",       "\u0905\u0924\u093f \u092e\u0902\u0926\u094d\u0930", "two octaves down \u2014 two dots below"],
+    ["<\u0938\u093e \u0930\u0947>",      "\u092e\u0940\u0902\u0921",      "a glide from one swar to the next"],
+    ["(\u0930\u0947)",       "\u0915\u0923",       "a small grace note above"],
+    ["{\u0938\u093e \u0930\u0947 \u0917}",     "\u092e\u0941\u0930\u094d\u0915\u0940",    "a quick turn \u2014 curve under the group"],
+    ["!\u0938\u093e",        "\u0916\u091f\u0915\u093e",     "a quick, jerky cluster"],
+    ["%\u0938\u093e",        "\u091c\u093c\u092e\u091c\u093c\u092e\u093e",   "an unevenly accented cluster"],
+    ["@\u0938\u093e",        "\u0906\u0902\u0926\u094b\u0932\u0928",   "a slow oscillation on the swar"],
+    ["&\u0938\u093e",        "\u0917\u092e\u0915",      "a heavy oscillation"],
+    ["[2]",         "\u0936\u094d\u0930\u0941\u0924\u093f",    "which of the 22 microtones"],
+    ["\u0917\u0930\u0947",        "\u090f\u0915 \u092e\u093e\u0924\u094d\u0930\u093e",  "two swar on one matra \u2014 no space"],
+    ["|",           "\u0935\u093f\u092d\u093e\u0917",     "the bar that divides the beat"],
+    ["-",           "\u0916\u093e\u0932\u0940 \u092e\u093e\u0924\u094d\u0930\u093e", "an empty matra \u2014 stays blank"],
+    ["--",          "\u0935\u093f\u0936\u094d\u0930\u093e\u092e",    "a rest you want to see"],
+    ["s",           "\u0905\u0935\u0917\u094d\u0930\u0939",    "a swallowed \u0905 \u2014 \u093d"]
   ];
   var helpFirst = true;
   /* the table of marks, drawn with live examples — used by the Help panel */
   function syntaxTable() {
     var tbl = document.createElement("div"); tbl.className = "ed-syn";
     var hr = document.createElement("div"); hr.className = "ed-syn-row ed-syn-head";
-    hr.innerHTML = "<span>you type</span><span>you get</span><span>what it means</span>";
+    hr.innerHTML = "<span>you type</span><span>you get</span><span>what it is called</span>";
     tbl.appendChild(hr);
     SYNTAX.forEach(function (r) {
       var row = document.createElement("div"); row.className = "ed-syn-row";
       var a = document.createElement("code"); a.className = "ed-syn-in"; a.textContent = r[0];
       var b = swarRun(r[0]);
-      var c = document.createElement("span"); c.className = "ed-syn-say"; c.textContent = r[1];
+      var c = document.createElement("span"); c.className = "ed-syn-say";
+      var nm = document.createElement("b"); nm.className = "ed-syn-name"; nm.textContent = r[1];
+      c.appendChild(nm);
+      if (r[2]) row.title = r[2];          // the short gloss shows on hover
       row.appendChild(a); row.appendChild(b); row.appendChild(c);
       tbl.appendChild(row);
     });
@@ -1723,7 +1766,9 @@
       "Type in English and it comes out in Devanagari \u2014 <code>sa re ga ma pa dha ni</code> gives \u0938\u093e \u0930\u0947 \u0917 \u092e \u092a \u0927 \u0928\u0940, " +
       "and whole words work too: <code>mahaadev</code> gives \u092e\u0939\u093e\u0926\u0947\u0935. " +
       "A lone <code>s</code> gives the avagraha \u093d. Anything already in Devanagari is left as it is."));
-    box.appendChild(syntaxTable());
+    var marks = document.createElement("div"); marks.className = "hp-marks";
+    marks.appendChild(syntaxTable());
+    box.appendChild(marks);
     box.appendChild(helpSection("Finding your way",
       "The rail on the left lists everything; the tabs across the top pick a group. " +
       "Inside a raag each part \u2014 \u0906\u0930\u094b\u0939 \u00b7 \u0905\u0935\u0930\u094b\u0939 \u00b7 \u092a\u0915\u0921, \u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a, \u0932\u092f\u0915\u093e\u0930\u0940, \u0924\u093e\u0928, \u092c\u0902\u0926\u093f\u0936 \u2014 is its own page. " +
@@ -2547,6 +2592,40 @@
       var cl = $("#skSettings"); if (cl) cl.classList.remove("on");
     } else stopSwar();
   };
+  /* ---------- the mark labels ----------
+     Hover a mark and its name appears in a small box just above the pointer. */
+  function markTip() {
+    var tip = document.createElement("div");
+    tip.className = "mk-tip";
+    document.body.appendChild(tip);
+    function hit(e) {
+      var n = e.target;
+      while (n && n !== document.body) {
+        if (n.getAttribute && n.getAttribute("data-mark")) return n;
+        n = n.parentNode;
+      }
+      return null;
+    }
+    function place(e) {
+      var w = tip.offsetWidth, h = tip.offsetHeight;
+      tip.style.left = Math.min(Math.max(6, e.clientX - w / 2), window.innerWidth - w - 6) + "px";
+      tip.style.top = Math.max(6, e.clientY - h - 13) + "px";
+    }
+    document.addEventListener("mouseover", function (e) {
+      var el = hit(e); if (!el) return;
+      tip.textContent = el.getAttribute("data-mark");
+      tip.classList.add("on"); place(e);
+    }, true);
+    document.addEventListener("mousemove", function (e) {
+      if (tip.classList.contains("on")) place(e);
+    }, true);
+    document.addEventListener("mouseout", function (e) {
+      if (hit(e)) tip.classList.remove("on");
+    }, true);
+    window.addEventListener("scroll", function () { tip.classList.remove("on"); }, true);
+  }
+  markTip();
+
   /* Help — the marks table and how the app works */
   var hbox = $("#skHelpBox");
   if (hbox) renderHelp();

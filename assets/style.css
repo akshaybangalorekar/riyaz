@@ -683,3 +683,31 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   border-top:2px solid var(--saffron); border-radius:50% 50% 0 0 / 100% 100% 0 0; opacity:.9}
 .bnd-swar .md-grp{padding-top:11px}
 .bnd-lyr .md-grp{padding-top:11px}
+
+/* ---------- the full Bhatkhande marks ---------- */
+.sk-sw{position:relative}                                   /* so marks can sit on it */
+.sk-sw.tivra::before{content:""; position:absolute; left:3px; right:3px; top:-3px;
+  height:2px; background:currentColor; border-radius:2px}
+.sk-sw.oct1.oct2::after{content:"\2022\2022"; letter-spacing:2px; top:-9px}   /* ati-tar */
+.sk-sw.octm.octm2::before{content:"\2022\2022"; letter-spacing:2px; bottom:-11px}  /* ati-mandra */
+.sk-sw.orn-host{padding-top:15px}
+.sk-sw .orn{position:absolute; left:50%; transform:translateX(-50%); top:-3px;
+  font-size:10px; line-height:1; color:var(--saffron); white-space:nowrap; opacity:.95}
+.bnd-swar .sk-sw .orn{font-size:9.5px}
+.bnd-lyr .sk-sw .orn{font-size:9.5px}
+
+/* ---------- the marks table, kept compact so it fits one screen ---------- */
+.hp-marks .ed-syn{margin-top:6px}
+.hp-marks .ed-syn-row{padding:0 8px; grid-template-columns:90px minmax(54px,1fr) 1.3fr; gap:7px; min-height:23px}
+.hp-marks .ed-syn-head{padding:3px 8px}
+.hp-marks .ed-syn-in{font-size:11px}
+.hp-marks .ed-syn-out{font-size:13.5px; padding-top:7px; line-height:1.1}
+.hp-marks .ed-syn-say{font-size:11px; line-height:1.2}
+.hp-marks .ed-syn-out .sk-sw.kan-host{padding-top:19px}
+.ed-syn-name{color:var(--ink); font-size:12px; font-weight:700}
+
+/* ---------- the floating name shown on hover ---------- */
+.mk-tip{position:fixed; z-index:99; pointer-events:none; opacity:0; transform:translateY(3px);
+  transition:opacity .1s; background:var(--ink); color:#241a10; font-size:12px; font-weight:700;
+  padding:3px 8px; border-radius:7px; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.mk-tip.on{opacity:1; transform:translateY(0)}
