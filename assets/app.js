@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.3.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.3.3";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -81,10 +81,75 @@
   }
 
   /* ---------- notation tokeniser ---------- */
+  /* ---------- Latin letters in, Devanagari out ----------
+     You can write in English letters and it comes out in Devanagari: sa re ga ma, or
+     whole words like mahadev. The seven swar keep the spellings the app uses, so sa
+     gives सा and ni gives नी rather than the bare स and नि. Anything already written
+     in Devanagari is left exactly as it is. */
+  var DEV_H = "\u094d";
+  var TRANSLIT_C = [
+    ["chh","\u091b"],["Ch","\u091b"],["kh","\u0916"],["gh","\u0918"],["ch","\u091a"],
+    ["jh","\u091d"],["Th","\u0920"],["Dh","\u0922"],["th","\u0925"],["dh","\u0927"],
+    ["ph","\u092b"],["bh","\u092d"],["sh","\u0936"],["Sh","\u0937"],
+    ["ks","\u0915\u094d\u0937"],["tr","\u0924\u094d\u0930"],["gy","\u091c\u094d\u091e"],
+    ["k","\u0915"],["g","\u0917"],["j","\u091c"],["T","\u091f"],["D","\u0921"],["N","\u0923"],
+    ["t","\u0924"],["d","\u0926"],["n","\u0928"],["p","\u092a"],["b","\u092c"],["m","\u092e"],
+    ["y","\u092f"],["r","\u0930"],["l","\u0932"],["v","\u0935"],["w","\u0935"],
+    ["s","\u0938"],["h","\u0939"],["L","\u0933"]
+  ];
+  var TRANSLIT_V = [                      // the sign that follows a consonant
+    ["ai","\u0948"],["au","\u094c"],["aa","\u093e"],["ii","\u0940"],["ee","\u0940"],
+    ["uu","\u0942"],["oo","\u0942"],["A","\u093e"],["I","\u0940"],["U","\u0942"],
+    ["i","\u093f"],["u","\u0941"],["e","\u0947"],["o","\u094b"],
+    ["M","\u0902"],["H","\u0903"],["a",""]
+  ];
+  var TRANSLIT_VI = [                     // a vowel standing on its own
+    ["ai","\u0910"],["au","\u0914"],["aa","\u0906"],["ii","\u0908"],["ee","\u0908"],
+    ["uu","\u090a"],["oo","\u090a"],["A","\u0906"],["I","\u0908"],["U","\u090a"],
+    ["i","\u0907"],["u","\u0909"],["e","\u090f"],["o","\u0913"],["a","\u0905"]
+  ];
+  var SARGAM = { sa: "\u0938\u093e", re: "\u0930\u0947", ri: "\u0930\u0947", ga: "\u0917",
+                 ma: "\u092e", pa: "\u092a", dha: "\u0927", ni: "\u0928\u0940" };
+  function pickTrans(list, str, i) {
+    for (var k = 0; k < list.length; k++) {
+      var p = list[k][0];
+      if (str.substr(i, p.length) === p) return list[k];
+    }
+    return null;
+  }
+  function toDev(str) {
+    str = String(str == null ? "" : str);
+    if (!/[a-zA-Z]/.test(str)) return str;          // already Devanagari — leave it
+    var out = "", i = 0, n = str.length;
+    while (i < n) {
+      var ch = str.charAt(i);
+      if (!/[a-zA-Z]/.test(ch)) { out += ch; i++; continue; }
+      /* s on its own is the avagraha ऽ — the sign for an अ swallowed by sandhi.
+         स is written sa, and श is written sha. */
+      if (ch === "s" || ch === "S") {
+        var nx = str.charAt(i + 1);
+        if (!/[a-zA-Z]/.test(nx) || !/[aeiouhAEIOU]/.test(nx)) { out += "\u093d"; i++; continue; }
+      }
+      var c = pickTrans(TRANSLIT_C, str, i);
+      if (c) {
+        out += c[1]; i += c[0].length;
+        var v = pickTrans(TRANSLIT_V, str, i);
+        if (v) { out += v[1]; i += v[0].length; }
+        else if (i < n && /[a-zA-Z]/.test(str.charAt(i))) out += DEV_H;   // kya -> क्य
+        continue;                                    // a word-final consonant keeps its short a
+      }
+      var vi = pickTrans(TRANSLIT_VI, str, i);
+      if (vi) { out += vi[1]; i += vi[0].length; continue; }
+      out += ch; i++;
+    }
+    return out;
+  }
+  function devSwar(t) {                              // a sargam name keeps the app's spelling
+    var low = String(t == null ? "" : t).toLowerCase();
+    return SARGAM[low] || toDev(t);
+  }
+
   function tokenize(text) {
-    /* s is shorthand for the avagraha ऽ — the sign that stands where an अ has been
-       swallowed by sandhi. Type it in either lane and it comes out as ऽ. */
-    text = String(text == null ? "" : text).replace(/s/g, "\u093d");
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
       var t = tok, mkOpen = false, mkClose = false, kanMk = false;
       /* If the braces sit inside the brackets — र({गरे}) — the murki belongs to the small
@@ -140,8 +205,9 @@
         break;
       }
       kan = kt;
-      return { sep: false, t: t, oct: oct, octUp: octUp, octDn: octDn, komal: komal,
-               kan: kan, kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
+      /* whatever was typed in English letters becomes Devanagari here */
+      return { sep: false, t: devSwar(t), oct: oct, octUp: octUp, octDn: octDn, komal: komal,
+               kan: devSwar(kan), kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
                kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
     });
   }

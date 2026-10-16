@@ -60,7 +60,7 @@ body{
 /* the lyric lane is written in the same notation, so the marks are drawn here too —
    the same shapes as the swar lane, in the quieter lyric colour */
 .bnd-lyr .mk-grp{padding-bottom:12px}
-.bnd-lyr .sk-sw{padding:1px 2px; font-size:17px; font-weight:400; color:var(--lyric)}
+.bnd-lyr .sk-sw{padding:1px 0; font-size:17px; font-weight:400; color:var(--lyric)}   /* words, not notes, so keep them tight */
 .bnd-lyr .sk-sep{color:var(--lyric)}
 .bnd-lyr .sk-sw.komal{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}
 .bnd-lyr .sk-sw.kan-host{padding-top:26px}
