@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.7.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -151,7 +151,7 @@
 
   function tokenize(text) {
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
-      var t = tok, mkOpen = false, mkClose = false, mdOpen = false, mdClose = false, kanMk = false;
+      var t = tok, mkOpen = false, mkClose = false, mkSpan = 1, mdOpen = false, mdClose = false, kanMk = false;
       /* If the braces sit inside the brackets — र({गरे}) — the murki belongs to the small
          note above, not to the whole swar. Only a brace outside the brackets wraps the
          main swar. */
@@ -160,6 +160,10 @@
         kanMk = true;
         t = t.replace(/[{}]/g, "");           // keep the braces out of the kan text
       } else if (t.indexOf("{") >= 0 || t.indexOf("}") >= 0) {
+        /* { ... }2 — the count after the closing brace says the group spreads over that
+           many matras, so a long murki is not squeezed into a single beat. */
+        var sp = /\}(\d+)\s*$/.exec(t);
+        if (sp) { mkSpan = parseInt(sp[1], 10); t = t.replace(/\}\d+\s*$/, "}"); }
         mkOpen = t.indexOf("{") >= 0;
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
@@ -174,18 +178,18 @@
       /* One dash on its own is an empty matra — leave the cell blank. Two or more
          dashes ask for a single dash to be shown instead. Every page, like the avagraha. */
       if (/^[-\u2010-\u2015\u2212]{2,}$/.test(t)) {
-        return { sep: true, t: "\u2013", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
+        return { sep: true, t: "\u2013", mkOpen: mkOpen, mkClose: mkClose, mkSpan: mkSpan, mdOpen: mdOpen, mdClose: mdClose };
       }
       if (/^[-\u2010-\u2015\u2212]$/.test(t)) {
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
-                 shruti: "", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
+                 shruti: "", mkOpen: mkOpen, mkClose: mkClose, mkSpan: mkSpan, mdOpen: mdOpen, mdClose: mdClose };
       }
       if (t === "|" || t === "/" || t === "।" || t === ",") {
-        return { sep: true, t: t === "," ? "," : "|", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
+        return { sep: true, t: t === "," ? "," : "|", mkOpen: mkOpen, mkClose: mkClose, mkSpan: mkSpan, mdOpen: mdOpen, mdClose: mdClose };
       }
       if (!t) {                       // a brace standing on its own
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
-                 shruti: "", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
+                 shruti: "", mkOpen: mkOpen, mkClose: mkClose, mkSpan: mkSpan, mdOpen: mdOpen, mdClose: mdClose };
       }
       var oct = 0, komal = false, guard = 0, octUp = false, octDn = false, dbl = false, tivra = false, orn = "";
       while (guard++ < 12) {                                       // markers may come in any order
@@ -223,7 +227,7 @@
       return { sep: false, t: devSwar(t), oct: oct, octUp: octUp, octDn: octDn, komal: komal,
                dbl: dbl, tivra: tivra, orn: orn,
                kan: devSwar(kan), kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
-               kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
+               kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose, mkSpan: mkSpan, mdOpen: mdOpen, mdClose: mdClose };
     });
   }
 
@@ -1646,6 +1650,22 @@
       }
       return el;
     }
+    /* how many matras does the group written in this cell take?  { ... }2 says two. */
+    function spanOf(a, b) {
+      var s1 = /\}(\d+)\s*$/.exec(String(a == null ? "" : a));
+      var s2 = /\}(\d+)\s*$/.exec(String(b == null ? "" : b));
+      var n = Math.max(s1 ? +s1[1] : 1, s2 ? +s2[1] : 1);
+      return Math.max(1, Math.min(8, n));
+    }
+    function applySpans(rowEl, spans) {
+      var skip = 0;
+      for (var i = 0; i < spans.length; i++) {
+        var cell = rowEl.children[i];
+        if (!cell) continue;
+        if (skip > 0) { cell.style.display = "none"; skip--; continue; }
+        if (spans[i] > 1) { cell.style.flexGrow = String(spans[i]); skip = spans[i] - 1; }
+      }
+    }
     if (line.review) {
       var rv = document.createElement("div"); rv.className = "bnd-review";
       rv.innerHTML = '<b>\u26a0 Check this one</b> \u2014 ' +
@@ -1672,13 +1692,28 @@
         } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });
     }
+    /* the number row must agree with the rows below it, so take the widest span at each matra */
+    var numSpan = [];
+    for (var q = 0; q < N; q++) numSpan[q] = 1;
+    rows.forEach(function (r) {
+      for (var q2 = 0; q2 < N; q2++) {
+        var sp2 = spanOf(r.swar[q2], (r.lyric || [])[q2]);
+        if (sp2 > numSpan[q2]) numSpan[q2] = sp2;
+      }
+    });
+    applySpans(nums, numSpan);
+
     rows.forEach(function (r) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
+      var spans = [];
+      for (var q3 = 0; q3 < N; q3++) spans[q3] = spanOf(r.swar[q3], (r.lyric || [])[q3]);
       for (var i = 0; i < N; i++) {
         fillCell(sl.children[i], r.swar[i]);
         fillCell(ll.children[i], (r.lyric || [])[i]);   // a tana grid has no lyric lane
       }
+      applySpans(sl, spans);
+      applySpans(ll, spans);
       rw.appendChild(sl);
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
       lw.appendChild(ll);
@@ -1777,6 +1812,7 @@
     ["<\u0938\u093e \u0930\u0947>",      "\u092e\u0940\u0902\u0921",      "a glide from one swar to the next"],
     ["(\u0930\u0947)",       "\u0915\u0923",       "a small grace note above"],
     ["{\u0938\u093e \u0930\u0947 \u0917}",     "\u092e\u0941\u0930\u094d\u0915\u0940",    "a quick turn \u2014 curve under the group"],
+    ["{\u0938\u093e \u0930\u0947}2",  "\u0938\u092e\u0942\u0939",     "a group spread over two matras \u2014 }3 for three, }4 for four"],
     ["!\u0938\u093e",        "\u0916\u091f\u0915\u093e",     "a quick, jerky cluster"],
     ["%\u0938\u093e",        "\u091c\u093c\u092e\u091c\u093c\u092e\u093e",   "an unevenly accented cluster"],
     ["@\u0938\u093e",        "\u0906\u0902\u0926\u094b\u0932\u0928",   "a slow oscillation on the swar"],
