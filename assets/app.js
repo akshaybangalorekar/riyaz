@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.3";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.4";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1410,9 +1410,51 @@
     return base + " " + (max + 1);
   }
   // rebuild every lesson's line list as its built-in lines plus the added ones
+  /* Older builds added a bandish "line" as a section of its own, which then sat outside
+     स्थाई and अंतरा. A line of the bandish is a row of the grid, so fold any such stray line
+     into the heading's grid and retire it. Runs on every load and is idempotent, because the
+     retired line leaves a tombstone behind. */
+  function foldStrayBandish(l) {
+    var adds = addedKeys(l.id);
+    if (!adds.length || !state.edits[l.id]) return;
+    adds.forEach(function (k) {
+      var v = state.edits[l.id][k];
+      if (!v || v.del) return;
+      if (v.sect && v.sect !== "bandish") return;            // other sections keep their own lines
+      if (v.label && raagSect(v.label) !== "bandish") return;
+      var head = (v.label && subGroup(v.label)) || SUBHEADS[0];
+      var at = headLineIndex(l, head);
+      if (at < 0) return;
+      var b = l.lines[at] && l.lines[at].bandish;
+      if (!b) return;
+      var m = b.matras || 16;
+      var map = {};
+      bandishRows(l, at).forEach(function (r, i) { map[String(i)] = { swar: r.swar, lyric: r.lyric }; });
+      var next = Object.keys(map).length;
+      var rows = [];
+      if (v.b) {
+        Object.keys(v.b).sort(function (a, c) { return (+a) - (+c); })
+          .forEach(function (rk) { rows.push(v.b[rk] || {}); });
+      }
+      rows.forEach(function (r) {
+        var sw = r.swar || [], ly = r.lyric || [];
+        if (sw.length !== m || ly.length !== m) {
+          var s2 = [], l2 = [];
+          for (var i = 0; i < m; i++) { s2.push(sw[i] || "-"); l2.push(ly[i] || ""); }
+          sw = s2; ly = l2;
+        }
+        map[String(next)] = { swar: sw, lyric: ly };
+        next++;
+      });
+      setLineEdit(l.id, at, { b: map });
+      setLineEdit(l.id, k, null);                            // retire the stray line
+    });
+  }
+
   function applyAdds() {
     D.lessons.forEach(function (l) {
       if (!l._base) l._base = (l.lines || []).slice();
+      try { foldStrayBandish(l); } catch (e) {}
       var extra = addedKeys(l.id).filter(function (k) {
         return !(state.edits[l.id][k] || {}).del;          // tombstones are gone for good
       }).map(function (k) {
