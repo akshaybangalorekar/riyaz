@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.4.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.5.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -151,7 +151,7 @@
 
   function tokenize(text) {
     return text.split(/\s+/).filter(Boolean).map(function (tok) {
-      var t = tok, mkOpen = false, mkClose = false, kanMk = false;
+      var t = tok, mkOpen = false, mkClose = false, mdOpen = false, mdClose = false, kanMk = false;
       /* If the braces sit inside the brackets — र({गरे}) — the murki belongs to the small
          note above, not to the whole swar. Only a brace outside the brackets wraps the
          main swar. */
@@ -164,21 +164,28 @@
         mkClose = t.indexOf("}") >= 0;
         t = t.replace(/[{}]/g, "");
       }
+      /* < > wrap a meend — a slide from one swar to the next. Its curve is drawn above,
+         so it is never confused with a murki's curve below. */
+      if (t.indexOf("<") >= 0 || t.indexOf(">") >= 0) {
+        mdOpen = t.indexOf("<") >= 0;
+        mdClose = t.indexOf(">") >= 0;
+        t = t.replace(/[<>]/g, "");
+      }
       /* One dash on its own is an empty matra — leave the cell blank. Two or more
          dashes ask for a single dash to be shown instead. Every page, like the avagraha. */
       if (/^[-\u2010-\u2015\u2212]{2,}$/.test(t)) {
-        return { sep: true, t: "\u2013", mkOpen: mkOpen, mkClose: mkClose };
+        return { sep: true, t: "\u2013", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
       }
       if (/^[-\u2010-\u2015\u2212]$/.test(t)) {
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
-                 shruti: "", mkOpen: mkOpen, mkClose: mkClose };
+                 shruti: "", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
       }
       if (t === "|" || t === "/" || t === "।" || t === ",") {
-        return { sep: true, t: t === "," ? "," : "|", mkOpen: mkOpen, mkClose: mkClose };
+        return { sep: true, t: t === "," ? "," : "|", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
       }
       if (!t) {                       // a brace standing on its own
         return { sep: false, t: "", oct: 0, komal: false, kan: "", kanKomal: false, kanOct: 0,
-                 shruti: "", mkOpen: mkOpen, mkClose: mkClose };
+                 shruti: "", mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
       }
       var oct = 0, komal = false, guard = 0, octUp = false, octDn = false;
       while (guard++ < 6) {                                        // markers may come in any order
@@ -208,7 +215,7 @@
       /* whatever was typed in English letters becomes Devanagari here */
       return { sep: false, t: devSwar(t), oct: oct, octUp: octUp, octDn: octDn, komal: komal,
                kan: devSwar(kan), kanKomal: kanKomal, kanOct: kanOct, kanOctUp: kanOctUp, kanOctDn: kanOctDn,
-               kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose };
+               kanMk: kanMk, shruti: shruti, mkOpen: mkOpen, mkClose: mkClose, mdOpen: mdOpen, mdClose: mdClose };
     });
   }
 
@@ -1207,14 +1214,14 @@
       }
       var unit = line.unit || 0, noteN = 0, mk = null;
       tokenize(lineText(l, li)).forEach(function (tk) {
-        if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; row.appendChild(mk); }
+        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); row.appendChild(mk); }
         if (tk.sep) {
-          if (tk.mkClose && mk) mk = null;        // a bar right after the brace sits outside the curve
+          if ((tk.mkClose || tk.mdClose) && mk) mk = null;   // a bar right after the brace sits outside the curve
           (mk || row).appendChild(sepEl(tk.t));
         } else if (tk.t) {
           (mk || row).appendChild(swarEl(tk, unit, noteN)); noteN++;
-          if (tk.mkClose && mk) mk = null;        // the last swar of the group is inside it
-        } else if (tk.mkClose && mk) { mk = null; }
+          if ((tk.mkClose || tk.mdClose) && mk) mk = null;   // the last swar of the group is inside it
+        } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });
       box.appendChild(row);
       if (state.editMode) box.appendChild(notationEditor(l, li));
@@ -1559,14 +1566,14 @@
     function fillCell(cell, text) {
       var mk = null;
       tokenize(text || "").forEach(function (tk) {
-        if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; cell.appendChild(mk); }
+        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); cell.appendChild(mk); }
         if (tk.sep) {
-          if (tk.mkClose && mk) mk = null;
+          if ((tk.mkClose || tk.mdClose) && mk) mk = null;
           (mk || cell).appendChild(sepEl(tk.t));
         } else if (tk.t) {
           (mk || cell).appendChild(swarEl(tk, 0, 0));
-          if (tk.mkClose && mk) mk = null;
-        } else if (tk.mkClose && mk) { mk = null; }
+          if ((tk.mkClose || tk.mdClose) && mk) mk = null;
+        } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });
     }
     rows.forEach(function (r) {
@@ -1656,10 +1663,10 @@
     box.className = "ed-syn-out";
     var mk = null;
     tokenize(text).forEach(function (tk) {
-      if (tk.mkOpen) { mk = document.createElement("span"); mk.className = "mk-grp"; box.appendChild(mk); }
-      if (tk.sep) { (mk || box).appendChild(sepEl(tk.t)); if (tk.mkClose && mk) mk = null; }
-      else if (tk.t) { (mk || box).appendChild(swarEl(tk, 0, 0)); if (tk.mkClose && mk) mk = null; }
-      else if (tk.mkClose && mk) { mk = null; }
+      if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); box.appendChild(mk); }
+      if (tk.sep) { (mk || box).appendChild(sepEl(tk.t)); if ((tk.mkClose || tk.mdClose) && mk) mk = null; }
+      else if (tk.t) { (mk || box).appendChild(swarEl(tk, 0, 0)); if ((tk.mkClose || tk.mdClose) && mk) mk = null; }
+      else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
     });
     return box;
   }
@@ -1673,6 +1680,7 @@
     ["~ग~म",                  "both marked"],
     ["{~ग~रे}",          "two komal swar on one matra"],
     ["{सा रे ग}", "murki — curve under the group"],
+    ["<सा रे>", "meend — slide from one swar to the next"],
     ["प(ध)",                  "kan — small note above"],
     ["र({गरे})",    "kan, with the murki under the small notes"],
     ["रे[2]",                 "shruti number, top right"],

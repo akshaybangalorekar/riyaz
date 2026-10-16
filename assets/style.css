@@ -676,3 +676,10 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .hp-b{font-size:13.5px; line-height:1.6; color:var(--dim)}
 .hp-b code{background:var(--bg2); border:1px solid var(--line); border-radius:5px; padding:0 4px; color:var(--ink)}
 .hp-b b{color:var(--ink)}
+
+/* ---------- meend: a slide, drawn as an arch above the pair ---------- */
+.md-grp{position:relative; display:inline-block; padding-top:12px}
+.md-grp::before{content:""; position:absolute; left:0; right:0; top:2px; height:7px;
+  border-top:2px solid var(--saffron); border-radius:50% 50% 0 0 / 100% 100% 0 0; opacity:.9}
+.bnd-swar .md-grp{padding-top:11px}
+.bnd-lyr .md-grp{padding-top:11px}
