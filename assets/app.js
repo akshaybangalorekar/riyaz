@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1154,6 +1154,16 @@
     "\u0926\u0940\u092a\u091a\u0902\u0926\u0940": ["\u00d7", "2", "\u0966", "3"],
     "\u092a\u0902\u091c\u093e\u092c\u0940": ["\u00d7", "2", "\u0966", "3"]
   };
+  /* the same table, matched without fussing over spaces — झपताल and झप ताल are the same taal */
+  function taalMarksFor(name) {
+    var n = String(name || "").replace(/\s+/g, "").trim();
+    if (!n) return null;
+    var keys = Object.keys(TAAL_MARKS);
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].replace(/\s+/g, "") === n) return TAAL_MARKS[keys[i]];
+    }
+    return null;
+  }
   function taalView(l, li, line) {
     var wrap = document.createElement("div"); wrap.className = "tl";
     var txt = lineText(l, li) || "";
@@ -1673,8 +1683,36 @@
         ' <b>\u270e Edit notation</b>';
       wrap.appendChild(rv);
     }
+    /* the number row must agree with the rows below it, so take the widest span at each matra */
+    var numSpan = [];
+    for (var q = 0; q < N; q++) numSpan[q] = 1;
+    rows.forEach(function (r) {
+      for (var q2 = 0; q2 < N; q2++) {
+        var sp2 = spanOf(r.swar[q2], (r.lyric || [])[q2]);
+        if (sp2 > numSpan[q2]) numSpan[q2] = sp2;
+      }
+    });
+    /* the taal marks sit above the numbers: × sam, ० khali, the taali numbers for the rest */
+    var tmarks = taalMarksFor(b.taal);
+    if (tmarks) {
+      var mkLane = lane("bnd-marks");
+      /* where each vibhag begins — the first is matra 1, then every vb[i] later */
+      var starts = [], acc = 0;
+      for (var z = 0; z < vb.length; z++) { starts.push(acc); acc += vb[z]; }
+      for (var vi2 = 0; vi2 < starts.length; vi2++) {
+        var at = starts[vi2];
+        if (at < 0 || at >= N) continue;
+        var m = tmarks[vi2] || "";
+        mkLane.children[at].textContent = m;
+        if (m) mkLane.children[at].setAttribute("data-mark",
+          m === "\u00d7" ? "\u0938\u092e" : (m === "\u0966" ? "\u0916\u093e\u0932\u0940" : "\u0924\u093e\u0932\u0940"));
+      }
+      applySpans(mkLane, numSpan);
+      wrap.appendChild(mkLane);
+    }
     var nums = lane("bnd-nums");
     for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
+    applySpans(nums, numSpan);
     wrap.appendChild(nums);
 
     /* Both lanes are written in the same notation, so both are drawn the same way:
@@ -1692,17 +1730,6 @@
         } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });
     }
-    /* the number row must agree with the rows below it, so take the widest span at each matra */
-    var numSpan = [];
-    for (var q = 0; q < N; q++) numSpan[q] = 1;
-    rows.forEach(function (r) {
-      for (var q2 = 0; q2 < N; q2++) {
-        var sp2 = spanOf(r.swar[q2], (r.lyric || [])[q2]);
-        if (sp2 > numSpan[q2]) numSpan[q2] = sp2;
-      }
-    });
-    applySpans(nums, numSpan);
-
     rows.forEach(function (r) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
