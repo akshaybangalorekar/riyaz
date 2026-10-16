@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.8.7";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.8.9";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1787,8 +1787,11 @@
           /* a swar written after the group is its own matra, and stays out of the curve */
           var after = i + span;
           if (after < N && !used[after]) {
-            if (swR && swR.tail) { fillCell(sl.children[after], swR.tail); used[after] = 1; }
-            else if (lyR && lyR.tail) { fillCell(ll.children[after], lyR.tail); used[after] = 1; }
+            if (swR && swR.tail && !String(r.swar[after] || "").trim()) {
+              fillCell(sl.children[after], swR.tail); used[after] = 1;
+            } else if (lyR && lyR.tail && !String((r.lyric || [])[after] || "").trim()) {
+              fillCell(ll.children[after], lyR.tail); used[after] = 1;
+            }
           }
           continue;
         }
@@ -2013,6 +2016,32 @@
     d.appendChild(bar);
     return d;
   }
+  /* Split a row into one entry per matra. A group in braces stays whole however many
+     spaces it holds inside, so {re ma pa dha ma pa dha}2 is a single matra carrying a
+     count — not seven matras with the braces torn apart. */
+  function splitMatras(text) {
+    var out = [], cur = "", depth = 0, t = String(text == null ? "" : text);
+    for (var i = 0; i < t.length; i++) {
+      var ch = t.charAt(i);
+      if (ch === "{" || ch === "(" || ch === "<") depth++;
+      if (ch === "}" || ch === ")" || ch === ">") { if (depth > 0) depth--; }
+      if (/\s/.test(ch) && depth === 0) {
+        if (cur) { out.push(cur); cur = ""; }
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur) out.push(cur);
+    /* a group that claims several matras fills that many slots — the extra ones stay blank */
+    var res = [];
+    out.forEach(function (tok) {
+      res.push(tok);
+      var m = /\}\s*[x\u00d7]?\s*(\d+)/.exec(tok);
+      var n = m ? Math.max(1, Math.min(8, +m[1])) : 1;
+      for (var k = 1; k < n; k++) res.push("");
+    });
+    return res;
+  }
   function bandishEditor(l, li, line) {
     var d = document.createElement("div"); d.className = "ed ed-bandish";
     var rows = bandishRows(l, li), fields = [];
@@ -2035,8 +2064,8 @@
       var b = {};
       fields.forEach(function (f) {
         b[String(f.ri)] = {
-          swar: f.a.value.split(/\s+/).filter(Boolean),
-          lyric: f.b.value.split(/\s+/).filter(Boolean)
+          swar: splitMatras(f.a.value),
+          lyric: splitMatras(f.b.value)
         };
       });
       setLineEdit(l.id, li, { b: b });
