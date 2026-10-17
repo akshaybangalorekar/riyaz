@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.8";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.9";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1574,6 +1574,9 @@
     rows.forEach(function (r, i) { map[String(i)] = { swar: r.swar, lyric: r.lyric }; });
     map[String(rows.length)] = { swar: sw, lyric: ly };
     setLineEdit(l.id, li, { b: map, bd: { rows: rows.length + 1 } });
+    /* remember it, so the new line can be pointed out — a blank row added to a blank grid
+       is otherwise invisible */
+    state.flashRow = { li: li, ri: rows.length };
   }
 
   /* Take one row out of a grid and keep the rest, in order. */
@@ -1937,7 +1940,13 @@
       });
     }
     rows.forEach(function (r, ri) {
-      var rw = document.createElement("div"); rw.className = "bnd-row";
+      var rw = document.createElement("div");
+      var fresh = state.flashRow && state.flashRow.li === li && state.flashRow.ri === ri;
+      rw.className = "bnd-row" + (fresh ? " bnd-fresh" : "");
+      if (fresh) {
+        state.flashRow = null;
+        setTimeout(function () { try { rw.classList.remove("bnd-fresh"); } catch (e) {} }, 2000);
+      }
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
       /* each lane keeps its own record, so a count on one line never skips the other's note */
       var usedSw = [], usedLy = [];
