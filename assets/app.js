@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.5";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.6";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2245,9 +2245,12 @@
       var lb = document.createElement("span"); lb.className = "ed-bn"; lb.textContent = label;
       var ta = document.createElement("textarea");
       ta.className = "ed-ta" + (cls ? " " + cls : "");
-      ta.rows = 1;
+      /* Every row of the line is shown, one per line, so Save writes them all back and a
+         new row is simply the last line. A one-line box silently edits row 1 instead. */
+      ta.rows = Math.max(1, String(value).split("\n").length);
       ta.value = value; ta.title = title;
       trackTa(ta);
+      setTimeout(function () { try { ta.scrollTop = ta.scrollHeight; } catch (e) {} }, 0);
       wrap.appendChild(lb); wrap.appendChild(ta);
       return { wrap: wrap, ta: ta };
     }
