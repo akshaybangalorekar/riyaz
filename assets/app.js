@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.11.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.12.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1223,6 +1223,64 @@
     }).sort(function (a, b) { return (a.key - b.key) || (a.i - b.i); })
       .map(function (o) { return o.x; });
   }
+  /* ---------- files: a Drive link per page ----------
+     Every page carries its own list of links. In edit mode you add them and tick whether each
+     one shows in view mode; in view mode you see only the ticked ones. Kept on this device. */
+  function loadFiles() {
+    if (state.files) return state.files;
+    try { state.files = JSON.parse(localStorage.getItem("sk_files") || "{}"); } catch (e) { state.files = {}; }
+    return state.files;
+  }
+  function saveFiles() { try { localStorage.setItem("sk_files", JSON.stringify(state.files || {})); } catch (e) {} }
+  function fileKey(l) { return l.id + "|" + (state.raagSect || ""); }
+  function fileList(l) {
+    var all = loadFiles(), k = fileKey(l);
+    if (!all[k]) all[k] = [];
+    return all[k];
+  }
+  function filesBox(l) {
+    var list = fileList(l), ed = state.editMode;
+    var shown = ed ? list : list.filter(function (f) { return f.view && f.url; });
+    if (!ed && !shown.length) return null;
+    var d = document.createElement("div"); d.className = "sk-files";
+    var h = document.createElement("div"); h.className = "sk-files-h";
+    h.textContent = "Files";
+    d.appendChild(h);
+    list.forEach(function (f, i) {
+      if (!ed && !(f.view && f.url)) return;
+      if (ed) {
+        var row = document.createElement("div"); row.className = "sk-file-row";
+        var inp = document.createElement("input");
+        inp.type = "url"; inp.className = "sk-file-in"; inp.value = f.url || "";
+        inp.placeholder = "paste a Google Drive link";
+        inp.oninput = function () { f.url = inp.value; saveFiles(); };
+        var lab = document.createElement("span"); lab.className = "sk-file-lab"; lab.textContent = "show";
+        lab.title = "tick to show this in view mode";
+        var cb = document.createElement("input");
+        cb.type = "checkbox"; cb.className = "sk-file-cb"; cb.checked = !!f.view;
+        cb.onchange = function () { f.view = cb.checked; saveFiles(); };
+        var rm = document.createElement("button");
+        rm.type = "button"; rm.className = "sk-file-x"; rm.textContent = "\u2715";
+        rm.title = "Remove this file";
+        rm.onclick = function () { list.splice(i, 1); saveFiles(); renderStage(l); };
+        row.appendChild(inp); row.appendChild(lab); row.appendChild(cb); row.appendChild(rm);
+        d.appendChild(row);
+      } else {
+        var a = document.createElement("a");
+        a.className = "sk-file-link"; a.href = f.url; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = f.name || ("File " + (i + 1));
+        d.appendChild(a);
+      }
+    });
+    if (ed) {
+      var add = document.createElement("button");
+      add.type = "button"; add.className = "sk-file-add"; add.textContent = "+ Add a file";
+      add.onclick = function () { list.push({ url: "", view: false }); saveFiles(); renderStage(l); };
+      d.appendChild(add);
+    }
+    return d;
+  }
+
   function renderNotation(l) {
     var box = $("#notation");
     if (!box) return;
@@ -1373,6 +1431,8 @@
         box.appendChild(addb);
       }
     }
+    var fb = filesBox(l);
+    if (fb) box.appendChild(fb);
   }
 
   /* ---------- written-notation edits ----------
