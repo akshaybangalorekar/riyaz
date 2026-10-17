@@ -770,3 +770,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .set-prompt-ta{width:100%; min-height:170px; max-height:320px; font-family:inherit; font-size:12px;
   line-height:1.5; color:var(--ink); background:var(--bg2); border:1px solid var(--line);
   border-radius:8px; padding:9px 11px; white-space:pre; overflow:auto; margin-bottom:8px}
+
+/* ---------- the per-row remove button, edit mode only ---------- */
+.bnd-del{margin-left:3px; padding:0; border:0; background:none; cursor:pointer;
+  font-size:9px; line-height:1; color:var(--dim); vertical-align:middle}
+.bnd-del:hover{color:var(--maroon)}
+.bnd-row .bnd-lab{display:inline-flex; align-items:center; justify-content:flex-end; gap:2px}

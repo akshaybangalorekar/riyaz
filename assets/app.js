@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.6";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.8";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1547,6 +1547,7 @@
     if (!b) return [];
     var e = editOf(l.id, li), ov = (e && e.b) || {};
     var n = b.rows.length, m = b.matras || 16;
+    if (e && e.bd && e.bd.rows) n = e.bd.rows;   // the count can be changed by adding or removing
     /* a row added by hand exists only in the edit, so allow for rows past the sheet's */
     Object.keys(ov).forEach(function (k) { var i = +k; if (i + 1 > n) n = i + 1; });
     var out = [];
@@ -1572,7 +1573,20 @@
     var map = {};
     rows.forEach(function (r, i) { map[String(i)] = { swar: r.swar, lyric: r.lyric }; });
     map[String(rows.length)] = { swar: sw, lyric: ly };
-    setLineEdit(l.id, li, { b: map });
+    setLineEdit(l.id, li, { b: map, bd: { rows: rows.length + 1 } });
+  }
+
+  /* Take one row out of a grid and keep the rest, in order. */
+  function removeGridRow(l, li, ri) {
+    var rows = bandishRows(l, li);
+    if (rows.length <= 1) return;                 // never leave a grid with no rows
+    var map = {}, at = 0;
+    rows.forEach(function (r, i) {
+      if (i === ri) return;
+      map[String(at)] = { swar: r.swar, lyric: r.lyric };
+      at++;
+    });
+    setLineEdit(l.id, li, { b: map, bd: { rows: at } });
   }
 
   /* The line that carries a heading's grid, so a new line can be added to it. */
@@ -1922,7 +1936,7 @@
         } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });
     }
-    rows.forEach(function (r) {
+    rows.forEach(function (r, ri) {
       var rw = document.createElement("div"); rw.className = "bnd-row";
       var sl = lane("bnd-swar"), ll = lane("bnd-lyr");
       /* each lane keeps its own record, so a count on one line never skips the other's note */
@@ -1972,7 +1986,19 @@
       }
       /* every row has the same shape — a label column, the lane, and a matching gap —
          so the marks, the matra numbers and both lanes all start at the same place */
-      rw.appendChild(laneLabel("\u0938\u094d\u0935\u0930"));
+      var lab = laneLabel("\u0938\u094d\u0935\u0930");
+      if (state.editMode) {
+        /* in edit mode every row can be removed — this takes out that one row only */
+        var del = document.createElement("button");
+        del.type = "button"; del.className = "bnd-del"; del.textContent = "\u2715";
+        del.title = "Remove this line";
+        del.onclick = function () {
+          removeGridRow(l, li, ri);
+          applyAdds(); renderList(); renderStage(l);
+        };
+        lab.appendChild(del);
+      }
+      rw.appendChild(lab);
       rw.appendChild(sl);
       rw.appendChild(laneGap());
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
