@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.4";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.10.5";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1364,14 +1364,24 @@
     });
     // while editing, one more line can be added right after the last one shown
     if (state.editMode && l.group === "Raag" && state.raagSect) {
-      var addb = document.createElement("button");
-      addb.type = "button"; addb.className = "ed-addbtn";
-      var where = "";
-      if (state.raagSect === "bandish") where = " to " + (openSubHead(l) || SUBHEADS[0]);
-      addb.textContent = (state.raagSect === "bandish" ? "+ Add a line" : "+ Add another " +
-        (raagSectLabel(state.raagSect) || "line")) + where;
-      addb.onclick = function () { addLine(l, state.raagSect); };
-      box.appendChild(addb);
+      if (state.raagSect === "bandish") {
+        /* one button per heading, each adding a row to that heading's own grid */
+        SUBHEADS.forEach(function (head) {
+          var at = headLineIndex(l, head);
+          if (at < 0) return;
+          var ab = document.createElement("button");
+          ab.type = "button"; ab.className = "ed-addbtn";
+          ab.textContent = "+ Add a row to " + head;
+          ab.onclick = function () { addRowToGrid(l, at); applyAdds(); renderList(); renderStage(l); };
+          box.appendChild(ab);
+        });
+      } else {
+        var addb = document.createElement("button");
+        addb.type = "button"; addb.className = "ed-addbtn";
+        addb.textContent = "+ Add another " + (raagSectLabel(state.raagSect) || "line");
+        addb.onclick = function () { addLine(l, state.raagSect); };
+        box.appendChild(addb);
+      }
     }
   }
 
@@ -2235,7 +2245,7 @@
       var lb = document.createElement("span"); lb.className = "ed-bn"; lb.textContent = label;
       var ta = document.createElement("textarea");
       ta.className = "ed-ta" + (cls ? " " + cls : "");
-      ta.rows = Math.max(1, String(value).split("\n").length);
+      ta.rows = 1;
       ta.value = value; ta.title = title;
       trackTa(ta);
       wrap.appendChild(lb); wrap.appendChild(ta);
