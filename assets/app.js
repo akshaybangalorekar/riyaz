@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.10.9";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.11.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1364,18 +1364,8 @@
     });
     // while editing, one more line can be added right after the last one shown
     if (state.editMode && l.group === "Raag" && state.raagSect) {
-      if (state.raagSect === "bandish") {
-        /* one button per heading, each adding a row to that heading's own grid */
-        SUBHEADS.forEach(function (head) {
-          var at = headLineIndex(l, head);
-          if (at < 0) return;
-          var ab = document.createElement("button");
-          ab.type = "button"; ab.className = "ed-addbtn";
-          ab.textContent = "+ Add a row to " + head;
-          ab.onclick = function () { addRowToGrid(l, at); applyAdds(); renderList(); renderStage(l); };
-          box.appendChild(ab);
-        });
-      } else {
+      if (state.raagSect !== "bandish") {
+        /* a bandish needs no button: press Enter in the swar or bol field for another line */
         var addb = document.createElement("button");
         addb.type = "button"; addb.className = "ed-addbtn";
         addb.textContent = "+ Add another " + (raagSectLabel(state.raagSect) || "line");
@@ -2305,7 +2295,7 @@
       for (var i = 0; i < n; i++) {
         b[String(i)] = { swar: splitMatras(swL[i] || ""), lyric: splitMatras(lyL[i] || "") };
       }
-      setLineEdit(l.id, li, { b: b });
+      setLineEdit(l.id, li, { b: b, bd: { rows: n } });
       renderNotation(l);
     };
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
@@ -2313,7 +2303,8 @@
     bar.appendChild(sv); bar.appendChild(rs);
     bar.appendChild(markHelp("\u0938\u094d\u0935\u0930 = the swar line, \u092c\u094b\u0932 = the words. " +
       "Each line of the bandish is one line in the box, and each matra is one word \u2014 a lone - leaves it empty. " +
-      "Write {2.re.ma.pa} to spread a group over " + matras + " or any number of matras.",
+      "<b>Press Enter for another line.</b> \u2715 on a row takes that line out. " +
+      "Write {2.re.ma.pa} to spread a group over any number of matras.",
       helpFirst ? (helpFirst = false, true) : false));
     d.appendChild(bar);
     return d;
