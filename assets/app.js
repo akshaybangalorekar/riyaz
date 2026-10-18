@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.32.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.33.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1028,14 +1028,10 @@
     var tabMs = [];
     l.media.forEach(function (m, i) {
       if (l.group === "Alankar" && m.kind !== "video") return;
-      /* a bandish sub page shares the bandish recordings, exactly as the player does */
-      if (!m.file && l.group === "Raag" && state.raagSect) {
-        var mk = /^bandish:/.test(state.raagSect) ? "bandish" : state.raagSect;
-        if (raagSect(m.name) !== mk) return;
-      }
+      if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
       tabMs.push({ m: m, i: i });
     });
-    if (tabMs.length > 1) {   // more than one recording, so you always need a way to choose
+    if ((state.editMode || tabMs.some(function (t) { return t.m.file; })) && tabMs.length > 1) {
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
@@ -1241,7 +1237,7 @@
       var pen = document.createElement("button");
       pen.type = "button";
       pen.className = "grp-pen" + (state.editOpen["g:" + g] ? " on" : "");
-      pen.textContent = "\u270e";
+      pen.textContent = "\u270e Edit";
       pen.title = state.editOpen["g:" + g] ? "Close the editor" : "Edit " + g;
       pen.onclick = function (e) {
         e.stopPropagation();
@@ -2195,7 +2191,7 @@
       var hpen = document.createElement("button");
       hpen.type = "button";
       hpen.className = "grp-pen" + (state.editOpen[li] ? " on" : "");
-      hpen.textContent = "\u270e";
+      hpen.textContent = "\u270e Edit";
       hpen.title = state.editOpen[li] ? "Close the editor" : "Edit this part";
       hpen.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
       head.appendChild(hpen);
