@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.33.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.34.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -964,7 +964,10 @@
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
     if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
-    else if (part && part.media.length) state.mediaIdx = bestOf(part.media, id);
+    else if (part && part.media.length) {
+      var vids = part.media.filter(function (i) { return (l.media[i] || {}).kind === "video"; });
+      state.mediaIdx = (!pageEditing(l) && vids.length) ? vids[0] : bestOf(part.media, id);
+    }
     else if (part) {
       var fm = -1;
       l.media.forEach(function (m, i) { if (fm < 0 && m.file) fm = i; });
@@ -980,6 +983,14 @@
   /* Editing is per page now: a pen beside the heading opens that page's editor, and clicking
      it again closes it. The Settings switch only decides whether the pens are offered. */
   function editingNow() { return !!state.canEdit; }
+  /* View mode is a page with no editor open, even when editing is allowed. Audio and the
+     clock belong to editing, so they stay out of the way until a pen is pressed. */
+  function pageEditing(l) {
+    if (!state.canEdit || !l) return false;
+    var any = false;
+    (l.lines || []).forEach(function (ln, i) { if (lineEditOpen(l, i)) any = true; });
+    return any;
+  }
   /* A line's editor is open when its own ✎ was pressed — or when the heading it sits under
      was, which is how स्थाई and अंतरा open for a whole bandish. */
   function lineEditOpen(l, li) {
@@ -1027,6 +1038,7 @@
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
     var tabMs = [];
     l.media.forEach(function (m, i) {
+      if (!pageEditing(l) && m.kind !== "video" && !m.file) return;   // audio is an editing-time choice
       if (l.group === "Alankar" && m.kind !== "video") return;
       if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
       tabMs.push({ m: m, i: i });
@@ -1598,7 +1610,7 @@
           ctl.appendChild(eb);
         }
       }
-      if (state.editMode && !curIsVideo) {   // a clock on a video page has nothing it can time
+      if (pageEditing(l) && !curIsVideo) {   // a clock on a video page has nothing it can time
         var mb = document.createElement("button");
         mb.className = "ln-btn mark"; mb.type = "button"; mb.textContent = "⏱";
         mb.title = "Set this line's start at the current position";
@@ -1645,7 +1657,7 @@
         };
         ctl.appendChild(tc);
       }
-      if (state.editMode && !curIsVideo) {   // takes are about times, so not on a video page
+      if (pageEditing(l) && !curIsVideo) {   // takes are about times, so not on a video page
         var addb = document.createElement("button");
         addb.type = "button"; addb.className = "ln-addtake";
         addb.textContent = "+";
