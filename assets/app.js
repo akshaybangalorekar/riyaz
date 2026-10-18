@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.24.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.25.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1158,7 +1158,9 @@
       }
       playBtn.onclick = function () { if (au.paused) au.play().catch(function () {}); else au.pause(); };
       au.addEventListener("play", function () { playBtn.textContent = "❚❚"; });
-      au.addEventListener("pause", function () { playBtn.textContent = "▶"; });
+      /* paused part-way shows a circular arrow — press it and it carries on from here */
+      au.addEventListener("pause", function () { if (!au.ended) playBtn.textContent = "↻"; });
+      au.addEventListener("ended", function () { playBtn.textContent = "▶"; });
       au.addEventListener("timeupdate", upd);
       au.addEventListener("loadedmetadata", function () {
         if (au._pendingSeek != null) { try { au.currentTime = au._pendingSeek; } catch (e) {} au._pendingSeek = null; }
@@ -1504,6 +1506,16 @@
          lesson's own page the button stays. */
       var fromFav = state.group === "Favourites";
       if (!curIsVideo && !fromFav) {
+        var bw = document.createElement("button");
+        bw.className = "ln-btn sk5"; bw.type = "button"; bw.textContent = "\u22125";
+        bw.title = "Back 5 seconds";
+        bw.onclick = function () { skipLine(-5); };
+        ctl.appendChild(bw);
+        var fw = document.createElement("button");
+        fw.className = "ln-btn sk5"; fw.type = "button"; fw.textContent = "+5";
+        fw.title = "Forward 5 seconds";
+        fw.onclick = function () { skipLine(5); };
+        ctl.appendChild(fw);
         var pb = document.createElement("button");
         pb.className = "ln-btn playb"; pb.type = "button"; pb.textContent = "▶";
         pb.title = "Play or pause this line";
@@ -2850,13 +2862,23 @@
     var r = state.lineRows[li];
     if (r) { r.classList.add("playing"); if (r.scrollIntoView) r.scrollIntoView({ block: "center", behavior: "smooth" }); }
   }
+  /* five seconds either way on whatever is playing */
+  function skipLine(n) {
+    var live = state.video || state.audio;
+    if (!live) return;
+    var d = live.duration;
+    var to = live.currentTime + n;
+    live.currentTime = Math.max(0, Math.min(d || to, to));
+  }
+
   function syncLineBtns() {
     var au = state.audio, vd = state.video;
     Object.keys(state.lineBtns).forEach(function (k) {
       var b = state.lineBtns[k]; if (!b) return;
       var live = vd || au;
       var playing = (state.playingLine === +k && live && !live.paused);
-      b.textContent = playing ? "\u275a\u275a" : "▶";
+      var held = (state.playingLine === +k && live && live.paused && !live.ended);
+      b.textContent = playing ? "\u275a\u275a" : (held ? "\u21bb" : "▶");
       b.classList.toggle("on", !!playing);
     });
   }

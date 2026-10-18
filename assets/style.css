@@ -879,3 +879,7 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   padding:5px 9px; vertical-align:middle}
 .sk-pen:hover{border-color:var(--saffron)}
 .sk-pen.on{background:var(--saffron); color:#20160d; border-color:var(--saffron); font-weight:700}
+
+/* ---------- five seconds either way, beside a line's play button ---------- */
+.ln-btn.sk5{font-size:11px; padding:0 5px; min-width:26px; color:var(--dim)}
+.ln-btn.sk5:hover{color:var(--ink)}
