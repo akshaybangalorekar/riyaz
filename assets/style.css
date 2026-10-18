@@ -526,20 +526,16 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   .sk-main.rail-hidden .sk-list{max-height:0; height:0; padding-top:0; padding-bottom:0}
 }
 .rail-tab{
-  /* sits on the right edge of the list, between it and the page */
   position:fixed; left:calc(16px + var(--safe-l) + 290px - 1px);
   top:50%; transform:translateY(-50%); z-index:35;
   width:24px; height:80px; padding:0; border:1px solid var(--line); border-left:0;
-  border-radius:0 12px 12px 0; background:var(--panel); color:var(--saffron);
+  border-radius:0 12px 12px 0; background:var(--panel2); color:var(--saffron);
   font-family:inherit; font-size:17px; line-height:1; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   box-shadow:2px 0 10px rgba(0,0,0,.35); transition:background .15s, color .15s;
 }
 .rail-tab:hover, .rail-tab:focus-visible{background:var(--saffron); color:#20160d}
-/* when the list is put away the tab follows it back to the edge */
-.sk-main.rail-hidden ~ .rail-tab{left:calc(16px + var(--safe-l))}
-@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(48px + var(--safe-b)); transform:none; left:auto; right:0;
-  border:1px solid var(--line); border-right:0; border-radius:12px 0 0 12px} }
+@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(48px + var(--safe-b)); transform:none} }
 
 /* grouped rail: plain full-width rows inside a section */
 .sk-list.sections .sk-item{width:100%; text-align:left}
@@ -848,5 +844,14 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bndx-name{flex:1 1 auto; min-width:0; font-family:inherit; font-size:13px; color:var(--ink);
   background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
 
-/* ---------- the tab goes down with the list when a panel is open ---------- */
+/* ---------- restored after the v2.18.3 revert ---------- */
+.sk-main.rail-hidden ~ .rail-tab{left:calc(16px + var(--safe-l))}
+.rail-tab.hidden{background:#e8a63e !important; color:#20160d !important;
+  border-color:#e8a63e !important; font-weight:700}
+.rail-tab.hidden:hover, .rail-tab.hidden:focus-visible{background:var(--gold); color:#20160d}
 .sk-banner.on ~ .rail-tab{display:none}
+.sk-row-sub{padding-left:22px; margin-left:0; border-left:2px solid var(--gold);
+  background:rgba(217,164,65,.06); border-radius:0 8px 8px 0}
+.sk-item.sub{font-size:13px; font-weight:600; color:var(--gold); letter-spacing:.2px}
+.sk-item.sub.on{color:var(--saffron)}
+.sk-item.sub::before{content:"\2514 "; opacity:.55}

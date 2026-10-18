@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.20.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.21.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -763,7 +763,8 @@
           "</span></div>" +
           (open ? raagSections(l).map(function (x) {
             var on = (l.id === state.lessonId && state.raagSect === x.k) ? " on" : "";
-            return '<div class="sk-row"><button class="sk-item' + on + '" data-id="' + l.id + '" data-s="' + x.k + '">' +
+            return '<div class="sk-row' + (x.sub ? " sk-row-sub" : "") + '"><button class="sk-item' + on +
+              (x.sub ? " sub" : "") + '" data-id="' + l.id + '" data-s="' + x.k + '">' +
               esc(x.t) + "</button>" +
               sunHTML(scopeAllFav({ kind: "part", id: l.id, sect: x.k }), "rail",
                 'data-scope="' + l.id + '" data-sect="' + x.k + '" data-kind="part"') + "</div>";
@@ -901,9 +902,8 @@
     m.classList.toggle("rail-hidden", !!hidden);
     var b = $("#btnRail");
     if (b) {
-      b.textContent = hidden ? "\u203a" : "\u2039";       // the arrow points back the way it will go
-      b.classList.toggle("hidden", !!hidden);            // and the tab turns yellow while the list is away
-      /* set it directly as well, so no other rule can win */
+      b.textContent = hidden ? "\u203a" : "\u2039";
+      b.classList.toggle("hidden", !!hidden);
       b.style.setProperty("background", hidden ? "#e8a63e" : "", "important");
       b.style.setProperty("color", hidden ? "#20160d" : "", "important");
       b.style.setProperty("border-color", hidden ? "#e8a63e" : "", "important");
@@ -1372,11 +1372,7 @@
     (l.lines || []).forEach(function (ln, i) {
       var m = /^\s*bandish\s*(.*?)\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)\s*$/i.exec(ln.label || "");
       if (!m) return;
-      /* a bandish that came with the raag has no name in its label; it counts as "1", the same
-         way bandishNames reports it, or the comparison would never match */
       if ((m[1].trim() || "1") !== from) return;
-      /* an added bandish lives at its own key (1000 and up), not at its position in the list,
-         so the rename must be filed under that key or nothing changes */
       var key = (typeof ln.idx === "number") ? String(ln.idx) : String(i);
       setLineEdit(l.id, key, { label: "Bandish " + to + " (" + m[2] + ")" });
     });
