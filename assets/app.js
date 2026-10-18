@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.17.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.18.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -527,6 +527,35 @@
     { k: "tana",    t: "तान" },
     { k: "bandish", t: "बंदिश" }
   ];
+  /* ---------- bandish are sub pages ----------
+     A raag's बंदिश page is an index and nothing else. Each bandish is a sub page of it, and a
+     bandish line is named "Bandish One (Sthayi)" / "Bandish One (Antara)" — the middle word is
+     the name, edited on the index, and it is what the rail and the page heading show. */
+  function bandishNames(l) {
+    var out = [];
+    (l.lines || []).forEach(function (ln) {
+      var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
+      if (!m) return;
+      var nm = m[1].trim() || "1";        // the unnamed bandish that came with a raag is 1
+      if (out.indexOf(nm) < 0) out.push(nm);
+    });
+    return out;
+  }
+  function bandishKey(label, names) {
+    var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(label || "");
+    if (!m) return null;
+    var nm = m[1].trim() || "1";
+    var idx = names.indexOf(nm);
+    return "bandish:" + (idx < 0 ? 1 : idx + 1);
+  }
+  function lineSection(l, label) {
+    return bandishKey(label, bandishNames(l)) || raagSect(label);
+  }
+  function bandishNameOfKey(l, k) {
+    var m = /^bandish:(\d+)$/.exec(k || "");
+    if (!m) return "";
+    return bandishNames(l)[+m[1] - 1] || "";
+  }
   function raagSect(x) {
     var t = (x || "").toLowerCase();
     if (/aaroh|avroh|pakad|आरोह|अवरोह|पकड/.test(t)) return "aaroh";
@@ -537,12 +566,25 @@
   }
   function raagSectParts(l, k) {
     var lines = [], media = [];
-    (l.lines || []).forEach(function (ln, i) { if (raagSect(ln.label) === k) lines.push(i); });
+    (l.lines || []).forEach(function (ln, i) { if (lineSection(l, ln.label) === k) lines.push(i); });
     (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === k) media.push(i); });
     return { lines: lines, media: media };
   }
   function raagSections(l) {
-    return RAAG_SECS.filter(function (x) { var p = raagSectParts(l, x.k); return p.lines.length || p.media.length; });
+    var out = [];
+    RAAG_SECS.forEach(function (x) {
+      if (x.k === "bandish") {
+        /* page 5 exists for every raag, because it is the bandish index */
+        out.push(x);
+        bandishNames(l).forEach(function (nm, i) {
+          out.push({ k: "bandish:" + (i + 1), t: "बंदिश " + nm, sub: true });
+        });
+        return;
+      }
+      var p = raagSectParts(l, x.k);
+      if (p.lines.length || p.media.length) out.push(x);
+    });
+    return out;
   }
   function raagOrderList() {
     var ids = lessonsOf("Raag").map(function (l) { return l.id; });
@@ -560,6 +602,7 @@
     renderList();
   }
   function raagSectLabel(k) {
+    if (/^bandish:/.test(k || "")) return "बंदिश";
     var hit = RAAG_SECS.filter(function (x) { return x.k === k; })[0];
     return hit ? hit.t : "";
   }
@@ -911,7 +954,7 @@
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
     var curVideo = mcur.kind === "video";
-    var secHasLines = !(l.group === "Raag" && state.raagSect) ||
+    var secHasLines = !(l.group === "Raag" && state.raagSect) || state.raagSect === "bandish" ||
       raagSectParts(l, state.raagSect).lines.length > 0;
     var fname = mcur.name || "";      // the real file name, extension and all
     if (l.title) {   // "Raag दुर्गा - Aaroh..." -> "Aaroh..." (the name is already in the heading)
@@ -928,6 +971,8 @@
       if (l.sub) meta.push(l.sub);
       if (fname) meta.push(fname);
     } else if (l.group === "Alankar" || l.group === "Raag") {
+      var bnm = (l.group === "Raag") ? bandishNameOfKey(l, state.raagSect) : "";
+      if (bnm) head = l.title + ": " + bnm;        // Raag दुर्गा: 1
       if (l.group === "Raag" && state.raagSect) { var sl = raagSectLabel(state.raagSect); if (sl) meta.push(sl); }
       if (fname) meta.push(fname);
     }
@@ -1119,8 +1164,10 @@
        "Bandish (Antara)" fold just like the laikari headings do. Both start folded. */
     var t = label || "";
     if (t.indexOf("\u26a0") >= 0) return "";   // a check-note is not a part heading
-    if (/Sthayi|\u0938\u094d\u0925\u093e\u0908/i.test(t)) return "\u0938\u094d\u0925\u093e\u0908";
-    if (/Antara|\u0905\u0902?\u0924\u0930/i.test(t)) return "\u0905\u0902\u0924\u0930\u093e";
+    var nm = (/^\s*bandish\s*(.*?)\s*\(/i.exec(t) || [])[1];
+    var tail = nm ? " " + nm.trim() : "";      // so two bandish keep separate headings
+    if (/Sthayi|\u0938\u094d\u0925\u093e\u0908/i.test(t)) return "\u0938\u094d\u0925\u093e\u0908" + tail;
+    if (/Antara|\u0905\u0902?\u0924\u0930/i.test(t)) return "\u0905\u0902\u0924\u0930\u093e" + tail;
     return "";
   }
   function grpKey(l, g) { return l.id + "|" + (state.raagSect || "") + "|" + g; }
@@ -1135,7 +1182,7 @@
     var open = grpOpen(l, g);
     var n = 0;
     (l.lines || []).forEach(function (ln) {
-      if (raagSect(ln.label) === state.raagSect && subGroup(ln.label) === g) n++;
+      if (lineSection(l, ln.label) === state.raagSect && subGroup(ln.label) === g) n++;
     });
     var b = document.createElement("button");
     b.type = "button"; b.className = "grp-h" + (open ? " open" : "");
@@ -1216,7 +1263,7 @@
   function orderedLines(l, secKey) {
     var list = [];
     (l.lines || []).forEach(function (line, li) {
-      if (secKey && raagSect(line.label) !== secKey) return;
+      if (secKey && lineSection(l, line.label) !== secKey) return;
       list.push({ line: line, li: li });
     });
     var firstAt = {};
@@ -1288,6 +1335,72 @@
     return d;
   }
 
+  /* ---------- page 5: the बंदिश index ---------- */
+  function nextBandishName(l) {
+    var names = bandishNames(l), n = names.length + 1;
+    while (names.indexOf(String(n)) >= 0) n++;
+    return String(n);
+  }
+  function addBandish(l) {
+    var nm = nextBandishName(l), sib = null;
+    (l.lines || []).forEach(function (ln) { if (!sib && ln.bandish) sib = ln.bandish; });
+    var taal = sib ? sib.taal : "\u0924\u0940\u0928\u0924\u093e\u0932";
+    var m = sib ? (sib.matras || 16) : 16;
+    var vib = (sib && sib.vibhag ? sib.vibhag : [4, 4, 4, 4]).slice();
+    ["Sthayi", "Antara"].forEach(function (part) {
+      var idx = nextAddIndex(l.id), sw = [], ly = [];
+      for (var i = 0; i < m; i++) { sw.push("-"); ly.push(""); }
+      setLineEdit(l.id, String(idx), {
+        t: "", label: "Bandish " + nm + " (" + part + ")", sect: "bandish",
+        bd: { taal: taal, matras: m, vibhag: vib },
+        b: { "0": { swar: sw, lyric: ly } }
+      });
+    });
+    applyAdds(); renderList(); renderStage(l);
+  }
+  function renameBandish(l, from, to) {
+    if (!to || to === from) return;
+    (l.lines || []).forEach(function (ln, i) {
+      var m = /^\s*bandish\s*(.*?)\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)\s*$/i.exec(ln.label || "");
+      if (!m || m[1].trim() !== from) return;
+      setLineEdit(l.id, String(i), { label: "Bandish " + to + " (" + m[2] + ")" });
+    });
+    applyAdds(); renderList(); renderStage(l);
+  }
+  function bandishIndex(l) {
+    var d = document.createElement("div"); d.className = "bndx";
+    var names = bandishNames(l);
+    if (!names.length) {
+      var none = document.createElement("div"); none.className = "sk-dim";
+      none.textContent = "No bandish yet.";
+      d.appendChild(none);
+    }
+    names.forEach(function (nm, i) {
+      var row = document.createElement("div"); row.className = "bndx-row";
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "bndx-open";
+      b.textContent = "\u092c\u0902\u0926\u093f\u0936 " + nm;
+      b.onclick = function () { open(l.id, null, "bandish:" + (i + 1)); };
+      row.appendChild(b);
+      if (state.canEdit) {
+        var inp = document.createElement("input");
+        inp.className = "bndx-name"; inp.value = nm; inp.placeholder = "bandish name";
+        inp.title = "Rename this bandish";
+        inp.onchange = function () { renameBandish(l, nm, inp.value.trim()); };
+        row.appendChild(inp);
+      }
+      d.appendChild(row);
+    });
+    if (state.canEdit) {
+      var add = document.createElement("button");
+      add.type = "button"; add.className = "ed-addbtn";
+      add.textContent = "+ Add a bandish";
+      add.onclick = function () { addBandish(l); };
+      d.appendChild(add);
+    }
+    return d;
+  }
+
   function renderNotation(l) {
     var box = $("#notation");
     if (!box) return;
@@ -1300,7 +1413,7 @@
     orderedLines(l, secKey).forEach(function (x) {
       var line = x.line;
       if (line.onlyVideo && !curIsVideo) return;
-      if (secKey && raagSect(line.label) !== secKey) return;
+      if (secKey && lineSection(l, line.label) !== secKey) return;
       var g0 = subGroup(line.label);
       if (g0) grpCount[g0] = (grpCount[g0] || 0) + 1;
     });
@@ -1312,7 +1425,7 @@
     orderedLines(l, secKey).forEach(function (x) {
       var line = x.line, li = x.li;
       if (line.onlyVideo && !curIsVideo) return;
-      if (secKey && raagSect(line.label) !== secKey) return;
+      if (secKey && lineSection(l, line.label) !== secKey) return;
       var grp = useGroups ? subGroup(line.label) : "";
       if (useGroups && grp && grp !== lastG) { box.appendChild(groupHeader(l, grp)); lastG = grp; }
       if (useGroups && grp && !grpOpen(l, grp)) return;   // this heading is folded away
@@ -1399,6 +1512,9 @@
       if (line.label) {
         var lb = document.createElement("span");
         lb.className = "sk-lbl"; lb.textContent = line.label;
+        /* on a bandish sub page the collapsible heading already names the part in Devanagari,
+           so the line's own English label is not repeated inside */
+        if (/^bandish:/.test(secKey || "")) lb.style.display = "none";
         row.appendChild(lb);
       }
       if (l.group === "Taal") {           // a taal gets its own lane: marks, matra numbers, bols
@@ -1438,6 +1554,7 @@
         box.appendChild(addb);
       }
     }
+    if (state.raagSect === "bandish") box.appendChild(bandishIndex(l));
     var fb = filesBox(l);
     if (fb) box.appendChild(fb);
   }
@@ -1518,10 +1635,24 @@
     });
   }
 
+  /* A bandish that came with the raag had no name — "Bandish (Sthayi)". Give it the name "1",
+     so it becomes sub page 5a. Its grids are not touched. */
+  function nameOldBandish(l) {
+    if (bandishNames(l).length) return;
+    var has = false;
+    (l.lines || []).forEach(function (ln) { if (/^\s*bandish\s*\(/i.test(ln.label || "")) has = true; });
+    if (!has) return;
+    (l.lines || []).forEach(function (ln, i) {
+      var m = /^\s*bandish\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)\s*$/i.exec(ln.label || "");
+      if (m) setLineEdit(l.id, String(i), { label: "Bandish 1 (" + m[1] + ")" });
+    });
+  }
+
   function applyAdds() {
     D.lessons.forEach(function (l) {
       if (!l._base) l._base = (l.lines || []).slice();
       try { foldStrayBandish(l); } catch (e) {}
+      try { nameOldBandish(l); } catch (e) {}
       var extra = addedKeys(l.id).filter(function (k) {
         return !(state.edits[l.id][k] || {}).del;          // tombstones are gone for good
       }).map(function (k) {

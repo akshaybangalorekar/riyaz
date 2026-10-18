@@ -833,3 +833,12 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-editbtn.ghost:hover{color:var(--ink)}
 .sk-editbtn.ghost.off{opacity:.45; cursor:default}
 .sk-editbtn.ghost.off:hover{color:var(--dim)}
+
+/* ---------- page 5: the बंदिश index ---------- */
+.bndx{margin:6px 0 4px}
+.bndx-row{display:flex; align-items:center; gap:9px; margin-bottom:7px}
+.bndx-open{font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; color:var(--saffron);
+  background:none; border:1px solid var(--line); border-radius:9px; padding:8px 13px; text-align:left; flex:0 0 auto}
+.bndx-open:hover{border-color:var(--saffron)}
+.bndx-name{flex:1 1 auto; min-width:0; font-family:inherit; font-size:13px; color:var(--ink);
+  background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
