@@ -861,3 +861,14 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   color:#20160d; background:var(--saffron); border:1px solid var(--saffron);
   border-radius:8px; padding:7px 11px; line-height:1}
 .bndx-ok:hover{background:var(--gold)}
+
+/* ---------- the ✕ that removes a bandish, and the ✓ that saves a name ---------- */
+.bndx-x{flex:0 0 auto; font-family:inherit; font-size:12px; cursor:pointer; color:var(--dim);
+  background:none; border:1px solid var(--line); border-radius:8px; padding:8px 10px; line-height:1}
+.bndx-x:hover{color:var(--maroon); border-color:var(--maroon)}
+.bndx-ok{flex:0 0 auto; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;
+  color:#20160d; background:var(--saffron); border:1px solid var(--saffron);
+  border-radius:8px; padding:7px 11px; line-height:1}
+.bndx-ok:hover{background:var(--gold)}
+.sk-item.sub{color:var(--ink); font-size:14px; font-weight:500}
+.sk-item.sub.on{color:var(--saffron); font-weight:700}

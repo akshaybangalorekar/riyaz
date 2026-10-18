@@ -22,7 +22,7 @@
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
     cleared: {},       // lessons whose marks were cleared in this session
     edits: {},         // user corrections to the written notation
-    editMode: false,   // is the notation editor open
+    editMode: (function () { try { return localStorage.getItem("sk_can_edit") === "1"; } catch (e) { return false; } })(),
     /* Editing is off unless it is switched on in Settings, so a stray tap cannot change
        the notation or a bandish. */
     canEdit: (function () { try { return localStorage.getItem("sk_can_edit") === "1"; } catch (e) { return false; } })(),
@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.21.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.23.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1014,9 +1014,7 @@
       html += '<div class="sk-stoprow">' +
         
         (curVideo || !secHasLines || state.group === "Favourites" ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
-        (state.canEdit ? ('<button class="sk-editbtn' + (state.editMode ? " on" : "") + '" id="btnEditNotation" type="button">\u270e ' +
-        (state.editMode ? "Done editing" : "Edit notation") + "</button>" +
-        '<button class="sk-editbtn ghost' + (UNDO.length ? "" : " off") + '" id="btnUndo" type="button"' +
+        (state.editMode ? ('<button class="sk-editbtn ghost' + (UNDO.length ? "" : " off") + '" id="btnUndo" type="button"' +
         (UNDO.length ? "" : " disabled") + ' title="Put back the last change">\u21b6 Undo</button>') : "") +
         "</div>";
     }
@@ -1039,8 +1037,7 @@
 
     renderPlayer(l);
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
-    var ebtn = $("#btnEditNotation");
-    if (ebtn) ebtn.onclick = function () { state.editMode = !state.editMode; renderStage(l); renderList(); };
+    /* no per-page edit button: the Settings switch turns editing on and off */
     var ubtn = $("#btnUndo");
     if (ubtn) ubtn.onclick = function () { doUndo(); };
   }
@@ -1182,10 +1179,9 @@
   function grpKey(l, g) { return l.id + "|" + (state.raagSect || "") + "|" + g; }
   /* The स्थाई and अंतरा headings start folded — twenty lines at once is a lot to
      scroll past — and open when you tap them. */
-  function grpStartsClosed(g) { return g === "स्थाई" || g === "अंतरा"; }
-  function grpOpen(l, g) {
-    var f = state.grp[grpKey(l, g)];
-    return f === undefined ? !grpStartsClosed(g) : f !== false;
+  function grpStartsClosed(g) {
+    /* a bandish heading carries its name, so "स्थाई 2" must behave like "स्थाई" */
+    return /^\u0938\u094d\u0925\u093e\u0908/.test(g || "") || /^\u0905\u0902\u0924\u0930/.test(g || "");
   }
   function groupHeader(l, g) {
     var open = grpOpen(l, g);
@@ -1378,6 +1374,23 @@
     });
     applyAdds(); renderList(); renderStage(l);
   }
+  function removeBandish(l, nm) {
+    var names = bandishNames(l);
+    if (names.length <= 1) {
+      alert("This raag has only one bandish, so it cannot be removed. A raag needs at least one.");
+      return;
+    }
+    if (!confirm("Remove bandish " + nm + "?\n\nIts \u0938\u094d\u0925\u093e\u0908 and \u0905\u0902\u0924\u0930\u093e will be deleted, and this cannot be undone.")) return;
+    (l.lines || []).forEach(function (ln, i) {
+      var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
+      if (!m) return;
+      if ((m[1].trim() || "1") !== nm) return;
+      var key = (typeof ln.idx === "number") ? String(ln.idx) : String(i);
+      setLineEdit(l.id, key, null);
+    });
+    applyAdds(); renderList(); renderStage(l);
+  }
+
   function bandishIndex(l) {
     var d = document.createElement("div"); d.className = "bndx";
     var names = bandishNames(l);
@@ -1399,6 +1412,11 @@
         inp.title = "Rename this bandish";
         inp.onchange = function () { renameBandish(l, nm, inp.value.trim()); };
         row.appendChild(inp);
+        var del = document.createElement("button");
+        del.type = "button"; del.className = "bndx-x"; del.textContent = "\u2715";
+        del.title = "Remove this bandish";
+        del.onclick = function () { removeBandish(l, nm); };
+        row.appendChild(del);
         var ok = document.createElement("button");
         ok.type = "button"; ok.className = "bndx-ok"; ok.textContent = "\u2713";
         ok.title = "Save this name";
@@ -1696,7 +1714,7 @@
       l.lines = l._base.concat(extra).map(function (ln, i) {
         if (ln.added) return ln;
         var v = (state.edits[l.id] || {})[String(i)];
-        if (!v) return ln;
+        if (!v || v.del) return ln;
         var out = {}, k;
         for (k in ln) out[k] = ln[k];
         if (typeof v.label === "string" && v.label) out.label = v.label;
@@ -3201,7 +3219,7 @@
         "Leave this off and nothing on a page can be changed by accident.";
       cb.onchange = function () {
         state.canEdit = cb.checked;
-        if (!state.canEdit) state.editMode = false;
+        state.editMode = state.canEdit;          // the switch is the only control now
         try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
         var l = state.lessonId && lesson(state.lessonId);
         if (l) renderStage(l);
