@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.26.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.27.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -951,6 +951,7 @@
     stopAll();
     state.lessonId = id;
     state.raagSect = sect || null;
+    try { applyFiles(l); } catch (e) {}
     if (l.group === "Raag") {                          // one part per page, never the whole raag
       var rs = raagSections(l);
       /* a section remembered from last time is only honoured if this raag really has it */
@@ -961,7 +962,11 @@
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
     if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
     else if (part && part.media.length) state.mediaIdx = bestOf(part.media, id);
-    else if (part) state.mediaIdx = -1;
+    else if (part) {
+      var fm = -1;
+      l.media.forEach(function (m, i) { if (fm < 0 && m.file) fm = i; });
+      state.mediaIdx = fm;                             // a ticked file plays here
+    }
     else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
     localStorage.setItem("sk_sect", state.raagSect || "");   // so a refresh lands back here
@@ -983,6 +988,7 @@
 
   function renderStage(l) {
     state.editMode = editingNow();
+    try { applyFiles(l); } catch (e) {}
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
     var curVideo = mcur.kind === "video";
@@ -1019,10 +1025,10 @@
     var tabMs = [];
     l.media.forEach(function (m, i) {
       if (l.group === "Alankar" && m.kind !== "video") return;
-      if (l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
+      if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
       tabMs.push({ m: m, i: i });
     });
-    if (state.editMode && tabMs.length > 1) {   // which recording you are on is an editing concern
+    if ((state.editMode || tabMs.some(function (t) { return t.m.file; })) && tabMs.length > 1) {
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
@@ -1339,6 +1345,27 @@
     if (!all[k]) all[k] = [];
     return all[k];
   }
+  /* Pull the Drive file id out of a link, whichever shape it was pasted in. */
+  function driveId(url) {
+    var u = String(url || "");
+    var m = /\/file\/d\/([A-Za-z0-9_-]{10,})/.exec(u) || /[?&]id=([A-Za-z0-9_-]{10,})/.exec(u) ||
+            /\/d\/([A-Za-z0-9_-]{10,})/.exec(u);
+    return m ? m[1] : "";
+  }
+  /* A file that is ticked to show plays at the top like any other recording, so it is added
+     to this page's media. Drive serves it through its own player, which is the same route a
+     Drive-hosted video already takes. */
+  function fileMedia(l) {
+    var list = fileList(l);
+    return list.filter(function (f) { return f.view && driveId(f.url); }).map(function (f, i) {
+      return { id: driveId(f.url), name: f.name || ("File " + (i + 1)), kind: "video", file: true };
+    });
+  }
+  function applyFiles(l) {
+    if (!l._mediaBase) l._mediaBase = (l.media || []).slice();
+    l.media = l._mediaBase.concat(fileMedia(l));
+  }
+
   function filesBox(l) {
     var list = fileList(l), ed = state.editMode;
     var shown = ed ? list : list.filter(function (f) { return f.view && f.url; });
