@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.31.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.32.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1028,10 +1028,14 @@
     var tabMs = [];
     l.media.forEach(function (m, i) {
       if (l.group === "Alankar" && m.kind !== "video") return;
-      if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
+      /* a bandish sub page shares the bandish recordings, exactly as the player does */
+      if (!m.file && l.group === "Raag" && state.raagSect) {
+        var mk = /^bandish:/.test(state.raagSect) ? "bandish" : state.raagSect;
+        if (raagSect(m.name) !== mk) return;
+      }
       tabMs.push({ m: m, i: i });
     });
-    if ((state.editMode || tabMs.some(function (t) { return t.m.file; })) && tabMs.length > 1) {
+    if (tabMs.length > 1) {   // more than one recording, so you always need a way to choose
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
