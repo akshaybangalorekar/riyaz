@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.23.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.23.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1191,6 +1191,10 @@
   function grpStartsClosed(g) {
     /* a bandish heading carries its name, so "स्थाई 2" must behave like "स्थाई" */
     return /^\u0938\u094d\u0925\u093e\u0908/.test(g || "") || /^\u0905\u0902\u0924\u0930/.test(g || "");
+  }
+  function grpOpen(l, g) {
+    var f = state.grp[grpKey(l, g)];
+    return f === undefined ? !grpStartsClosed(g) : f !== false;
   }
   function groupHeader(l, g) {
     var open = grpOpen(l, g);
