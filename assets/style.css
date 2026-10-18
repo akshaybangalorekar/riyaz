@@ -526,15 +526,20 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   .sk-main.rail-hidden .sk-list{max-height:0; height:0; padding-top:0; padding-bottom:0}
 }
 .rail-tab{
-  position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:35;
+  /* sits on the right edge of the list, between it and the page */
+  position:fixed; left:calc(16px + var(--safe-l) + 290px - 1px);
+  top:50%; transform:translateY(-50%); z-index:35;
   width:24px; height:80px; padding:0; border:1px solid var(--line); border-left:0;
-  border-radius:0 12px 12px 0; background:var(--panel2); color:var(--saffron);
+  border-radius:0 12px 12px 0; background:var(--panel); color:var(--saffron);
   font-family:inherit; font-size:17px; line-height:1; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   box-shadow:2px 0 10px rgba(0,0,0,.35); transition:background .15s, color .15s;
 }
 .rail-tab:hover, .rail-tab:focus-visible{background:var(--saffron); color:#20160d}
-@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(48px + var(--safe-b)); transform:none} }
+/* when the list is put away the tab follows it back to the edge */
+.sk-main.rail-hidden ~ .rail-tab{left:calc(16px + var(--safe-l))}
+@media(max-width:780px){ .rail-tab{top:auto; bottom:calc(48px + var(--safe-b)); transform:none; left:auto; right:0;
+  border:1px solid var(--line); border-right:0; border-radius:12px 0 0 12px} }
 
 /* grouped rail: plain full-width rows inside a section */
 .sk-list.sections .sk-item{width:100%; text-align:left}
