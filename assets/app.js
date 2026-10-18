@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.21.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.21.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1399,6 +1399,11 @@
         inp.title = "Rename this bandish";
         inp.onchange = function () { renameBandish(l, nm, inp.value.trim()); };
         row.appendChild(inp);
+        var ok = document.createElement("button");
+        ok.type = "button"; ok.className = "bndx-ok"; ok.textContent = "\u2713";
+        ok.title = "Save this name";
+        ok.onclick = function () { renameBandish(l, nm, inp.value.trim()); };
+        row.appendChild(ok);
       }
       d.appendChild(row);
     });
@@ -1685,7 +1690,19 @@
         }
         return line;
       });
-      l.lines = l._base.concat(extra);
+      /* A line that came with the raag keeps its original text unless an edit says otherwise.
+         This is what makes a renamed bandish take effect — without it the rename is written
+         but never shown. */
+      l.lines = l._base.concat(extra).map(function (ln, i) {
+        if (ln.added) return ln;
+        var v = (state.edits[l.id] || {})[String(i)];
+        if (!v) return ln;
+        var out = {}, k;
+        for (k in ln) out[k] = ln[k];
+        if (typeof v.label === "string" && v.label) out.label = v.label;
+        if (typeof v.t === "string") out.text = v.t;
+        return out;
+      });
     });
   }
   var SUBHEADS = ["\u0938\u094d\u0925\u093e\u0908", "\u0905\u0902\u0924\u0930\u093e"];

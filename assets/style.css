@@ -855,3 +855,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-item.sub{font-size:13px; font-weight:600; color:var(--gold); letter-spacing:.2px}
 .sk-item.sub.on{color:var(--saffron)}
 .sk-item.sub::before{content:"\2514 "; opacity:.55}
+
+/* ---------- the tick that saves a bandish name ---------- */
+.bndx-ok{flex:0 0 auto; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;
+  color:#20160d; background:var(--saffron); border:1px solid var(--saffron);
+  border-radius:8px; padding:7px 11px; line-height:1}
+.bndx-ok:hover{background:var(--gold)}
