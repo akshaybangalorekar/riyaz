@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.30.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.30.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3264,7 +3264,10 @@
     pullTries++;
     setTimeout(function () { pullMarks(); }, 3000 * pullTries);
   }
-  function closeSettings() { var m = $("#skSettings"); if (m) m.classList.remove("on"); }
+  function closeSettings() {
+    settingsOK = false;                    // closing forgets the PIN as well
+    var m = $("#skSettings"); if (m) m.classList.remove("on");
+  }
   /* ---------- the settings PIN ----------
      Settings holds the switch that allows editing, so it is locked. The PIN is fixed, as asked,
      and the door stays open for the rest of the session once it has been entered. */
@@ -3273,8 +3276,9 @@
 
   function openSettings() {
     var box = $("#skSettingsBox"); if (!box) return;
-    if (!settingsOK) { showPinGate(box); return; }
-    buildSettings();
+    /* asked every single time, even if the PIN was entered a moment ago */
+    settingsOK = false;
+    showPinGate(box);
   }
 
   function showPinGate(box) {
