@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.30.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.31.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -577,7 +577,10 @@
   function raagSectParts(l, k) {
     var lines = [], media = [];
     (l.lines || []).forEach(function (ln, i) { if (lineSection(l, ln.label) === k) lines.push(i); });
-    (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === k) media.push(i); });
+    /* The bandish recordings are filed under "bandish" while a bandish sub page asks for
+       "bandish:1", so without this a sub page found no recording at all. */
+    var mk = /^bandish:/.test(k || "") ? "bandish" : k;
+    (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === mk) media.push(i); });
     return { lines: lines, media: media };
   }
   function raagSections(l) {
@@ -2184,6 +2187,15 @@
     var wrap = document.createElement("div"); wrap.className = "bnd";
     var head = document.createElement("div"); head.className = "bnd-head";
     head.innerHTML = '<b>' + esc(b.taal || "") + '</b><span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e</span>';
+    if (state.canEdit) {                       // a pen on the bandish grid itself
+      var hpen = document.createElement("button");
+      hpen.type = "button";
+      hpen.className = "grp-pen" + (state.editOpen[li] ? " on" : "");
+      hpen.textContent = "\u270e";
+      hpen.title = state.editOpen[li] ? "Close the editor" : "Edit this part";
+      hpen.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
+      head.appendChild(hpen);
+    }
     wrap.appendChild(head);
 
     function lane(cls) {
