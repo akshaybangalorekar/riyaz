@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.27.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.28.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1504,6 +1504,14 @@
     return d;
   }
 
+  /* On the मुक्त आलाप page "Mukt Aalap" adds nothing line after line, so the label reads as a
+     plain number and the notation gets the room. The stored label is untouched, so the page
+     still knows which part it is. */
+  function displayLabel(label) {
+    var m = /^\s*(?:mukt\s*aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a)\s*(\d+)\s*$/i.exec(label || "");
+    return m ? (m[1] + ".") : (label || "");
+  }
+
   function renderNotation(l) {
     var box = $("#notation");
     if (!box) return;
@@ -1632,7 +1640,7 @@
       row.appendChild(ctl);
       if (line.label) {
         var lb = document.createElement("span");
-        lb.className = "sk-lbl"; lb.textContent = line.label;
+        lb.className = "sk-lbl"; lb.textContent = displayLabel(line.label);
         /* on a bandish sub page the collapsible heading already names the part in Devanagari,
            so the line's own English label is not repeated inside */
         if (/^bandish:/.test(secKey || "")) lb.style.display = "none";

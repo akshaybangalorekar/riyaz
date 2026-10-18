@@ -892,3 +892,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   color:var(--saffron); background:none; border:1px solid var(--line); border-radius:999px; padding:3px 7px}
 .grp-pen:hover{border-color:var(--saffron)}
 .grp-pen.on{background:var(--saffron); color:#20160d; border-color:var(--saffron); font-weight:700}
+
+/* ---------- the video controls sit on the video, small and clear ---------- */
+.vctl{gap:6px; padding:6px 8px}
+.vbtn{min-height:26px; min-width:30px; padding:0 7px; font-size:12px; border-radius:6px}
+.vtrack{height:5px}
+.vtime{font-size:10.5px}
+@media(max-width:520px){ .vbtn{min-height:22px; min-width:26px; font-size:11px; padding:0 5px}
+  .vtime{font-size:9.5px} .vctl{gap:4px; padding:5px 6px} }
