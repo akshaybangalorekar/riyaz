@@ -23,6 +23,9 @@
     cleared: {},       // lessons whose marks were cleared in this session
     edits: {},         // user corrections to the written notation
     editMode: false,   // is the notation editor open
+    /* Editing is off unless it is switched on in Settings, so a stray tap cannot change
+       the notation or a bandish. */
+    canEdit: (function () { try { return localStorage.getItem("sk_can_edit") === "1"; } catch (e) { return false; } })(),
     grp: {},           // which Sthayi / Antara headings are folded away
     raagSect: null,    // which part of a raag is showing (aaroh / mukt / …)
     raagOpen: {},      // which raags are expanded in the rail
@@ -37,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.13.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.14.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -957,8 +960,8 @@
       html += '<div class="sk-stoprow">' +
         
         (curVideo || !secHasLines || state.group === "Favourites" ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
-        '<button class="sk-editbtn' + (state.editMode ? " on" : "") + '" id="btnEditNotation" type="button">\u270e ' +
-        (state.editMode ? "Done editing" : "Edit notation") + "</button>" +
+        (state.canEdit ? ('<button class="sk-editbtn' + (state.editMode ? " on" : "") + '" id="btnEditNotation" type="button">\u270e ' +
+        (state.editMode ? "Done editing" : "Edit notation") + "</button>") : "") +
         "</div>";
     }
 
@@ -3000,6 +3003,25 @@
     };
     $("#setClear").onclick = function () { try { localStorage.removeItem("sk_gh_token"); } catch (e) {} $("#setMsg").textContent = "Token removed"; updateMarksMsg(); };
     $("#setClose").onclick = closeSettings;
+    /* the editing switch — the only way to reveal the notation editors */
+    (function () {
+      var d = document.createElement("div"); d.className = "set-editrow";
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.className = "set-editcb"; cb.id = "setCanEdit"; cb.checked = !!state.canEdit;
+      var lab = document.createElement("label");
+      lab.className = "set-editlab"; lab.htmlFor = "setCanEdit";
+      lab.textContent = "Allow editing \u2014 show the \u270e Edit notation button on each page. " +
+        "Leave this off and nothing on a page can be changed by accident.";
+      cb.onchange = function () {
+        state.canEdit = cb.checked;
+        if (!state.canEdit) state.editMode = false;
+        try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
+        var l = state.lessonId && lesson(state.lessonId);
+        if (l) renderStage(l);
+      };
+      d.appendChild(cb); d.appendChild(lab);
+      box.appendChild(d);
+    })();
     appendProjectPrompt(box);
     updateMarksMsg();
   }

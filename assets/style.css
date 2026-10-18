@@ -811,3 +811,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 /* the swar itself is one size wherever it appears, kan or not, mandra or not */
 .sk-sw{font-size:1em}
 .sk-sw.has-mark, .sk-sw.kan-host{font-size:1em}
+
+/* ---------- the editing switch in Settings ---------- */
+.set-editrow{display:flex; align-items:flex-start; gap:9px; margin:16px 0 2px;
+  padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg2)}
+.set-editcb{width:17px; height:17px; margin-top:1px; accent-color:var(--saffron); cursor:pointer; flex:0 0 auto}
+.set-editlab{font-size:12.5px; line-height:1.5; color:var(--dim); cursor:pointer}
