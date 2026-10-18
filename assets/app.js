@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.12.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.13.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2157,13 +2157,13 @@
     ["^^\u0938\u093e",       "\u0905\u0924\u093f \u0924\u093e\u0930",   "two octaves up \u2014 two dots above"],
     ["__\u0938\u093e",       "\u0905\u0924\u093f \u092e\u0902\u0926\u094d\u0930", "two octaves down \u2014 two dots below"],
     ["<\u0938\u093e \u0930\u0947>",      "\u092e\u0940\u0902\u0921",      "a glide from one swar to the next"],
-    ["(\u0930\u0947)",       "\u0915\u0923",       "a small grace note above"],
+    ["(\u0930\u0947)",       "\u0915\u0923",       "a small grace note — write it in brackets straight after the swar it leans on, and it sits just above it"],
     ["{\u0938\u093e \u0930\u0947 \u0917}",     "\u092e\u0941\u0930\u094d\u0915\u0940",    "a quick turn \u2014 curve under the group"],
     ["{\u0938\u093e \u0930\u0947}2",  "\u0938\u092e\u0942\u0939",     "spread over two matras \u2014 the number after the brace is how many: }3, }4"],
-    ["!\u0938\u093e",        "\u0916\u091f\u0915\u093e",     "a quick, jerky cluster"],
-    ["%\u0938\u093e",        "\u091c\u093c\u092e\u091c\u093c\u092e\u093e",   "an unevenly accented cluster"],
-    ["@\u0938\u093e",        "\u0906\u0902\u0926\u094b\u0932\u0928",   "a slow oscillation on the swar"],
-    ["&\u0938\u093e",        "\u0917\u092e\u0915",      "a heavy oscillation"],
+    ["!\u0938\u093e",        "\u0916\u091f\u0915\u093e",     "a sharp flick on one swar, to accent it inside a fast phrase. Name shows above the swar."],
+    ["%\u0938\u093e",        "\u091c\u093c\u092e\u091c\u093c\u092e\u093e",   "a quick trembling cluster on one swar \u2014 busier than a murki. Name shows above the swar."],
+    ["@\u0938\u093e",        "\u0906\u0902\u0926\u094b\u0932\u0928",   "a slow, wide swing on one swar, for a calm singing movement. Name shows above the swar."],
+    ["&\u0938\u093e",        "\u0917\u092e\u0915",      "a strong shake on a held swar \u2014 heavier and slower than \u0906\u0902\u0926\u094b\u0932\u0928. Name shows above the swar."],
     ["[2]",         "\u0936\u094d\u0930\u0941\u0924\u093f",    "which of the 22 microtones"],
     ["\u0917\u0930\u0947",        "\u090f\u0915 \u092e\u093e\u0924\u094d\u0930\u093e",  "two swar on one matra \u2014 no space"],
     ["|",           "\u0935\u093f\u092d\u093e\u0917",     "the bar that divides the beat"],

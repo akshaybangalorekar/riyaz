@@ -796,3 +796,18 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   color:var(--saffron); background:none; border:1px dashed var(--line); border-radius:8px; padding:6px 11px}
 .sk-file-link{display:block; font-size:13.5px; color:var(--saffron); text-decoration:none; margin:4px 0}
 .sk-file-link:hover{text-decoration:underline}
+
+/* ---------- the kan-swar: one distance everywhere, and the same size as the swar ----------
+   It sits just above the swar it leans on, at 1em, so kan, plain and mandra swar all read the
+   same size and the gap to the swar below is identical with or without a murki on the kan. */
+.sk-sw.kan-host{padding-top:22px}
+.sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:1px; font-size:1em; padding-bottom:6px}
+.bnd-swar .sk-sw.kan-host{padding-top:20px}
+.bnd-swar .sk-sw .kan{font-size:1em; padding-bottom:5px}
+.bnd-lyr .sk-sw.kan-host{padding-top:22px}
+.bnd-lyr .sk-sw .kan{font-size:1em}
+.ed-syn-out .sk-sw.kan-host{padding-top:20px}
+.ed-syn-out .kan{top:1px; font-size:1em}
+/* the swar itself is one size wherever it appears, kan or not, mandra or not */
+.sk-sw{font-size:1em}
+.sk-sw.has-mark, .sk-sw.kan-host{font-size:1em}
