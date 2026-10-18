@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.28.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.29.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1508,8 +1508,25 @@
      plain number and the notation gets the room. The stored label is untouched, so the page
      still knows which part it is. */
   function displayLabel(label) {
-    var m = /^\s*(?:mukt\s*aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a)\s*(\d+)\s*$/i.exec(label || "");
-    return m ? (m[1] + ".") : (label || "");
+    var t = label || "";
+    if (!/mukt\s*aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a/i.test(t)) return t;
+    var m = /(\d+)\s*$/.exec(t);                 // its number, wherever it sits in the label
+    return m ? (m[1] + ".") : "";
+  }
+
+  var SAVED_T = {};
+  /* Save says so, then returns to Save so it can be pressed again after more changes. The
+     notation is redrawn when it flips back, so the page stays in step. */
+  function flashSaved(l, btn, key, obj) {
+    setLineEdit(l.id, key, obj);
+    btn.textContent = "Saved";
+    btn.classList.add("saved");
+    clearTimeout(SAVED_T[key]);
+    SAVED_T[key] = setTimeout(function () {
+      btn.textContent = "Save";
+      btn.classList.remove("saved");
+      renderNotation(l);
+    }, 4000);
   }
 
   function renderNotation(l) {
@@ -2588,7 +2605,7 @@
     d.appendChild(ta);
     var bar = document.createElement("div"); bar.className = "ed-bar";
     var sv = document.createElement("button"); sv.className = "ed-btn"; sv.type = "button"; sv.textContent = "Save";
-    sv.onclick = function () { setLineEdit(l.id, editKeyFor(l, li), { t: ta.value }); renderNotation(l); };
+    sv.onclick = function () { flashSaved(l, sv, editKeyFor(l, li), { t: ta.value }); };
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, editKeyFor(l, li), null); renderNotation(l); };
     bar.appendChild(sv); bar.appendChild(rs);
@@ -2667,8 +2684,7 @@
       for (var i = 0; i < n; i++) {
         b[String(i)] = { swar: splitMatras(swL[i] || ""), lyric: splitMatras(lyL[i] || "") };
       }
-      setLineEdit(l.id, li, { b: b, bd: { rows: n } });
-      renderNotation(l);
+      flashSaved(l, sv, li, { b: b, bd: { rows: n } });
     };
     var rs = document.createElement("button"); rs.className = "ed-btn ghost"; rs.type = "button"; rs.textContent = "Reset";
     rs.onclick = function () { setLineEdit(l.id, li, null); renderNotation(l); };

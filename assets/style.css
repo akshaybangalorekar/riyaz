@@ -900,3 +900,6 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .vtime{font-size:10.5px}
 @media(max-width:520px){ .vbtn{min-height:22px; min-width:26px; font-size:11px; padding:0 5px}
   .vtime{font-size:9.5px} .vctl{gap:4px; padding:5px 6px} }
+
+/* ---------- Save, briefly saying so ---------- */
+.ed-btn.saved{background:var(--gold); border-color:var(--gold); color:#20160d}
