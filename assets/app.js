@@ -37,7 +37,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.12.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.12.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2242,6 +2242,15 @@
       "and a dot above or below for the octave."));
     box.appendChild(helpSection("Two small things",
       "A single <code>-</code> is an empty matra and stays blank; write <code>--</code> if you want a dash to show."));
+    box.appendChild(helpSection("The pages of a raag",
+      "Every raag carries the same pages: <b>\u0906\u0930\u094b\u0939</b>, <b>\u0905\u0935\u0930\u094b\u0939</b> and <b>\u092a\u0915\u0921</b>; <b>\u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a</b>; <b>\u0932\u092f\u0915\u093e\u0930\u0940</b> " +
+      "(Sthayi Laikari 1\u201310 and Antara Laikari 1\u201310); <b>\u0924\u093e\u0928</b> (Tana 1\u201315); and <b>\u092c\u0902\u0926\u093f\u0936</b> " +
+      "(Bandish (Sthayi) and Bandish (Antara)). \u0926\u0941\u0930\u094d\u0917\u093e and \u092d\u0940\u092e\u092a\u0932\u0938\u0940 follow \u092d\u0948\u0930\u0935\u0940\u2019s pattern, and their " +
+      "\u0932\u092f\u0915\u093e\u0930\u0940 and \u0924\u093e\u0928 pages stay empty until your guru teaches them."));
+    box.appendChild(helpSection("Files on a page",
+      "Every page can carry its own list of files. In <b>edit mode</b> press <b>+ Add a file</b> and paste a " +
+      "Google Drive link, then tick <b>show</b> beside it if it should appear in view mode. <b>\u2715</b> removes that file. " +
+      "Untick a link to keep it but hide it. The links are kept on this device."));
     box.appendChild(helpSection("Resuming this project in a new chat",
       "Open <b>Settings</b> (\u2699) and expand <b>Project prompt</b>, then press <b>Copy prompt</b>. " +
       "Paste that as the first message in a new chat and whoever picks it up has the whole picture \u2014 " +
