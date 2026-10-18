@@ -847,3 +847,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bndx-open:hover{border-color:var(--saffron)}
 .bndx-name{flex:1 1 auto; min-width:0; font-family:inherit; font-size:13px; color:var(--ink);
   background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:7px 9px}
+
+/* ---------- the tab while the list is put away ---------- */
+.rail-tab.hidden{background:#e8a63e !important; color:#20160d !important;
+  border-color:#e8a63e !important; font-weight:700}
+.rail-tab.hidden:hover, .rail-tab.hidden:focus-visible{background:var(--gold); color:#20160d}

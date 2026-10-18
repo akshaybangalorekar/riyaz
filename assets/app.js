@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.18.3";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.19.4";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -900,7 +900,16 @@
     if (!m) return;
     m.classList.toggle("rail-hidden", !!hidden);
     var b = $("#btnRail");
-    if (b) { b.textContent = hidden ? "\u203a" : "\u2039"; b.setAttribute("aria-expanded", hidden ? "false" : "true"); }
+    if (b) {
+      b.textContent = hidden ? "\u203a" : "\u2039";       // the arrow points back the way it will go
+      b.classList.toggle("hidden", !!hidden);            // and the tab turns yellow while the list is away
+      /* set it directly as well, so no other rule can win */
+      b.style.setProperty("background", hidden ? "#e8a63e" : "", "important");
+      b.style.setProperty("color", hidden ? "#20160d" : "", "important");
+      b.style.setProperty("border-color", hidden ? "#e8a63e" : "", "important");
+      b.setAttribute("aria-expanded", hidden ? "false" : "true");
+      b.title = hidden ? "Show the list" : "Hide the list";
+    }
   }
   function toggleRail() {
     var m = document.querySelector(".sk-main");
