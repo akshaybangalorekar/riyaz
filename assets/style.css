@@ -822,3 +822,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .ed-syn-when{font-size:12px; line-height:1.45; color:var(--dim)}
 .hp-marks .ed-syn-when{font-size:11px; line-height:1.35}
 .hp-marks .ed-syn-name{font-size:11.5px}
+
+/* ---------- the backlog list in Settings ---------- */
+.set-back{margin:0 0 9px}
+.set-back b{font-size:12.5px; color:var(--ink)}
+.set-back-p{font-size:12px; line-height:1.5; color:var(--dim); padding-left:16px}

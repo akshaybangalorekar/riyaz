@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.15.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.15.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3024,8 +3024,53 @@
       d.appendChild(cb); d.appendChild(lab);
       box.appendChild(d);
     })();
+    appendBacklog(box);
     appendProjectPrompt(box);
     updateMarksMsg();
+  }
+
+  /* Everything asked for and not yet built, newest first. Shown folded in Settings so it can be
+     read any time and picked from run by run. */
+  var BACKLOG = [
+    ["अभ्यास tab — practice links",
+     "A tab beside Favourites, Alankar, Taal and Raag, holding the links Atharv practises from, mostly YouTube. Each link gets a short summary and a field for why and where he used it."],
+    ["मंच tab — performances",
+     "All of Atharv's performance links in one place. Each link gets a field for where he performed and a field for the date, so they can be sorted by date."],
+    ["Multiple bandish per raag",
+     "A बंदिश index page with an 'Add bandish' button; each bandish named, living under it."],
+    ["Backup and restore",
+     "Weekly, on the first open after Saturday 00:00, plus a manual button; stored in the repo. Must also cover your own raags and the file links, which live on one device only."],
+    ["Print, save and share a PDF per page",
+     "Both स्थाई and अंतरा under headings on one PDF; saved to a path you choose."],
+    ["Undo for edits",
+     "A wrong Save is permanent today. Small, and it makes everything else safer."],
+    ["Update the project prompt and Help",
+     "For the editing switch, the new 'when to use it' column, the Files feature and these new tabs."],
+    ["First-run card",
+     "Three lines on the opening screen: the rail, ▶ to play a line, ⏱ to set its start."],
+    ["Search across raags",
+     "Type a swar phrase and find every line that uses it."],
+    ["Practised tick and streak",
+     "Tick a line as practised today, with a gentle streak count."],
+    ["Bigger type switch",
+     "One switch that scales the notation up for younger readers."]
+  ];
+  function appendBacklog(box) {
+    if (!BACKLOG.length) return;
+    var d = document.createElement("details"); d.className = "set-prompt";
+    var s = document.createElement("summary"); s.className = "set-prompt-s";
+    s.textContent = "Backlog \u2014 asked for, not built yet (" + BACKLOG.length + ")";
+    d.appendChild(s);
+    var body = document.createElement("div"); body.className = "set-prompt-b";
+    BACKLOG.forEach(function (b, i) {
+      var it = document.createElement("div"); it.className = "set-back";
+      var n = document.createElement("b"); n.textContent = (i + 1) + ". " + b[0];
+      var p = document.createElement("div"); p.className = "set-back-p"; p.textContent = b[1];
+      it.appendChild(n); it.appendChild(p);
+      body.appendChild(it);
+    });
+    d.appendChild(body);
+    box.appendChild(d);
   }
 
   /* ---------- the project prompt ----------
