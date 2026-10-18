@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.16.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.17.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2186,14 +2186,14 @@
     ["^^सा", "अति तार", "two octaves up — two dots above", "Two octaves up — uncommon, but written this way."],
     ["__सा", "अति मंद्र", "two octaves down — two dots below", "Two octaves down."],
     ["<सा रे>", "मींड", "a glide from one swar to the next", "When you slide between two swar instead of singing them separately."],
-    ["(रे)", "कण", "a small grace note above", "For a grace note leaning on a swar — write it in brackets straight after."],
+    ["सा(रे)", "कण", "a small grace note above", "Write it in brackets straight after the swar it leans on, so it sits above that swar."],
     ["{सा रे ग}", "मुर्की", "a quick turn — curve under the group", "For a quick turn through two or three swar inside one matra."],
     ["{सा रे}2", "समूह", "spread over several matras", "When a group will not fit in one matra. The number is how many; }3, }4 also work."],
     ["!सा", "खटका", "a sharp flick on one swar", "To accent a swar inside a fast phrase. Its name shows above the swar."],
     ["%सा", "ज़मज़मा", "a quick trembling cluster", "Busier than a murki — a quick shake on one swar. Name above the swar."],
     ["@सा", "आंदोलन", "a slow, wide swing on one swar", "For a calm, singing movement. Name above the swar."],
     ["&सा", "गमक", "a strong shake on a held swar", "Heavier and slower than आंदोलन. Name above the swar."],
-    ["[2]", "श्रुति", "which of the 22 microtones", "When you want to name the exact microtone."],
+    ["रे[2]", "श्रुति", "which of the 22 microtones", "Write it straight after a swar, so it shows on that swar. On its own there is nothing to sit on."],
     ["गरे", "एक मात्रा", "two swar on one matra — no space", "When two swar share one matra, write them with no space between."],
     ["|", "विभाग", "the bar that divides the beat", "The bar between vibhags."],
     ["-", "खाली मात्रा", "an empty matra — stays blank", "Leaves the matra empty; a lone - disappears."],
