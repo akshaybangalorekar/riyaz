@@ -872,3 +872,10 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bndx-ok:hover{background:var(--gold)}
 .sk-item.sub{color:var(--ink); font-size:14px; font-weight:500}
 .sk-item.sub.on{color:var(--saffron); font-weight:700}
+
+/* ---------- the pen that opens one page's editor ---------- */
+.sk-pen{margin-left:8px; font-family:inherit; font-size:13px; line-height:1; cursor:pointer;
+  color:var(--saffron); background:none; border:1px solid var(--line); border-radius:999px;
+  padding:5px 9px; vertical-align:middle}
+.sk-pen:hover{border-color:var(--saffron)}
+.sk-pen.on{background:var(--saffron); color:#20160d; border-color:var(--saffron); font-weight:700}

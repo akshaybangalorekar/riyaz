@@ -22,7 +22,8 @@
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
     cleared: {},       // lessons whose marks were cleared in this session
     edits: {},         // user corrections to the written notation
-    editMode: (function () { try { return localStorage.getItem("sk_can_edit") === "1"; } catch (e) { return false; } })(),
+    editMode: false,   // set from the pen below
+    editPart: null,    // which page's editor is open — the pen toggles this
     /* Editing is off unless it is switched on in Settings, so a stray tap cannot change
        the notation or a bandish. */
     canEdit: (function () { try { return localStorage.getItem("sk_can_edit") === "1"; } catch (e) { return false; } })(),
@@ -40,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.23.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.24.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -968,7 +969,14 @@
     renderStage(l);
   }
 
+  /* Editing is per page now: a pen beside the heading opens that page's editor, and clicking
+     it again closes it. The Settings switch only decides whether the pens are offered. */
+  function editingNow() {
+    return !!state.canEdit && !!state.editPart && state.editPart === state.raagSect;
+  }
+
   function renderStage(l) {
+    state.editMode = editingNow();
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
     var curVideo = mcur.kind === "video";
@@ -996,6 +1004,9 @@
     }
     var html = '<div class="sk-h1">' + esc(head) +
       (meta.length ? ' <span class="sk-file">' + esc(meta.join(" \u00b7 ")) + "</span>" : "") +
+      (state.canEdit && l.group === "Raag" && state.raagSect ? '<button type="button" class="sk-pen' +
+        (editingNow() ? " on" : "") + '" id="btnPen" title="' + (editingNow() ? "Close the editor" : "Edit this page") +
+        '">\u270e</button>' : "") +
       (mcur.id ? ' <a class="sk-drive" href="https://drive.google.com/file/d/' + mcur.id +
         '/view" target="_blank" rel="noopener" title="Open this file in Google Drive">\u2197 Drive</a>' : "") +
       "</div>";
@@ -1046,7 +1057,11 @@
 
     renderPlayer(l);
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
-    /* no per-page edit button: the Settings switch turns editing on and off */
+    var pen = $("#btnPen");
+    if (pen) pen.onclick = function () {
+      state.editPart = editingNow() ? null : state.raagSect;
+      renderStage(l); renderList();
+    };
     var ubtn = $("#btnUndo");
     if (ubtn) ubtn.onclick = function () { doUndo(); };
   }
@@ -1592,7 +1607,7 @@
     });
     // while editing, one more line can be added right after the last one shown
     if (state.editMode && l.group === "Raag" && state.raagSect) {
-      if (state.raagSect !== "bandish") {
+      if (!/^bandish(:|$)/.test(state.raagSect || "")) {
         /* a bandish needs no button: press Enter in the swar or bol field for another line */
         var addb = document.createElement("button");
         addb.type = "button"; addb.className = "ed-addbtn";
@@ -3232,7 +3247,7 @@
         "Leave this off and nothing on a page can be changed by accident.";
       cb.onchange = function () {
         state.canEdit = cb.checked;
-        state.editMode = state.canEdit;          // the switch is the only control now
+        if (!state.canEdit) state.editPart = null;   // pens away, editors closed
         try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
         var l = state.lessonId && lesson(state.lessonId);
         if (l) renderStage(l);
