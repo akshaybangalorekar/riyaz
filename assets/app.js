@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.19.4";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.20.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1371,8 +1371,14 @@
     if (!to || to === from) return;
     (l.lines || []).forEach(function (ln, i) {
       var m = /^\s*bandish\s*(.*?)\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)\s*$/i.exec(ln.label || "");
-      if (!m || m[1].trim() !== from) return;
-      setLineEdit(l.id, String(i), { label: "Bandish " + to + " (" + m[2] + ")" });
+      if (!m) return;
+      /* a bandish that came with the raag has no name in its label; it counts as "1", the same
+         way bandishNames reports it, or the comparison would never match */
+      if ((m[1].trim() || "1") !== from) return;
+      /* an added bandish lives at its own key (1000 and up), not at its position in the list,
+         so the rename must be filed under that key or nothing changes */
+      var key = (typeof ln.idx === "number") ? String(ln.idx) : String(i);
+      setLineEdit(l.id, key, { label: "Bandish " + to + " (" + m[2] + ")" });
     });
     applyAdds(); renderList(); renderStage(l);
   }
