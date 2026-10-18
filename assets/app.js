@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.23.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.23.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -533,12 +533,17 @@
      the name, edited on the index, and it is what the rail and the page heading show. */
   function bandishNames(l) {
     var out = [];
-    (l.lines || []).forEach(function (ln) {
-      var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
-      if (!m) return;
-      var nm = m[1].trim() || "1";        // the unnamed bandish that came with a raag is 1
-      if (out.indexOf(nm) < 0) out.push(nm);
-    });
+    function scan(list) {
+      (list || []).forEach(function (ln) {
+        var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
+        if (!m) return;
+        var nm = m[1].trim() || "1";      // the unnamed bandish that came with a raag is 1
+        if (out.indexOf(nm) < 0) out.push(nm);
+      });
+    }
+    scan(l.lines);
+    /* if the live list has somehow lost them, read the raag's own sheet, which cannot be empty */
+    if (!out.length) scan(l._base);
     return out;
   }
   function bandishKey(label, names) {
@@ -549,7 +554,11 @@
     return "bandish:" + (idx < 0 ? 1 : idx + 1);
   }
   function lineSection(l, label) {
-    return bandishKey(label, bandishNames(l)) || raagSect(label);
+    var k = bandishKey(label, bandishNames(l));
+    if (k) return k;
+    /* a bandish line whose name cannot be read still belongs to bandish 1 */
+    if (/^\s*bandish\s*\(/i.test(label || "")) return "bandish:1";
+    return raagSect(label);
   }
   function bandishNameOfKey(l, k) {
     var m = /^bandish:(\d+)$/.exec(k || "");
