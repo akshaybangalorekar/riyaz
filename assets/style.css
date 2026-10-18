@@ -664,7 +664,7 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 
 /* the notation rules as a write-it / see-it table */
 .ed-syn{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:8px;background:var(--bg2)}
-.ed-syn-row{display:grid;grid-template-columns:130px minmax(90px,1fr) 1.4fr;gap:10px;align-items:center;
+.ed-syn-row{display:grid;grid-template-columns:110px minmax(80px,1fr) 1.2fr 2fr;gap:10px;align-items:center;
   padding:9px 12px;border-top:1px solid var(--line);font-size:13px;min-height:52px}
 .ed-syn-row:first-child{border-top:0}
 .ed-syn-head{color:var(--dim);font-size:11px;letter-spacing:.5px;text-transform:uppercase;
@@ -712,7 +712,7 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 
 /* ---------- the marks table, kept compact so it fits one screen ---------- */
 .hp-marks .ed-syn{margin-top:6px}
-.hp-marks .ed-syn-row{padding:0 8px; grid-template-columns:90px minmax(54px,1fr) 1.3fr; gap:7px; min-height:23px}
+.hp-marks .ed-syn-row{padding:0 8px; grid-template-columns:80px minmax(46px,1fr) 1fr 1.9fr; gap:7px; min-height:23px}
 .hp-marks .ed-syn-head{padding:3px 8px}
 .hp-marks .ed-syn-in{font-size:11px}
 .hp-marks .ed-syn-out{font-size:13.5px; padding-top:7px; line-height:1.1}
@@ -817,3 +817,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg2)}
 .set-editcb{width:17px; height:17px; margin-top:1px; accent-color:var(--saffron); cursor:pointer; flex:0 0 auto}
 .set-editlab{font-size:12.5px; line-height:1.5; color:var(--dim); cursor:pointer}
+
+/* ---------- the "when to use it" column in the marks table ---------- */
+.ed-syn-when{font-size:12px; line-height:1.45; color:var(--dim)}
+.hp-marks .ed-syn-when{font-size:11px; line-height:1.35}
+.hp-marks .ed-syn-name{font-size:11.5px}

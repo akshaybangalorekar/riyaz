@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.14.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.15.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2152,34 +2152,34 @@
     return box;
   }
   var SYNTAX = [
-    ["\u0938\u093e \u0930\u0947 \u0917 \u092e",  "\u0936\u0941\u0926\u094d\u0927 \u0938\u094d\u0935\u0930", "the seven plain notes"],
-    ["~\u0930\u0947",        "\u0915\u094b\u092e\u0932",     "flat \u2014 a line under the swar"],
-    ["+\u092e",         "\u0924\u0940\u0935\u094d\u0930",     "sharp \u2014 a line above the swar"],
-    ["^\u0938\u093e",        "\u0924\u093e\u0930 \u0938\u092a\u094d\u0924\u0915",   "higher octave \u2014 a dot above"],
-    ["_\u0938\u093e",        "\u092e\u0902\u0926\u094d\u0930 \u0938\u092a\u094d\u0924\u0915", "lower octave \u2014 a dot below"],
-    ["^^\u0938\u093e",       "\u0905\u0924\u093f \u0924\u093e\u0930",   "two octaves up \u2014 two dots above"],
-    ["__\u0938\u093e",       "\u0905\u0924\u093f \u092e\u0902\u0926\u094d\u0930", "two octaves down \u2014 two dots below"],
-    ["<\u0938\u093e \u0930\u0947>",      "\u092e\u0940\u0902\u0921",      "a glide from one swar to the next"],
-    ["(\u0930\u0947)",       "\u0915\u0923",       "a small grace note — write it in brackets straight after the swar it leans on, and it sits just above it"],
-    ["{\u0938\u093e \u0930\u0947 \u0917}",     "\u092e\u0941\u0930\u094d\u0915\u0940",    "a quick turn \u2014 curve under the group"],
-    ["{\u0938\u093e \u0930\u0947}2",  "\u0938\u092e\u0942\u0939",     "spread over two matras \u2014 the number after the brace is how many: }3, }4"],
-    ["!\u0938\u093e",        "\u0916\u091f\u0915\u093e",     "a sharp flick on one swar, to accent it inside a fast phrase. Name shows above the swar."],
-    ["%\u0938\u093e",        "\u091c\u093c\u092e\u091c\u093c\u092e\u093e",   "a quick trembling cluster on one swar \u2014 busier than a murki. Name shows above the swar."],
-    ["@\u0938\u093e",        "\u0906\u0902\u0926\u094b\u0932\u0928",   "a slow, wide swing on one swar, for a calm singing movement. Name shows above the swar."],
-    ["&\u0938\u093e",        "\u0917\u092e\u0915",      "a strong shake on a held swar \u2014 heavier and slower than \u0906\u0902\u0926\u094b\u0932\u0928. Name shows above the swar."],
-    ["[2]",         "\u0936\u094d\u0930\u0941\u0924\u093f",    "which of the 22 microtones"],
-    ["\u0917\u0930\u0947",        "\u090f\u0915 \u092e\u093e\u0924\u094d\u0930\u093e",  "two swar on one matra \u2014 no space"],
-    ["|",           "\u0935\u093f\u092d\u093e\u0917",     "the bar that divides the beat"],
-    ["-",           "\u0916\u093e\u0932\u0940 \u092e\u093e\u0924\u094d\u0930\u093e", "an empty matra \u2014 stays blank"],
-    ["--",          "\u0935\u093f\u0936\u094d\u0930\u093e\u092e",    "a rest you want to see"],
-    ["s",           "\u0905\u0935\u0917\u094d\u0930\u0939",    "a swallowed \u0905 \u2014 \u093d"]
+    ["सा रे ग म प ध नी", "शुद्ध स्वर", "the seven plain notes", "Start here. English words work too, not just swar: mahaadev gives महादेव, alankar gives अलंकार."],
+    ["~रे", "कोमल", "flat — a line under the swar", "For the soft form of a swar. रे, ग, ध and नी each have one."],
+    ["+म", "तीव्र", "sharp — a line above the swar", "Only म has a tivra form. Use it wherever the raag asks."],
+    ["^सा", "तार सप्तक", "higher octave — a dot above", "For a swar in the upper octave."],
+    ["_सा", "मंद्र सप्तक", "lower octave — a dot below", "For a swar in the lower octave."],
+    ["^^सा", "अति तार", "two octaves up — two dots above", "Two octaves up — uncommon, but written this way."],
+    ["__सा", "अति मंद्र", "two octaves down — two dots below", "Two octaves down."],
+    ["<सा रे>", "मींड", "a glide from one swar to the next", "When you slide between two swar instead of singing them separately."],
+    ["(रे)", "कण", "a small grace note above", "For a grace note leaning on a swar — write it in brackets straight after."],
+    ["{सा रे ग}", "मुर्की", "a quick turn — curve under the group", "For a quick turn through two or three swar inside one matra."],
+    ["{सा रे}2", "समूह", "spread over several matras", "When a group will not fit in one matra. The number is how many; }3, }4 also work."],
+    ["!सा", "खटका", "a sharp flick on one swar", "To accent a swar inside a fast phrase. Its name shows above the swar."],
+    ["%सा", "ज़मज़मा", "a quick trembling cluster", "Busier than a murki — a quick shake on one swar. Name above the swar."],
+    ["@सा", "आंदोलन", "a slow, wide swing on one swar", "For a calm, singing movement. Name above the swar."],
+    ["&सा", "गमक", "a strong shake on a held swar", "Heavier and slower than आंदोलन. Name above the swar."],
+    ["[2]", "श्रुति", "which of the 22 microtones", "When you want to name the exact microtone."],
+    ["गरे", "एक मात्रा", "two swar on one matra — no space", "When two swar share one matra, write them with no space between."],
+    ["|", "विभाग", "the bar that divides the beat", "The bar between vibhags."],
+    ["-", "खाली मात्रा", "an empty matra — stays blank", "Leaves the matra empty; a lone - disappears."],
+    ["--", "विश्राम", "a rest you want to see", "When you want a dash to show."],
+    ["s", "अवग्रह", "a swallowed अ — ऽ", "For a swallowed अ. A lone s becomes ऽ."]
   ];
   var helpFirst = true;
   /* the table of marks, drawn with live examples — used by the Help panel */
   function syntaxTable() {
     var tbl = document.createElement("div"); tbl.className = "ed-syn";
     var hr = document.createElement("div"); hr.className = "ed-syn-row ed-syn-head";
-    hr.innerHTML = "<span>you type</span><span>you get</span><span>what it is called</span>";
+    hr.innerHTML = "<span>you type</span><span>you get</span><span>what it is called</span><span>when to use it</span>";
     tbl.appendChild(hr);
     SYNTAX.forEach(function (r) {
       var row = document.createElement("div"); row.className = "ed-syn-row";
@@ -2189,7 +2189,9 @@
       var nm = document.createElement("b"); nm.className = "ed-syn-name"; nm.textContent = r[1];
       c.appendChild(nm);
       if (r[2]) row.title = r[2];          // the short gloss shows on hover
-      row.appendChild(a); row.appendChild(b); row.appendChild(c);
+      var d = document.createElement("span"); d.className = "ed-syn-when";
+      d.textContent = r[3] || "";
+      row.appendChild(a); row.appendChild(b); row.appendChild(c); row.appendChild(d);
       tbl.appendChild(row);
     });
     return tbl;
