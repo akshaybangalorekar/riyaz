@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.34.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.35.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -580,7 +580,8 @@
     /* The bandish recordings are filed under "bandish" while a bandish sub page asks for
        "bandish:1", so without this a sub page found no recording at all. */
     var mk = /^bandish:/.test(k || "") ? "bandish" : k;
-    (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === mk) media.push(i); });
+    /* the बंदिश page itself is an index, so it carries no recording at all */
+    if (k !== "bandish") (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === mk) media.push(i); });
     return { lines: lines, media: media };
   }
   function raagSections(l) {
@@ -1038,6 +1039,7 @@
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
     var tabMs = [];
     l.media.forEach(function (m, i) {
+      if (state.raagSect === "bandish") return;                      // page 5 is an index only
       if (!pageEditing(l) && m.kind !== "video" && !m.file) return;   // audio is an editing-time choice
       if (l.group === "Alankar" && m.kind !== "video") return;
       if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
