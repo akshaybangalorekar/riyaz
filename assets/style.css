@@ -883,3 +883,12 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 /* ---------- five seconds either way, beside a line's play button ---------- */
 .ln-btn.sk5{font-size:11px; padding:0 5px; min-width:26px; color:var(--dim)}
 .ln-btn.sk5:hover{color:var(--ink)}
+
+/* ---------- the ✎ on each line, and on a स्थाई / अंतरा heading ---------- */
+.ln-btn.penb{font-size:12px; padding:0 6px; min-width:26px; color:var(--dim)}
+.ln-btn.penb:hover{color:var(--saffron)}
+.ln-btn.penb.on{color:#20160d; background:var(--saffron); border-color:var(--saffron); font-weight:700}
+.grp-pen{margin-left:7px; font-family:inherit; font-size:11.5px; line-height:1; cursor:pointer;
+  color:var(--saffron); background:none; border:1px solid var(--line); border-radius:999px; padding:3px 7px}
+.grp-pen:hover{border-color:var(--saffron)}
+.grp-pen.on{background:var(--saffron); color:#20160d; border-color:var(--saffron); font-weight:700}

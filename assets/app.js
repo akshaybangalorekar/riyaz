@@ -23,7 +23,7 @@
     cleared: {},       // lessons whose marks were cleared in this session
     edits: {},         // user corrections to the written notation
     editMode: false,   // set from the pen below
-    editPart: null,    // which page's editor is open — the pen toggles this
+    editOpen: {},      // which lines have their editor open — each ✎ toggles one
     /* Editing is off unless it is switched on in Settings, so a stray tap cannot change
        the notation or a bandish. */
     canEdit: (function () { try { return localStorage.getItem("sk_can_edit") === "1"; } catch (e) { return false; } })(),
@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.25.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.26.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -971,8 +971,14 @@
 
   /* Editing is per page now: a pen beside the heading opens that page's editor, and clicking
      it again closes it. The Settings switch only decides whether the pens are offered. */
-  function editingNow() {
-    return !!state.canEdit && !!state.editPart && state.editPart === state.raagSect;
+  function editingNow() { return !!state.canEdit; }
+  /* A line's editor is open when its own ✎ was pressed — or when the heading it sits under
+     was, which is how स्थाई and अंतरा open for a whole bandish. */
+  function lineEditOpen(l, li) {
+    if (!state.canEdit) return false;
+    var ln = (l.lines || [])[li] || {};
+    var g = subGroup(ln.label || "");
+    return !!state.editOpen[li] || (!!g && !!state.editOpen["g:" + g]);
   }
 
   function renderStage(l) {
@@ -1004,9 +1010,6 @@
     }
     var html = '<div class="sk-h1">' + esc(head) +
       (meta.length ? ' <span class="sk-file">' + esc(meta.join(" \u00b7 ")) + "</span>" : "") +
-      (state.canEdit && l.group === "Raag" && state.raagSect ? '<button type="button" class="sk-pen' +
-        (editingNow() ? " on" : "") + '" id="btnPen" title="' + (editingNow() ? "Close the editor" : "Edit this page") +
-        '">\u270e</button>' : "") +
       (mcur.id ? ' <a class="sk-drive" href="https://drive.google.com/file/d/' + mcur.id +
         '/view" target="_blank" rel="noopener" title="Open this file in Google Drive">\u2197 Drive</a>' : "") +
       "</div>";
@@ -1057,11 +1060,7 @@
 
     renderPlayer(l);
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
-    var pen = $("#btnPen");
-    if (pen) pen.onclick = function () {
-      state.editPart = editingNow() ? null : state.raagSect;
-      renderStage(l); renderList();
-    };
+    /* each line carries its own ✎, so there is no page-level one */
     var ubtn = $("#btnUndo");
     if (ubtn) ubtn.onclick = function () { doUndo(); };
   }
@@ -1225,6 +1224,19 @@
       "<span>" + esc(g) + " " + esc(raagSectLabel(state.raagSect)) + "</span>" +
       '<span class="grp-n">' + n + "</span>";
     b.onclick = function () { state.grp[grpKey(l, g)] = !open; renderNotation(l); };
+    if (state.canEdit) {
+      var pen = document.createElement("button");
+      pen.type = "button";
+      pen.className = "grp-pen" + (state.editOpen["g:" + g] ? " on" : "");
+      pen.textContent = "\u270e";
+      pen.title = state.editOpen["g:" + g] ? "Close the editor" : "Edit " + g;
+      pen.onclick = function (e) {
+        e.stopPropagation();
+        state.editOpen["g:" + g] = !state.editOpen["g:" + g];
+        renderNotation(l);
+      };
+      b.appendChild(pen);
+    }
     return b;
   }
 
@@ -1522,6 +1534,14 @@
         pb.onclick = function () { toggleLine(li); };
         state.lineBtns[li] = pb;
         ctl.appendChild(pb);
+        if (state.canEdit && !line.bandish) {     // a bandish opens from its स्थाई / अंतरा heading
+          var eb = document.createElement("button");
+          eb.className = "ln-btn penb" + (state.editOpen[li] ? " on" : "");
+          eb.type = "button"; eb.textContent = "\u270e";
+          eb.title = state.editOpen[li] ? "Close the editor" : "Edit this line";
+          eb.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
+          ctl.appendChild(eb);
+        }
       }
       if (state.editMode && !curIsVideo) {   // a clock on a video page has nothing it can time
         var mb = document.createElement("button");
@@ -1594,13 +1614,13 @@
       if (l.group === "Taal") {           // a taal gets its own lane: marks, matra numbers, bols
         row.appendChild(taalView(l, li, line));
         box.appendChild(row);
-        if (state.editMode) box.appendChild(notationEditor(l, li));
+        if (lineEditOpen(l, li)) box.appendChild(notationEditor(l, li));
         return;
       }
       if (line.bandish) {                 // a bandish gets the swimlane view, not a swar run
         row.appendChild(bandishView(l, li, line));
         box.appendChild(row);
-        if (state.editMode) box.appendChild(bandishEditor(l, li, line));
+        if (lineEditOpen(l, li)) box.appendChild(bandishEditor(l, li, line));
         return;
       }
       var unit = line.unit || 0, noteN = 0, mk = null;
@@ -1615,7 +1635,7 @@
         } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });
       box.appendChild(row);
-      if (state.editMode) box.appendChild(notationEditor(l, li));
+      if (lineEditOpen(l, li)) box.appendChild(notationEditor(l, li));
     });
     // while editing, one more line can be added right after the last one shown
     if (state.editMode && l.group === "Raag" && state.raagSect) {
@@ -3269,7 +3289,7 @@
         "Leave this off and nothing on a page can be changed by accident.";
       cb.onchange = function () {
         state.canEdit = cb.checked;
-        if (!state.canEdit) state.editPart = null;   // pens away, editors closed
+        if (!state.canEdit) state.editOpen = {};      // pens away, every editor closed
         try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
         var l = state.lessonId && lesson(state.lessonId);
         if (l) renderStage(l);
