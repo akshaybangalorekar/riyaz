@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.29.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.30.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3265,7 +3265,48 @@
     setTimeout(function () { pullMarks(); }, 3000 * pullTries);
   }
   function closeSettings() { var m = $("#skSettings"); if (m) m.classList.remove("on"); }
+  /* ---------- the settings PIN ----------
+     Settings holds the switch that allows editing, so it is locked. The PIN is fixed, as asked,
+     and the door stays open for the rest of the session once it has been entered. */
+  var SETTINGS_PIN = "1981";
+  var settingsOK = false;
+
   function openSettings() {
+    var box = $("#skSettingsBox"); if (!box) return;
+    if (!settingsOK) { showPinGate(box); return; }
+    buildSettings();
+  }
+
+  function showPinGate(box) {
+    box.innerHTML =
+      '<div class="set-h">Settings</div>' +
+      '<div class="set-lab">Enter the PIN to open settings.</div>' +
+      '<input id="setPin" class="set-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">' +
+      '<div class="set-actions">' +
+        '<button class="sk-btn" id="setPinGo">Open</button>' +
+        '<button class="sk-btn" id="setPinClose">Close</button>' +
+      '</div>' +
+      '<div class="set-msg" id="setPinMsg"></div>' +
+      '<p class="set-note dim">Build ' + APP_VER + '</p>';
+    var m = $("#skSettings"); if (m) m.classList.add("on");
+    var f = $("#setPin");
+    function go() {
+      if ((f.value || "").trim() === SETTINGS_PIN) {
+        settingsOK = true;
+        buildSettings();
+        return;
+      }
+      $("#setPinMsg").textContent = "That is not the right PIN.";
+      f.value = "";
+      try { f.focus(); } catch (e) {}
+    }
+    $("#setPinGo").onclick = go;
+    f.onkeydown = function (e) { if (e.key === "Enter") go(); };
+    $("#setPinClose").onclick = closeSettings;
+    setTimeout(function () { try { f.focus(); } catch (e) {} }, 60);
+  }
+
+  function buildSettings() {
     var box = $("#skSettingsBox"); if (!box) return;
     box.innerHTML =
       '<div class="set-h">Settings</div>' +
