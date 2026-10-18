@@ -40,7 +40,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.15.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.16.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -961,7 +961,9 @@
         
         (curVideo || !secHasLines || state.group === "Favourites" ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
         (state.canEdit ? ('<button class="sk-editbtn' + (state.editMode ? " on" : "") + '" id="btnEditNotation" type="button">\u270e ' +
-        (state.editMode ? "Done editing" : "Edit notation") + "</button>") : "") +
+        (state.editMode ? "Done editing" : "Edit notation") + "</button>" +
+        '<button class="sk-editbtn ghost' + (UNDO.length ? "" : " off") + '" id="btnUndo" type="button"' +
+        (UNDO.length ? "" : " disabled") + ' title="Put back the last change">\u21b6 Undo</button>') : "") +
         "</div>";
     }
 
@@ -985,6 +987,8 @@
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
     var ebtn = $("#btnEditNotation");
     if (ebtn) ebtn.onclick = function () { state.editMode = !state.editMode; renderStage(l); renderList(); };
+    var ubtn = $("#btnUndo");
+    if (ubtn) ubtn.onclick = function () { doUndo(); };
   }
 
   function renderPlayer(l) {
@@ -1653,7 +1657,29 @@
     });
     return at;
   }
+  /* ---------- undo ----------
+     Every change takes a copy of the edits first, so the last one can be put back. Kept in
+     memory only and capped, so a long session cannot grow without bound. */
+  var UNDO = [], UNDO_MAX = 25;
+  function snapshotEdits() {
+    try { UNDO.push(JSON.stringify(state.edits || {})); } catch (e) { return; }
+    if (UNDO.length > UNDO_MAX) UNDO.shift();
+    /* a Save only redraws the notation, not the whole page, so wake the button here */
+    var ub = document.getElementById("btnUndo");
+    if (ub) { ub.disabled = false; ub.className = ub.className.replace(/\s*off/, ""); }
+  }
+  function doUndo() {
+    if (!UNDO.length) return;
+    try { state.edits = JSON.parse(UNDO.pop()); } catch (e) { return; }
+    saveEdits(); scheduleEditsPush();
+    applyAdds();
+    renderList();
+    var l = state.lessonId && lesson(state.lessonId);
+    if (l) renderStage(l);
+  }
+
   function setLineEdit(id, li, obj) {
+    snapshotEdits();
     var e = editsFor(id), k = String(li);
     if (obj) {
       // merge, so saving the swar of an added line keeps its label and section
@@ -3024,53 +3050,8 @@
       d.appendChild(cb); d.appendChild(lab);
       box.appendChild(d);
     })();
-    appendBacklog(box);
     appendProjectPrompt(box);
     updateMarksMsg();
-  }
-
-  /* Everything asked for and not yet built, newest first. Shown folded in Settings so it can be
-     read any time and picked from run by run. */
-  var BACKLOG = [
-    ["अभ्यास tab — practice links",
-     "A tab beside Favourites, Alankar, Taal and Raag, holding the links Atharv practises from, mostly YouTube. Each link gets a short summary and a field for why and where he used it."],
-    ["मंच tab — performances",
-     "All of Atharv's performance links in one place. Each link gets a field for where he performed and a field for the date, so they can be sorted by date."],
-    ["Multiple bandish per raag",
-     "A बंदिश index page with an 'Add bandish' button; each bandish named, living under it."],
-    ["Backup and restore",
-     "Weekly, on the first open after Saturday 00:00, plus a manual button; stored in the repo. Must also cover your own raags and the file links, which live on one device only."],
-    ["Print, save and share a PDF per page",
-     "Both स्थाई and अंतरा under headings on one PDF; saved to a path you choose."],
-    ["Undo for edits",
-     "A wrong Save is permanent today. Small, and it makes everything else safer."],
-    ["Update the project prompt and Help",
-     "For the editing switch, the new 'when to use it' column, the Files feature and these new tabs."],
-    ["First-run card",
-     "Three lines on the opening screen: the rail, ▶ to play a line, ⏱ to set its start."],
-    ["Search across raags",
-     "Type a swar phrase and find every line that uses it."],
-    ["Practised tick and streak",
-     "Tick a line as practised today, with a gentle streak count."],
-    ["Bigger type switch",
-     "One switch that scales the notation up for younger readers."]
-  ];
-  function appendBacklog(box) {
-    if (!BACKLOG.length) return;
-    var d = document.createElement("details"); d.className = "set-prompt";
-    var s = document.createElement("summary"); s.className = "set-prompt-s";
-    s.textContent = "Backlog \u2014 asked for, not built yet (" + BACKLOG.length + ")";
-    d.appendChild(s);
-    var body = document.createElement("div"); body.className = "set-prompt-b";
-    BACKLOG.forEach(function (b, i) {
-      var it = document.createElement("div"); it.className = "set-back";
-      var n = document.createElement("b"); n.textContent = (i + 1) + ". " + b[0];
-      var p = document.createElement("div"); p.className = "set-back-p"; p.textContent = b[1];
-      it.appendChild(n); it.appendChild(p);
-      body.appendChild(it);
-    });
-    d.appendChild(body);
-    box.appendChild(d);
   }
 
   /* ---------- the project prompt ----------

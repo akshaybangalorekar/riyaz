@@ -827,3 +827,9 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .set-back{margin:0 0 9px}
 .set-back b{font-size:12.5px; color:var(--ink)}
 .set-back-p{font-size:12px; line-height:1.5; color:var(--dim); padding-left:16px}
+
+/* ---------- the undo button ---------- */
+.sk-editbtn.ghost{background:none; color:var(--dim); border:1px solid var(--line)}
+.sk-editbtn.ghost:hover{color:var(--ink)}
+.sk-editbtn.ghost.off{opacity:.45; cursor:default}
+.sk-editbtn.ghost.off:hover{color:var(--dim)}
