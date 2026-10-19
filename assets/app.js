@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.36.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.37.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1624,7 +1624,7 @@
       sunb.type = "button"; sunb.textContent = "\u2600";
       sunb.title = "Add this line to favourites";
       sunb.onclick = function () { favToggle(l.id, secKey, li, state.mediaIdx); renderNotation(l); };
-      ctl.appendChild(sunb);
+      if (tanaRowOf(l, li) === null) ctl.appendChild(sunb);   // a merged तान row keeps the table clean
       var seg = !curIsVideo ? segsOf()[li] : null;   // a video page shows no times at all
       if (seg) {
         var tm = document.createElement("span");
@@ -2201,13 +2201,17 @@
      The tanas share a taal and a matra count, so they read as one grid: only the first
      carries the heading, the taal marks and the matra numbers, and the rest stack under it.
      Each row still belongs to its own line, so its play button and its ✎ work as usual. */
-  function tanaRowOf(l, li) {
-    if (state.raagSect !== "tana") return null;
+  function tanaParts(l) {
+    if (state.raagSect !== "tana") return [];
     var parts = [];
     (l.lines || []).forEach(function (ln, i) {
       if (/^\s*tana\s*\d+/i.test(ln.label || "") && ln.bandish) parts.push(i);
     });
-    if (parts.length < 2) return null;
+    return parts.length > 1 ? parts : [];
+  }
+  function tanaRowOf(l, li) {
+    var parts = tanaParts(l);
+    if (!parts.length) return null;
     var at = parts.indexOf(li);
     return at < 0 ? null : at;      // 0 is the first, which carries the furniture
   }
@@ -2215,8 +2219,12 @@
   function bandishView(l, li, line) {
     var b = line.bandish, N = b.matras || 16, vb = b.vibhag || [4, 4, 4, 4];
     var rows = bandishRows(l, li);
-    var wrap = document.createElement("div"); wrap.className = "bnd";
-    var trow = tanaRowOf(l, li);              // null unless this is a tana in a merged grid
+    var tRow = tanaRowOf(l, li), tN = tanaParts(l).length;
+    var wrap = document.createElement("div");
+    wrap.className = "bnd" + (tRow !== null
+      ? " merged" + (tRow === 0 ? " first" : "") + (tRow === tN - 1 ? " last" : "")
+      : "");
+    var trow = tRow;                              // null unless this is a tana in a merged grid
     var tFirst = (trow === null || trow === 0);   // the first carries the grid's furniture
     var head = document.createElement("div"); head.className = "bnd-head";
     head.innerHTML = '<b>' + esc(b.taal || "") + '</b><span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e</span>';

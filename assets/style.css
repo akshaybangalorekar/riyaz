@@ -908,3 +908,12 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd-row .bnd-lab{display:flex; align-items:center; gap:3px; justify-content:flex-end; flex-wrap:wrap}
 .bnd-row .bnd-lab .ln-btn{padding:0 4px; min-width:20px; font-size:10.5px; line-height:1.5}
 .bnd-lab{gap:4px}
+
+/* ---------- तान: the fifteen grids are one table ----------
+   Each line is still its own element, but between them there is no margin, no gap and no
+   second border, so they read as a single grid with a row for each tana. */
+.bnd.merged{margin:0; padding:0; border-left:1px solid var(--line); border-right:1px solid var(--line);
+  border-top:0; border-bottom:0; border-radius:0; background:none; overflow:visible}
+.bnd.merged.first{padding-top:10px; border-top:1px solid var(--line); border-radius:12px 12px 0 0}
+.bnd.merged.last{padding-bottom:12px; border-bottom:1px solid var(--line); border-radius:0 0 12px 12px}
+.bnd.merged .bnd-head{margin-bottom:6px}
