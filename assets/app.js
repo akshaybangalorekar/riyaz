@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.38.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.39.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2471,7 +2471,7 @@
         svg.appendChild(pa);
       });
       lw.appendChild(svg);
-      rw.appendChild(lw);
+      if (trow === null || (r.arc || []).length) rw.appendChild(lw);   // no बोल line on a tana
       wrap.appendChild(rw);
     });
     return wrap;

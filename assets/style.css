@@ -929,3 +929,23 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd.merged .bnd-lab .ln-btn.sunb{color:var(--dim)}
 .bnd.merged .bnd-lab .ln-btn.sunb.on{color:var(--saffron); border-color:var(--saffron)}
 .bnd.merged .bnd-row .bnd-lab{justify-content:flex-start}
+
+/* ---------- तान rows: tighter, bigger number ---------- */
+.bnd.merged .bnd-row{padding-top:1px; padding-bottom:1px}
+.bnd.merged .bnd-lab{font-size:23px; line-height:1.1}
+.bnd.merged .bnd-lab .ln-btn{width:28px; height:28px; font-size:12.5px}
+.bnd.merged .bnd-swar .bnd-cell{padding-top:1px; padding-bottom:1px}
+
+/* ---------- tighter तान rows: less air between one tana and the next ---------- */
+.bnd.merged .bnd-row{padding-top:0; padding-bottom:0; min-height:0; align-items:center}
+.bnd.merged .bnd-swar .bnd-cell{padding-top:0; padding-bottom:0; line-height:1.35}
+.bnd.merged .bnd-lab{line-height:1.05}
+.bnd.merged .bnd-row + .bnd-row{margin-top:0}
+.bnd.merged .bnd-swar{min-height:0}
+
+/* the rules that spaced the bandish rows out do not apply inside a merged तान table */
+.bnd.merged .bnd-row + .bnd-row{padding-top:0; margin-top:0}
+.bnd.merged .bnd-cell{padding-top:0; padding-bottom:0}
+.bnd.merged .bnd-nums .bnd-cell{padding-bottom:2px}
+.bnd.merged .bnd-marks .bnd-cell{padding-bottom:1px}
+.bnd.merged .bnd-swar .bnd-cell{font-size:17px}
