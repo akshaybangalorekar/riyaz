@@ -964,3 +964,12 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-notation .sk-line{padding-top:20px}
 .sk-notation .sk-sw.kan-host{padding-top:0; padding-bottom:0}
 .sk-notation .sk-sw .kan{top:-1.15em; bottom:auto}
+
+/* ---------- the kan must not reach the matra numbers ----------
+   A later rule cleared the top padding on every merged cell, which took away the room the kan
+   floats in and let it ride up over the number row. The swar and lyric lanes keep their room;
+   the marks and number rows do not need it. */
+.bnd.merged .bnd-swar .bnd-cell, .bnd.merged .bnd-lyr .bnd-cell{padding-top:22px; padding-bottom:2px}
+.bnd.merged .bnd-nums .bnd-cell{padding-top:0; padding-bottom:2px}
+.bnd.merged .bnd-marks .bnd-cell{padding-top:0; padding-bottom:1px}
+.bnd.merged .bnd-nums, .bnd.merged .bnd-marks{margin-bottom:6px}
