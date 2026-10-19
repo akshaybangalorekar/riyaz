@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.40.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.41.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2418,7 +2418,7 @@
       }
       /* every row has the same shape — a label column, the lane, and a matching gap —
          so the marks, the matra numbers and both lanes all start at the same place */
-      var lab = laneLabel(trow !== null ? String(trow + 1) + "." : "");
+      var lab = laneLabel(trow !== null ? String(trow + 1) + "." : "\u0938\u094d\u0935\u0930");
       if (trow !== null) {                   // this tana is a row, so it keeps its own controls
         var rpb = document.createElement("button");
         rpb.className = "ln-btn playb"; rpb.type = "button"; rpb.textContent = "\u25b6";
@@ -2456,7 +2456,7 @@
       rw.appendChild(sl);
       rw.appendChild(laneGap());
       var lw = document.createElement("div"); lw.className = "bnd-lyrwrap";
-      lw.appendChild(laneGap());   // no बोल word down the side
+      lw.appendChild(laneLabel("\u092c\u094b\u0932"));
       lw.appendChild(ll);
       lw.appendChild(laneGap());
       var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");

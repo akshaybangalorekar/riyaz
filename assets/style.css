@@ -950,19 +950,17 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd.merged .bnd-marks .bnd-cell{padding-bottom:1px}
 .bnd.merged .bnd-swar .bnd-cell{font-size:17px}
 
-/* ---------- a matra cell holds its swar on one line ----------
-   Two swars on one matra (गरे) must sit side by side, not stack, and a marked group must not
-   break. The lane scrolls sideways instead, so a cell is never forced to wrap. */
-.bnd-cell{white-space:nowrap}
-.bnd-swar .bnd-cell{white-space:nowrap}
-.bnd-lyr .bnd-cell{white-space:nowrap}
-.bnd-lane{overflow:visible}
-.bnd.merged .bnd-row{overflow-x:auto; overflow-y:hidden}
+/* ---------- every main swar starts at the same height ----------
+   The kan needs room above it, but giving that room to the kan's own cell pushed its main swar
+   down to the level of the murki curve. So the room is given to every cell alike: each swar
+   starts at the same y, the kan floats in the space above, the murki hangs below. */
+.bnd-swar .bnd-cell, .bnd-lyr .bnd-cell{display:flex; align-items:flex-start; justify-content:center;
+  padding-top:22px; padding-bottom:2px}
+.bnd-swar .sk-sw.kan-host, .bnd-lyr .sk-sw.kan-host{padding-top:0; padding-bottom:0}
+.bnd-swar .sk-sw .kan, .bnd-lyr .sk-sw .kan{top:-1.15em; bottom:auto}
+.bnd-swar .mk-grp, .bnd-lyr .mk-grp{padding-bottom:11px}
 
-/* ---------- the kan goes above the swar, the murki stays below ---------- */
-.sk-sw.kan-host{padding-top:24px; padding-bottom:0}
-.sk-sw .kan{top:2px; bottom:auto}
-.bnd-swar .sk-sw.kan-host{padding-top:22px; padding-bottom:0}
-.bnd-lyr .sk-sw.kan-host{padding-top:24px; padding-bottom:0}
-.ed-syn-out .sk-sw.kan-host{padding-top:22px; padding-bottom:0}
-.ed-syn-out .kan{top:2px; bottom:auto}
+/* the same on a plain notation line, where there is no cell to share the room */
+.sk-notation .sk-line{padding-top:20px}
+.sk-notation .sk-sw.kan-host{padding-top:0; padding-bottom:0}
+.sk-notation .sk-sw .kan{top:-1.15em; bottom:auto}
