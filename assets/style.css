@@ -693,11 +693,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .hp-b b{color:var(--ink)}
 
 /* ---------- meend: a slide, drawn as an arch above the pair ---------- */
-.md-grp{position:relative; display:inline-block; padding-top:0; padding-bottom:14px}
-.md-grp::before{content:""; position:absolute; left:0; right:0; bottom:2px; top:auto; height:7px;
+.md-grp{position:relative; display:inline-block; padding-top:12px}
+.md-grp::before{content:""; position:absolute; left:0; right:0; top:2px; height:7px;
   border-top:2px solid var(--saffron); border-radius:50% 50% 0 0 / 100% 100% 0 0; opacity:.9}
-.bnd-swar .md-grp{padding-top:0; padding-bottom:12px}
-.bnd-lyr .md-grp{padding-top:0; padding-bottom:13px}
+.bnd-swar .md-grp{padding-top:11px}
+.bnd-lyr .md-grp{padding-top:11px}
 
 /* ---------- the full Bhatkhande marks ---------- */
 .sk-sw{position:relative}                                   /* so marks can sit on it */
@@ -918,19 +918,14 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd.merged.last{padding-bottom:12px; border-bottom:1px solid var(--line); border-radius:0 0 12px 12px}
 .bnd.merged .bnd-head{margin-bottom:6px}
 
-/* ---------- every swar sits on one line ----------
-   The small marks belong under the swar, not above it, so the swar line stays level and the
-   kan, the murki and the komal line all fall beneath it at different depths and never collide.
-   The kan is the deepest, the murki sits just under the swar. */
-.sk-sw.kan-host{padding-top:0; padding-bottom:26px}
-.sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:auto; bottom:2px;
-  font-size:1em; padding-bottom:0}
-.bnd-swar .sk-sw.kan-host{padding-top:0; padding-bottom:24px}
-.bnd-swar .sk-sw .kan{font-size:1em}
-.bnd-lyr .sk-sw.kan-host{padding-top:0; padding-bottom:26px}
-.bnd-lyr .sk-sw .kan{font-size:1em}
-.ed-syn-out .sk-sw.kan-host{padding-top:0; padding-bottom:24px}
-.ed-syn-out .kan{top:auto; bottom:2px; font-size:1em}
-/* the murki curve stays just under the swar, above where the kan sits */
-.mk-grp{padding-bottom:13px}
-.bnd-swar .mk-grp{padding-bottom:11px}
+/* ---------- a तान row: the number and its buttons on one line ----------
+   The label column is wide enough for the number, the play, the sun and the pen side by side,
+   and the number is set large because it is what you look for. The marks and matra rows use
+   the same columns, so everything still lines up. */
+.bnd.merged .bnd-row, .bnd.merged .bnd-lyrwrap{grid-template-columns:126px minmax(0,1fr) 34px}
+.bnd.merged .bnd-lab{font-size:20px; font-weight:700; color:var(--ink);
+  flex-wrap:nowrap; gap:5px; justify-content:flex-start; white-space:nowrap}
+.bnd.merged .bnd-lab .ln-btn{width:30px; height:30px; font-size:13px}
+.bnd.merged .bnd-lab .ln-btn.sunb{color:var(--dim)}
+.bnd.merged .bnd-lab .ln-btn.sunb.on{color:var(--saffron); border-color:var(--saffron)}
+.bnd.merged .bnd-row .bnd-lab{justify-content:flex-start}

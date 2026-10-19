@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.37.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.38.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1671,7 +1671,7 @@
         };
         ctl.appendChild(addb);
       }
-      row.appendChild(ctl);
+      if (tanaRowOf(l, li) === null) row.appendChild(ctl);   // a merged तान row keeps its own line clean
       if (line.label) {
         var lb = document.createElement("span");
         lb.className = "sk-lbl"; lb.textContent = displayLabel(line.label);
@@ -2426,6 +2426,12 @@
         rpb.onclick = function () { toggleLine(li); };
         state.lineBtns[li] = rpb;
         lab.appendChild(rpb);
+        var rsn = document.createElement("button");
+        rsn.className = "ln-btn sunb" + (favHas(l.id, state.raagSect, li) ? " on" : "");
+        rsn.type = "button"; rsn.textContent = "\u2600";
+        rsn.title = "Add this tana to favourites";
+        rsn.onclick = function () { favToggle(l.id, state.raagSect, li, state.mediaIdx); renderNotation(l); };
+        lab.appendChild(rsn);
         if (state.canEdit) {
           var reb = document.createElement("button");
           reb.className = "ln-btn penb" + (state.editOpen[li] ? " on" : "");
