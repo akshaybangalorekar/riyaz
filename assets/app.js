@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.35.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.36.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1677,7 +1677,9 @@
         lb.className = "sk-lbl"; lb.textContent = displayLabel(line.label);
         /* on a bandish sub page the collapsible heading already names the part in Devanagari,
            so the line's own English label is not repeated inside */
-        if (/^bandish:/.test(secKey || "")) lb.style.display = "none";
+        /* a bandish part and a merged तान row both say which they are in their own place,
+           so the line's label is not repeated above the grid */
+        if (/^bandish:/.test(secKey || "") || tanaRowOf(l, li) !== null) lb.style.display = "none";
         row.appendChild(lb);
       }
       if (l.group === "Taal") {           // a taal gets its own lane: marks, matra numbers, bols
@@ -2195,10 +2197,27 @@
     for (var k = 0; k < vb.length; k++) { if (acc === i && k > 0) return true; acc += vb[k]; }
     return false;
   }
+  /* ---------- तान: one grid, a row for each tana ----------
+     The tanas share a taal and a matra count, so they read as one grid: only the first
+     carries the heading, the taal marks and the matra numbers, and the rest stack under it.
+     Each row still belongs to its own line, so its play button and its ✎ work as usual. */
+  function tanaRowOf(l, li) {
+    if (state.raagSect !== "tana") return null;
+    var parts = [];
+    (l.lines || []).forEach(function (ln, i) {
+      if (/^\s*tana\s*\d+/i.test(ln.label || "") && ln.bandish) parts.push(i);
+    });
+    if (parts.length < 2) return null;
+    var at = parts.indexOf(li);
+    return at < 0 ? null : at;      // 0 is the first, which carries the furniture
+  }
+
   function bandishView(l, li, line) {
     var b = line.bandish, N = b.matras || 16, vb = b.vibhag || [4, 4, 4, 4];
     var rows = bandishRows(l, li);
     var wrap = document.createElement("div"); wrap.className = "bnd";
+    var trow = tanaRowOf(l, li);              // null unless this is a tana in a merged grid
+    var tFirst = (trow === null || trow === 0);   // the first carries the grid's furniture
     var head = document.createElement("div"); head.className = "bnd-head";
     head.innerHTML = '<b>' + esc(b.taal || "") + '</b><span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e</span>';
     if (state.canEdit) {                       // a pen on the bandish grid itself
@@ -2210,7 +2229,7 @@
       hpen.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
       head.appendChild(hpen);
     }
-    wrap.appendChild(head);
+    if (tFirst) wrap.appendChild(head);          // a merged grid has one heading, at the top
 
     function lane(cls) {
       var el = document.createElement("div"); el.className = "bnd-lane " + cls;
@@ -2285,7 +2304,7 @@
     }
     /* the taal marks sit above the numbers: × sam, ० khali, the taali numbers for the rest */
     var tmarks = taalMarksFor(b.taal);
-    if (tmarks) {
+    if (tmarks && tFirst) {
       var mkLane = lane("bnd-marks");
       /* where each vibhag begins — the first is matra 1, then every vb[i] later */
       var starts = [], acc = 0;
@@ -2312,11 +2331,13 @@
       el.className = "bnd-lab bnd-lab-gap";
       return el;
     }
-    var nums = lane("bnd-nums");
-    for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
-    var numsRow = document.createElement("div"); numsRow.className = "bnd-row hd";
-    numsRow.appendChild(laneGap()); numsRow.appendChild(nums); numsRow.appendChild(laneGap());
-    wrap.appendChild(numsRow);
+    if (tFirst) {
+      var nums = lane("bnd-nums");
+      for (var i = 0; i < N; i++) nums.children[i].textContent = String(i + 1);
+      var numsRow = document.createElement("div"); numsRow.className = "bnd-row hd";
+      numsRow.appendChild(laneGap()); numsRow.appendChild(nums); numsRow.appendChild(laneGap());
+      wrap.appendChild(numsRow);
+    }
 
     /* Both lanes are written in the same notation, so both are drawn the same way:
        a murki in the lyric lane draws its curve just as it does in the swar lane. */
@@ -2389,8 +2410,24 @@
       }
       /* every row has the same shape — a label column, the lane, and a matching gap —
          so the marks, the matra numbers and both lanes all start at the same place */
-      var lab = laneLabel("\u0938\u094d\u0935\u0930");
-      if (state.editMode) {
+      var lab = laneLabel(trow !== null ? String(trow + 1) + "." : "\u0938\u094d\u0935\u0930");
+      if (trow !== null) {                   // this tana is a row, so it keeps its own controls
+        var rpb = document.createElement("button");
+        rpb.className = "ln-btn playb"; rpb.type = "button"; rpb.textContent = "\u25b6";
+        rpb.title = "Play or pause this tana";
+        rpb.onclick = function () { toggleLine(li); };
+        state.lineBtns[li] = rpb;
+        lab.appendChild(rpb);
+        if (state.canEdit) {
+          var reb = document.createElement("button");
+          reb.className = "ln-btn penb" + (state.editOpen[li] ? " on" : "");
+          reb.type = "button"; reb.textContent = "\u270e";
+          reb.title = state.editOpen[li] ? "Close the editor" : "Edit this tana";
+          reb.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
+          lab.appendChild(reb);
+        }
+      }
+      if (state.editMode && tFirst) {
         /* in edit mode every row can be removed — this takes out that one row only */
         var del = document.createElement("button");
         del.type = "button"; del.className = "bnd-del"; del.textContent = "\u2715";

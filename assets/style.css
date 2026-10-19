@@ -903,3 +903,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 
 /* ---------- Save, briefly saying so ---------- */
 .ed-btn.saved{background:var(--gold); border-color:var(--gold); color:#20160d}
+
+/* ---------- a तान row: its number, play button and pen in the label column ---------- */
+.bnd-row .bnd-lab{display:flex; align-items:center; gap:3px; justify-content:flex-end; flex-wrap:wrap}
+.bnd-row .bnd-lab .ln-btn{padding:0 4px; min-width:20px; font-size:10.5px; line-height:1.5}
+.bnd-lab{gap:4px}
