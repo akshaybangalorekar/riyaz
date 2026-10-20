@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.46.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.47.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1391,7 +1391,12 @@
           /* a direct link to the audio: plays here, so its lines can be timed */
           return { id: "u" + i, src: f.url, name: nm, kind: "audio", file: true };
         }
-        return { id: driveId(f.url), name: nm, kind: "video", file: true };
+        /* A Drive file plays through Drive's direct address, the same route the app's own
+           recordings use, so it can be seeked and timed. Only if that fails does it fall back
+           to Drive's page player, which cannot. */
+        var did = driveId(f.url);
+        return { id: did, src: "https://drive.usercontent.google.com/download?id=" + did + "&export=download&confirm=t",
+                 name: nm, kind: "audio", file: true };
       });
   }
   function applyFiles(l) {
