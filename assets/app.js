@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.43.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.44.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1046,7 +1046,10 @@
       if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
       tabMs.push({ m: m, i: i });
     });
-    if ((state.editMode || tabMs.some(function (t) { return t.m.file; })) && tabMs.length > 1) {
+    /* your own files come first in the row, so they are easy to pick and time. The list order
+       itself is left alone, because the saved offsets are keyed by a recording's position. */
+    tabMs.sort(function (a, b) { return (b.m.file ? 1 : 0) - (a.m.file ? 1 : 0); });
+    if (tabMs.length > 1) {
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
@@ -1423,6 +1426,13 @@
       add.type = "button"; add.className = "sk-file-add"; add.textContent = "+ Add a file";
       add.onclick = function () { list.push({ url: "", view: false }); saveFiles(); renderStage(l); };
       d.appendChild(add);
+      /* Save files: keeps the links and shows them at the top of the page as recordings, so a
+         file can be picked and given its own line timings, like any other recording. */
+      var sv = document.createElement("button");
+      sv.type = "button"; sv.className = "sk-file-add sk-file-save"; sv.textContent = "Save files";
+      sv.title = "Save these links and show them at the top of the page";
+      sv.onclick = function () { saveFiles(); applyFiles(l); renderStage(l); };
+      d.appendChild(sv);
     }
     return d;
   }

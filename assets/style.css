@@ -973,3 +973,8 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd.merged .bnd-nums .bnd-cell{padding-top:0; padding-bottom:2px}
 .bnd.merged .bnd-marks .bnd-cell{padding-top:0; padding-bottom:1px}
 .bnd.merged .bnd-nums, .bnd.merged .bnd-marks{margin-bottom:6px}
+
+/* ---------- Save files, beside Add a file ---------- */
+.sk-file-save{border-color:var(--saffron); color:var(--saffron); font-weight:700}
+.sk-file-save:hover{background:var(--saffron); color:#20160d}
+.sk-file-row + .sk-file-row{margin-top:4px}
