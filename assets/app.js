@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.52.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.53.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1057,7 +1057,13 @@
     tabMs.sort(function (a, b) { return (b.m.file ? 1 : 0) - (a.m.file ? 1 : 0); });
     if (tabMs.length > 1) {
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
-        var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
+        var m = t.m, i = t.i;
+        /* the tab reads as the part, not the whole file name: "मुक्त आलाप 1-10" rather than
+           "२०२६०८२३ - राग दुर्गा - आरोह औरोह - मुक्त आलाप 1-10" */
+        var nm = String(m.name || "").replace(/\.[a-z0-9]+$/i, "").trim();
+        var seg = nm.split(" - ");
+        if (seg.length > 1) nm = seg[seg.length - 1].trim();
+        nm = esc(nm);
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
         return '<button class="sk-mtab' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">' +
           (m.kind === "video" ? "🎬 " : "🎧 ") + nm + "</button>";
