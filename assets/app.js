@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.42.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.43.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1040,13 +1040,13 @@
     var tabMs = [];
     l.media.forEach(function (m, i) {
       if (state.raagSect === "bandish") return;                      // page 5 is an index only
-      /* every recording gets a tab, audio or video: on a page that is all audio - मुक्त आलाप,
-         for one - hiding the audio left nothing to choose from at all */
-      if (l.group === "Alankar" && m.kind !== "video") return;
+      if (!pageEditing(l) && m.kind !== "video" && !m.file) return;   // audio is an editing-time choice
+      /* An alankar's komal and shuddha takes are both recordings of the same lesson, so they
+         belong as tabs, the way every other page shows its recordings. */
       if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
       tabMs.push({ m: m, i: i });
     });
-    if (tabMs.length > 1) {   // more than one recording, so you always need a way to choose
+    if ((state.editMode || tabMs.some(function (t) { return t.m.file; })) && tabMs.length > 1) {
       html += '<div class="sk-mediatabs">' + tabMs.map(function (t) {
         var m = t.m, i = t.i, nm = esc(m.name.replace(/\.[a-z0-9]+$/i, ""));
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
