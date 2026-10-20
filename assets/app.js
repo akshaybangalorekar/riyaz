@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.56.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.57.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1077,7 +1077,7 @@
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
         
-        (curVideo || !secHasLines || state.group === "Favourites" || !state.canEdit ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
+        (curVideo || !secHasLines || state.group === "Favourites" ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
         (state.editMode ? ('<button class="sk-editbtn ghost' + (UNDO.length ? "" : " off") + '" id="btnUndo" type="button"' +
         (UNDO.length ? "" : " disabled") + ' title="Put back the last change">\u21b6 Undo</button>') : "") +
         "</div>";
@@ -1110,12 +1110,7 @@
     var m = l.media[state.mediaIdx];
     var p = $("#player");
     p.classList.remove("bare");
-    if (!m) {
-      /* A lesson with recordings is not "no audio or video": they are there, held back until
-         editing, so saying otherwise would be untrue. */
-      p.innerHTML = (l.media && l.media.length) ? "" : '<div class="sk-dim">No audio or video for this lesson.</div>';
-      return;
-    }
+    if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML =
@@ -1670,22 +1665,19 @@
       sunb.onclick = function () { favToggle(l.id, secKey, li, state.mediaIdx); renderNotation(l); };
       if (tanaRowOf(l, li) === null) ctl.appendChild(sunb);   // a merged तान row keeps the table clean
       var seg = !curIsVideo ? segsOf()[li] : null;   // a video page shows no times at all
-      if (seg) {
-        var tm = document.createElement("span");
-        tm.className = "ln-time";
-        tm.textContent = fmtTime(seg.t) + (_ends[li] != null ? " \u2013 " + fmtTime(_ends[li]) : "");
-        tm.title = "Starts here; runs until the next line's offset begins"
-          + (_ends[li] != null ? "" : " (no later line is timed, so this one runs to the end)")
-        ctl.appendChild(tm);
-      } else if (!curIsVideo) {            // no "timed elsewhere" chip on a video page either
-        var other = markInOtherFile(l, li);
-        if (other) {                       // timed on a different recording — say so
-          var ob = document.createElement("button");
-          ob.type = "button"; ob.className = "ln-other";
-          ob.textContent = "in " + shortMedia(mediaNameOf(l, other.track));
-          ob.title = "This line is timed against another recording \u2014 press to open it there";
-          ob.onclick = function () { switchMedia(l, other.track, function () { startSeg(li); }); };
-          ctl.appendChild(ob);
+      if (!curIsVideo) {
+        /* The row shows its offset and nothing else. The recording a line is timed against is
+           not named here - that chip was noise, and it appeared in place of the time. A line
+           with no saved time yet simply shows nothing. */
+        var _seg = segsOf()[li];
+        var _e2 = entryOf(l.id, li), _tk = takesOf(_e2);
+        var _t = _seg ? _seg.t : (_tk && _tk.length ? _tk[+_e2.cur || 0].t : null);
+        if (_t != null) {
+          var tm = document.createElement("span");
+          tm.className = "ln-time";
+          tm.textContent = fmtTime(_t) + (_ends[li] != null ? " \u2013 " + fmtTime(_ends[li]) : "");
+          tm.title = "This line's offset";
+          ctl.appendChild(tm);
         }
       }
       // more than one take on this line?  show which one, and let it be changed
