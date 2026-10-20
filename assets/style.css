@@ -271,7 +271,10 @@ body{
 .sk-iframe{width:100%; aspect-ratio:16/9; border:0; border-radius:12px; background:#000}
 .sk-mediatabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
 @media(max-width:780px){
-  .sk-mediatabs{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px}
+  /* The row used to become a sideways scroller on a narrow screen, so on a laptop or an iPad
+     you saw the first tab and the rest were off to the right with nothing to show they were
+     there. It wraps at every width now, so every recording is always in view. */
+  .sk-mediatabs{flex-wrap:wrap; overflow-x:visible; padding-bottom:0}
 }
 .sk-mtab{border:1px solid var(--line); background:var(--bg2); color:var(--ink);
   border-radius:999px; padding:8px 14px; font-size:13.5px; cursor:pointer; font-family:inherit;
