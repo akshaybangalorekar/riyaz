@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.62.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.63.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1680,12 +1680,13 @@
            not named here - that chip was noise, and it appeared in place of the time. A line
            with no saved time yet simply shows nothing. */
         var _seg = segsOf()[li];
-        var _e2 = entryOf(l.id, li), _tk = takesOf(_e2);
-        var _t = _seg ? _seg.t : (_tk && _tk.length ? _tk[+_e2.cur || 0].t : null);
+        var _off = offsetForLine(l, li);
+        var _t = _seg ? _seg.t : (_off ? _off.t : null);
         if (_t != null) {
+          var _end = _seg ? _ends[li] : (_off ? _off.end : null);
           var tm = document.createElement("span");
           tm.className = "ln-time";
-          tm.textContent = fmtTime(_t) + (_ends[li] != null ? " \u2013 " + fmtTime(_ends[li]) : "");
+          tm.textContent = fmtTime(_t) + (_end != null ? " \u2013 " + fmtTime(_end) : "");
           tm.title = "This line's offset";
           ctl.appendChild(tm);
         }
@@ -2886,6 +2887,37 @@
         try { state.segments[kk.slice(7)] = normalizeLesson(JSON.parse(localStorage.getItem(kk) || "{}") || {}); } catch (e) {}
       });
     } catch (e) {}
+  }
+  /* A line's offset may be saved against a different recording of the same part: मुक्त आलाप
+     1-10 is one file and 11-14 is another. Read it from whichever recording of this part has
+     it, so both sets of offsets show on the one page. */
+  function partTracks(l) {
+    var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
+    return (part && part.media.length) ? part.media.map(String) : [trackKey()];
+  }
+  function entryOn(l, li, tr) {
+    var sh = state.sharedMarks && state.sharedMarks[l.id] && state.sharedMarks[l.id][tr];
+    var lo = state.segments && state.segments[l.id] && state.segments[l.id][tr];
+    var a = sh && sh[li], b = lo && lo[li];
+    if (!a) return b || null;
+    if (!b) return a;
+    return (entryAt(b) >= entryAt(a)) ? b : a;
+  }
+  function offsetForLine(l, li) {
+    var trs = partTracks(l), lines = l.lines || [];
+    for (var i = 0; i < trs.length; i++) {
+      var e = entryOn(l, li, trs[i]), tk = takesOf(e);
+      if (!(tk && tk.length)) continue;
+      var t = tk[+e.cur || 0].t;
+      if (t == null) continue;
+      var end = null;                                  // the next timed line on the same recording
+      for (var j = li + 1; j < lines.length; j++) {
+        var e2 = entryOn(l, j, trs[i]), tk2 = takesOf(e2);
+        if (tk2 && tk2.length && tk2[+e2.cur || 0].t > t + 0.05) { end = tk2[+e2.cur || 0].t; break; }
+      }
+      return { t: t, end: end };
+    }
+    return null;
   }
   function trackKey() { return String(state.mediaIdx); }
   /* ---------- takes ----------
