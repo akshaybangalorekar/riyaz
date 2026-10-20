@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.44.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.45.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -366,6 +366,9 @@
 
   /* ---------- media url ---------- */
   function audioSources(m) {
+    /* a file you added may be a direct link to the audio itself, like the pre-loaded ones.
+       Those can be seeked and timed; a Drive page cannot. */
+    if (m && m.src) return [m.src];
     return [
       "audio/" + m.id + ".mp3",  // self-hosted in this repo (same origin on GitHub Pages)
       "https://raw.githubusercontent.com/akshaybangalorekar/riyaz/main/audio/" + m.id + ".mp3",
@@ -1376,11 +1379,18 @@
   /* A file that is ticked to show plays at the top like any other recording, so it is added
      to this page's media. Drive serves it through its own player, which is the same route a
      Drive-hosted video already takes. */
+  function isAudioURL(u) { return /\.(mp3|m4a|wav|ogg|aac|opus)(\?|#|$)/i.test(String(u || "")); }
   function fileMedia(l) {
     var list = fileList(l);
-    return list.filter(function (f) { return f.view && driveId(f.url); }).map(function (f, i) {
-      return { id: driveId(f.url), name: f.name || ("File " + (i + 1)), kind: "video", file: true };
-    });
+    return list.filter(function (f) { return f.view && (driveId(f.url) || isAudioURL(f.url)); })
+      .map(function (f, i) {
+        var nm = f.name || ("File " + (i + 1));
+        if (isAudioURL(f.url)) {
+          /* a direct link to the audio: plays here, so its lines can be timed */
+          return { id: "u" + i, src: f.url, name: nm, kind: "audio", file: true };
+        }
+        return { id: driveId(f.url), name: nm, kind: "video", file: true };
+      });
   }
   function applyFiles(l) {
     if (!l._mediaBase) l._mediaBase = (l.media || []).slice();
