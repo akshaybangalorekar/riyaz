@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.54.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.55.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1045,11 +1045,13 @@
     if (state.raagSect !== "bandish") {                       // page 5 is an index only
         /* The part's own recordings, plus your own files below. If that leaves nothing, every
          recording is shown instead - so a tab can never be missing and a recording can always
-         be reached to be timed, whatever the names say. */
+         be reached to be timed, whatever the names say.
+         An audio recording's tab is an editing aid - it is how a line gets timed - so it shows
+         only while editing. In view mode the page simply plays. A video keeps its tab. */
       var want = raagSectParts(l, state.raagSect).media;
       var mine = [];
-      l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0) mine.push({ m: m, i: i }); });
-      if (!mine.length) l.media.forEach(function (m, i) { if (!m.file) mine.push({ m: m, i: i }); });
+      l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0 && (state.canEdit || m.kind === "video")) mine.push({ m: m, i: i }); });
+      if (!mine.length) l.media.forEach(function (m, i) { if (!m.file && (state.canEdit || m.kind === "video")) mine.push({ m: m, i: i }); });
       tabMs = mine;
     }
     /* your own files come first in the row, so they are easy to pick and time. The list order
@@ -1413,11 +1415,7 @@
     l.media = l._mediaBase.concat(fileMedia(l));
   }
 
-  /* The Files box is gone: files are added to the sheet itself, so there is no Add a file,
-     no Save files and no per-page link list. */
-  function filesBox(l) { return null; }
-
-  function filesBoxUnused(l) {
+  function filesBox(l) {
     var list = fileList(l), ed = state.editMode;
     var shown = ed ? list : list.filter(function (f) { return f.view && f.url; });
     if (!ed && !shown.length) return null;

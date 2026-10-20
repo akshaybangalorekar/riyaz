@@ -981,3 +981,19 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .sk-file-save{border-color:var(--saffron); color:var(--saffron); font-weight:700}
 .sk-file-save:hover{background:var(--saffron); color:#20160d}
 .sk-file-row + .sk-file-row{margin-top:4px}
+
+/* ---------- a line's controls: play and sun above, five-second buttons below ----------
+   Two short rows instead of one long strip, so the line needs less width and the notation
+   gets more of the page. The offset sits on its own row under them. */
+.ln-ctl{display:inline-grid; grid-template-columns:auto auto; gap:3px; align-items:center;
+  vertical-align:middle; margin-right:8px}
+.ln-ctl .playb{order:1}
+.ln-ctl .sunb{order:2}
+.ln-ctl .sk5{order:3}
+.ln-ctl .mark, .ln-ctl .penb, .ln-ctl .ln-take, .ln-ctl .ln-addtake, .ln-ctl .ln-time{
+  order:4; grid-column:1 / -1; justify-self:start}
+.ln-ctl .ln-time{font-size:11.5px}
+
+/* three short rows: play and sun, then the five-second buttons, then the offset */
+.ln-ctl .mark, .ln-ctl .penb{order:4; grid-column:auto; justify-self:start}
+.ln-ctl .ln-take, .ln-ctl .ln-addtake, .ln-ctl .ln-time{order:5; grid-column:1 / -1; justify-self:start}
