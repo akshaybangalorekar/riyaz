@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.45.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.46.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1382,7 +1382,9 @@
   function isAudioURL(u) { return /\.(mp3|m4a|wav|ogg|aac|opus)(\?|#|$)/i.test(String(u || "")); }
   function fileMedia(l) {
     var list = fileList(l);
-    return list.filter(function (f) { return f.view && (driveId(f.url) || isAudioURL(f.url)); })
+    /* While editing, every file is offered as a recording so it can be picked and given its
+       line timings. The tick then means what it says: show it in view mode as well. */
+    return list.filter(function (f) { return (f.view || state.canEdit) && (driveId(f.url) || isAudioURL(f.url)); })
       .map(function (f, i) {
         var nm = f.name || ("File " + (i + 1));
         if (isAudioURL(f.url)) {
