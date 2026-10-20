@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.60.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.61.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -569,22 +569,17 @@
     if (!m) return "";
     return bandishNames(l)[+m[1] - 1] || "";
   }
-  function raagSect(x) {
-    var t = (x || "").toLowerCase();
-    /* A file may name more than one part - "आरोह औरोह - मुक्त आलाप 1-10" names both. The part
-       it belongs to is the last one named, so a mukt recording is not filed under aaroh and a
-       bandish video is never pulled onto another part's page. */
-    var hit = "", at = -1;
-    var pats = [["aaroh", /aaroh|avroh|pakad|\u0906\u0930\u094b\u0939|\u0905\u0935\u0930\u094b\u0939|\u092a\u0915\u0921/g],
-                ["mukt", /mukt aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a/g],
-                ["laikari", /laikari|\u0932\u092f\u0915\u093e\u0930\u0940/g],
-                ["tana", /tana|\u0924\u093e\u0928/g]];
-    pats.forEach(function (p) {
-      var re = new RegExp(p[1].source, "g"), m;
-      while ((m = re.exec(t)) !== null) { if (m.index > at) { at = m.index; hit = p[0]; } }
-    });
-    return hit || "bandish";
+  /* Every part a name mentions. A recording called "आरोह औरोह - मुक्त आलाप" belongs to both
+     pages, because that is what its name says - and that is where its offsets were set. */
+  function raagSects(x) {
+    var t = (x || "").toLowerCase(), out = [];
+    if (/aaroh|avroh|pakad|\u0906\u0930\u094b\u0939|\u0905\u0935\u0930\u094b\u0939|\u092a\u0915\u0921/.test(t)) out.push("aaroh");
+    if (/mukt aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a/.test(t)) out.push("mukt");
+    if (/laikari|\u0932\u092f\u0915\u093e\u0930\u0940/.test(t)) out.push("laikari");
+    if (/tana|\u0924\u093e\u0928/.test(t)) out.push("tana");
+    return out.length ? out : ["bandish"];
   }
+  function raagSect(x) { return raagSects(x)[0]; }
   function raagSectParts(l, k) {
     var lines = [], media = [];
     (l.lines || []).forEach(function (ln, i) { if (lineSection(l, ln.label) === k) lines.push(i); });
@@ -592,7 +587,7 @@
        "bandish:1", so without this a sub page found no recording at all. */
     var mk = /^bandish:/.test(k || "") ? "bandish" : k;
     /* the बंदिश page itself is an index, so it carries no recording at all */
-    if (k !== "bandish") (l.media || []).forEach(function (m, i) { if (raagSect(m.name) === mk) media.push(i); });
+    if (k !== "bandish") (l.media || []).forEach(function (m, i) { if (raagSects(m.name).indexOf(mk) >= 0) media.push(i); });
     return { lines: lines, media: media };
   }
   function raagSections(l) {
@@ -974,9 +969,9 @@
     }
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
-    /* HARD GUARD: on a part's page the player may only ever use that part's own recordings.
-       A remembered position, or one carried in from a favourite, is honoured only if it
-       belongs here - otherwise the bandish video would play on the aaroh page. */
+    /* HARD GUARD: on a part's page the player may only use that part's own recordings. A
+       remembered position, or one carried in from a favourite, is honoured only if it belongs
+       here - otherwise the bandish video would play on the aaroh or mukt page. */
     var allowed = part ? part.media : null;
     var ok = (mIdx != null && mIdx >= 0 && l.media[mIdx] && (!allowed || !allowed.length || allowed.indexOf(mIdx) >= 0));
     if (ok) state.mediaIdx = mIdx;
@@ -987,7 +982,7 @@
     else if (part) {
       var fm = -1;
       l.media.forEach(function (m, i) { if (fm < 0 && m.file) fm = i; });
-      state.mediaIdx = fm;                             // this part has nothing of its own
+      state.mediaIdx = fm;                             // a ticked file plays here
     }
     else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
@@ -1110,12 +1105,7 @@
 
     // wire media tabs
     Array.prototype.forEach.call(s.querySelectorAll(".sk-mtab"), function (b) {
-      b.onclick = function () {
-        var i2 = +b.dataset.i;
-        var p2 = state.raagSect ? raagSectParts(l, state.raagSect) : null;
-        if (p2 && p2.media.length && p2.media.indexOf(i2) < 0) return;   // not this part's recording
-        state.mediaIdx = i2; renderList(); renderStage(l);
-      };
+      b.onclick = function () { state.mediaIdx = +b.dataset.i; renderList(); renderStage(l); };
     });
 
     renderPlayer(l);
