@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.48.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.49.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1045,10 +1045,10 @@
        recordings belong to a part is how they came to disagree and leave the row empty. */
     var tabMs = [];
     if (state.raagSect !== "bandish") {                       // page 5 is an index only
-      var want = raagSectParts(l, state.raagSect).media;      // the page's own answer
+      /* Every recording the lesson carries is offered as a tab, so nothing is hidden and you
+         can always reach a recording to time it. Your own files are added after these. */
       l.media.forEach(function (m, i) {
         if (m.file) return;                                   // your own files are added below
-        if (want.indexOf(i) < 0) return;
         tabMs.push({ m: m, i: i });
       });
       fileMedia(l).forEach(function (fm, k) {
