@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.57.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.58.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -571,11 +571,19 @@
   }
   function raagSect(x) {
     var t = (x || "").toLowerCase();
-    if (/aaroh|avroh|pakad|आरोह|अवरोह|पकड/.test(t)) return "aaroh";
-    if (/mukt aalap|मुक्त आलाप/.test(t)) return "mukt";
-    if (/laikari|लयकारी/.test(t)) return "laikari";
-    if (/tana|तान/.test(t)) return "tana";
-    return "bandish";   // bandish, khayal, antara, sthayi, taal and anything else
+    /* A file may name more than one part - "आरोह औरोह - मुक्त आलाप 1-10" names both. The part
+       it belongs to is the last one named, so a mukt recording is not filed under aaroh and a
+       bandish video is never pulled onto another part's page. */
+    var hit = "", at = -1;
+    var pats = [["aaroh", /aaroh|avroh|pakad|\u0906\u0930\u094b\u0939|\u0905\u0935\u0930\u094b\u0939|\u092a\u0915\u0921/g],
+                ["mukt", /mukt aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a/g],
+                ["laikari", /laikari|\u0932\u092f\u0915\u093e\u0930\u0940/g],
+                ["tana", /tana|\u0924\u093e\u0928/g]];
+    pats.forEach(function (p) {
+      var re = new RegExp(p[1].source, "g"), m;
+      while ((m = re.exec(t)) !== null) { if (m.index > at) { at = m.index; hit = p[0]; } }
+    });
+    return hit || "bandish";
   }
   function raagSectParts(l, k) {
     var lines = [], media = [];
@@ -1051,7 +1059,8 @@
       var want = raagSectParts(l, state.raagSect).media;
       var mine = [];
       l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0 && (state.canEdit || m.kind === "video")) mine.push({ m: m, i: i }); });
-      if (!mine.length) l.media.forEach(function (m, i) { if (!m.file && (state.canEdit || m.kind === "video")) mine.push({ m: m, i: i }); });
+      /* no fallback to every recording: a part shows its own and nothing else. Showing
+         everything put the bandish video on the aaroh and mukt pages. */
       tabMs = mine;
     }
     /* your own files come first in the row, so they are easy to pick and time. The list order
