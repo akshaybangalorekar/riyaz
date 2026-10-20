@@ -17,7 +17,9 @@
     video: null,     // when the page is showing a video, this is it
     segments: {},     // lessonId -> { lineIndex: {track, t} }   (local overrides)
     segPlay: null,     // {line, start, end, loop}
-    segLoop: true,
+    /* A line plays from its start to its end and then STOPS. It must not repeat: a line
+       heard over and over makes it hard to tell where it finished. */
+    segLoop: false,
     lineRows: [],
     sharedMarks: null, // marks.json loaded from the repo (shared across devices)
     cleared: {},       // lessons whose marks were cleared in this session
@@ -41,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.65.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.66.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
