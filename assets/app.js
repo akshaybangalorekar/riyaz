@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.51.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.52.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -958,7 +958,6 @@
     stopAll();
     state.lessonId = id;
     state.raagSect = sect || null;
-    try { applyFiles(l); } catch (e) {}
     if (l.group === "Raag") {                          // one part per page, never the whole raag
       var rs = raagSections(l);
       /* a section remembered from last time is only honoured if this raag really has it */
@@ -1006,7 +1005,6 @@
 
   function renderStage(l) {
     state.editMode = editingNow();
-    try { applyFiles(l); } catch (e) {}
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
     var curVideo = mcur.kind === "video";
@@ -1053,13 +1051,6 @@
       l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0) mine.push({ m: m, i: i }); });
       if (!mine.length) l.media.forEach(function (m, i) { if (!m.file) mine.push({ m: m, i: i }); });
       tabMs = mine;
-      fileMedia(l).forEach(function (fm, k) {
-        var idx = -1;
-        for (var i = 0; i < l.media.length; i++) {
-          if (l.media[i] === fm || (l.media[i].file && l.media[i].src === fm.src && l.media[i].name === fm.name)) { idx = i; break; }
-        }
-        tabMs.push({ m: (idx >= 0 ? l.media[idx] : fm), i: (idx >= 0 ? idx : -1) });
-      });
     }
     /* your own files come first in the row, so they are easy to pick and time. The list order
        itself is left alone, because the saved offsets are keyed by a recording's position. */
