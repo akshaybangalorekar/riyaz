@@ -2035,63 +2035,14 @@ window.SANGEET = {
     {
      "kind": "audio",
      "id": "1m9fOUqB50QUUoI4kh0FvP-NP4j2Em0Yn",
-     "name": "Raag दुर्गा - Aaroh-Avroh - Mukt Aalap 1-10.mp3"
+     "name": "२०२६०८२३ - राग दुर्गा - आरोह औरोह - मुक्त आलाप 1-10.mp3"
     },
     {
      "kind": "audio",
      "id": "13vw3M-DNPh7eDHUFbVN1DHbEnY2o5H5e",
-     "name": "Raag दुर्गा - Aaroh-Avroh - Mukt Aalap 11-14 .mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "12i-xzHTx_ssneGsGZYFS6BWnE8jSfLB8",
-     "name": "Raag दुर्गा - Aaroh-Avroh.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "12GRf-Rviv5mZRaIbM71q0dIy3hBuCYOT",
-     "name": "Raag दुर्गा - Bada Khayal.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "1NdM_cZuD_cPcfhuQVkE7Gh9pJqf05pzs",
-     "name": "Raag दुर्गा - Mukt Aalap - 1 - 5.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "117LPHE1tyoMsPguobpJ2T4sJpp8QKFtm",
-     "name": "Raag दुर्गा - Mukt Aalap - 12.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "14fK67oIpZCryjjYI-AfP9rPSOzn4NZvr",
-     "name": "Raag दुर्गा - Mukt Aalap - 13.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "17klVLQiymD7tBzYwkg_x34BKXlH927_D",
-     "name": "Raag दुर्गा - Mukt Aalap - 14.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "1HKV7PEIuPPn_T8ne3zE2Mb0qK_bfcMow",
-     "name": "Raag दुर्गा - Mukt Aalap - 6 - 11.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "13vw3M-DNPh7eDHUFbVN1DHbEnY2o5H5e",
-     "name": "Raag दुर्गा - Mukt Aalap - file A.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "1m9fOUqB50QUUoI4kh0FvP-NP4j2Em0Yn",
-     "name": "Raag दुर्गा - Mukt Aalap - file B.mp3"
-    },
-    {
-     "kind": "video",
-     "id": "10TfU6PCFLTtFnuftM2wwrMuSYl8_vXbh",
-     "name": "Raag दुर्गा - झप ताल.MOV"
+     "name": "२०२६१००३  - राग दुर्गा - आरोह औरोह - मुक्त आलाप 11-14 .mp3"
     }
+                                                
    ]
   },
   {
