@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.63.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.64.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3028,15 +3028,19 @@
     });
     return best;
   }
-  function markInOtherFile(l, li) {         // a mark that lives on a different recording
-    /* Only when THIS recording has nothing for the line. If it has its own time,
-       that is the one to use — a newer time on a sibling recording (the shuddha
-       take of an alankar, say) must never pull you out of the komal one. */
-    if (segsOf()[li]) return null;
-    var mk = markAnywhere(l.id, li);
-    if (!mk || mk.track === state.mediaIdx) return null;
-    if (!l.media || !l.media[mk.track]) return null;
-    return mk;
+  function markInOtherFile(l, li) {         // a line timed on another recording of this part
+    if (segsOf()[li]) return null;          // this recording has its own time for the line
+    /* Read it from whichever recording of THIS PART carries it, using the same lookup the
+       offset display uses. markAnywhere only looked at this device's own marks, so a time
+       that came from the synced file - like मुक्त आलाप 11-14, which lives on the second
+       recording - was invisible and the line would not play. */
+    var trs = partTracks(l);
+    for (var i = 0; i < trs.length; i++) {
+      if (String(trs[i]) === String(state.mediaIdx)) continue;
+      var e = entryOn(l, li, trs[i]), tk = takesOf(e);
+      if (tk && tk.length && tk[+e.cur || 0].t != null) return { track: +trs[i] };
+    }
+    return null;
   }
   function switchMedia(l, i, then) {       // move the player to another recording
     if (i == null || i < 0 || !l.media || !l.media[i]) return;
