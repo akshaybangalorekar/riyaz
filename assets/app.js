@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.59.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.60.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -974,7 +974,12 @@
     }
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
-    if (mIdx != null && mIdx >= 0 && l.media[mIdx]) state.mediaIdx = mIdx;
+    /* HARD GUARD: on a part's page the player may only ever use that part's own recordings.
+       A remembered position, or one carried in from a favourite, is honoured only if it
+       belongs here - otherwise the bandish video would play on the aaroh page. */
+    var allowed = part ? part.media : null;
+    var ok = (mIdx != null && mIdx >= 0 && l.media[mIdx] && (!allowed || !allowed.length || allowed.indexOf(mIdx) >= 0));
+    if (ok) state.mediaIdx = mIdx;
     else if (part && part.media.length) {
       var vids = part.media.filter(function (i) { return (l.media[i] || {}).kind === "video"; });
       state.mediaIdx = (!pageEditing(l) && vids.length) ? vids[0] : bestOf(part.media, id);
@@ -982,7 +987,7 @@
     else if (part) {
       var fm = -1;
       l.media.forEach(function (m, i) { if (fm < 0 && m.file) fm = i; });
-      state.mediaIdx = fm;                             // a ticked file plays here
+      state.mediaIdx = fm;                             // this part has nothing of its own
     }
     else for (var _mi = 0; _mi < l.media.length; _mi++) { if (!l.media[_mi].missing) { state.mediaIdx = _mi; break; } }
     localStorage.setItem("sk_lesson", id);
@@ -1105,7 +1110,12 @@
 
     // wire media tabs
     Array.prototype.forEach.call(s.querySelectorAll(".sk-mtab"), function (b) {
-      b.onclick = function () { state.mediaIdx = +b.dataset.i; renderList(); renderStage(l); };
+      b.onclick = function () {
+        var i2 = +b.dataset.i;
+        var p2 = state.raagSect ? raagSectParts(l, state.raagSect) : null;
+        if (p2 && p2.media.length && p2.media.indexOf(i2) < 0) return;   // not this part's recording
+        state.mediaIdx = i2; renderList(); renderStage(l);
+      };
     });
 
     renderPlayer(l);
