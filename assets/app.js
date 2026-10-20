@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.64.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.65.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2891,6 +2891,20 @@
   /* A line's offset may be saved against a different recording of the same part: मुक्त आलाप
      1-10 is one file and 11-14 is another. Read it from whichever recording of this part has
      it, so both sets of offsets show on the one page. */
+  /* Every recording that actually holds a time for this lesson, in a sensible order: the
+     part's own recordings first, then any other track the marks mention. A device's cached
+     marks can be keyed differently from the sheet after files are added or removed, so the
+     lookup must not depend on the sheet's list alone - that is why a line timed on the second
+     मुक्त आलाप file could not be found and the app said no time was set. */
+  function tracksWithData(l) {
+    var trs = [];
+    partTracks(l).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
+    var sh = (state.sharedMarks && state.sharedMarks[l.id]) || {};
+    var lo = (state.segments && state.segments[l.id]) || {};
+    Object.keys(sh).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
+    Object.keys(lo).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
+    return trs.filter(function (t) { return l.media && l.media[+t]; });
+  }
   function partTracks(l) {
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
     return (part && part.media.length) ? part.media.map(String) : [trackKey()];
@@ -2904,7 +2918,7 @@
     return (entryAt(b) >= entryAt(a)) ? b : a;
   }
   function offsetForLine(l, li) {
-    var trs = partTracks(l), lines = l.lines || [];
+    var trs = tracksWithData(l), lines = l.lines || [];
     for (var i = 0; i < trs.length; i++) {
       var e = entryOn(l, li, trs[i]), tk = takesOf(e);
       if (!(tk && tk.length)) continue;
@@ -3034,7 +3048,7 @@
        offset display uses. markAnywhere only looked at this device's own marks, so a time
        that came from the synced file - like मुक्त आलाप 11-14, which lives on the second
        recording - was invisible and the line would not play. */
-    var trs = partTracks(l);
+    var trs = tracksWithData(l);
     for (var i = 0; i < trs.length; i++) {
       if (String(trs[i]) === String(state.mediaIdx)) continue;
       var e = entryOn(l, li, trs[i]), tk = takesOf(e);
