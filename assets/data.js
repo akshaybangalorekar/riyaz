@@ -2033,6 +2033,11 @@ window.SANGEET = {
    ],
    "media": [
     {
+     "kind": "video",
+     "id": "1f_PKyuLSlGTcUgknC0l1boYLeoz82Ruq",
+     "name": "२०२६१००३  - राग दुर्गा - बड़ा खायल with taal.mp4"
+    },
+    {
      "kind": "audio",
      "id": "1m9fOUqB50QUUoI4kh0FvP-NP4j2Em0Yn",
      "name": "२०२६०८२३ - राग दुर्गा - आरोह औरोह - मुक्त आलाप 1-10.mp3"

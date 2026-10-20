@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.53.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.54.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1413,7 +1413,11 @@
     l.media = l._mediaBase.concat(fileMedia(l));
   }
 
-  function filesBox(l) {
+  /* The Files box is gone: files are added to the sheet itself, so there is no Add a file,
+     no Save files and no per-page link list. */
+  function filesBox(l) { return null; }
+
+  function filesBoxUnused(l) {
     var list = fileList(l), ed = state.editMode;
     var shown = ed ? list : list.filter(function (f) { return f.view && f.url; });
     if (!ed && !shown.length) return null;
