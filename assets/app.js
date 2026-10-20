@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.49.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.50.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1045,12 +1045,14 @@
        recordings belong to a part is how they came to disagree and leave the row empty. */
     var tabMs = [];
     if (state.raagSect !== "bandish") {                       // page 5 is an index only
-      /* Every recording the lesson carries is offered as a tab, so nothing is hidden and you
-         can always reach a recording to time it. Your own files are added after these. */
-      l.media.forEach(function (m, i) {
-        if (m.file) return;                                   // your own files are added below
-        tabMs.push({ m: m, i: i });
-      });
+        /* The part's own recordings, plus your own files below. If that leaves nothing, every
+         recording is shown instead - so a tab can never be missing and a recording can always
+         be reached to be timed, whatever the names say. */
+      var want = raagSectParts(l, state.raagSect).media;
+      var mine = [];
+      l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0) mine.push({ m: m, i: i }); });
+      if (!mine.length) l.media.forEach(function (m, i) { if (!m.file) mine.push({ m: m, i: i }); });
+      tabMs = mine;
       fileMedia(l).forEach(function (fm, k) {
         var idx = -1;
         for (var i = 0; i < l.media.length; i++) {

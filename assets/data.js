@@ -2078,6 +2078,16 @@ window.SANGEET = {
      "name": "Raag दुर्गा - Mukt Aalap - 6 - 11.mp3"
     },
     {
+     "kind": "audio",
+     "id": "13vw3M-DNPh7eDHUFbVN1DHbEnY2o5H5e",
+     "name": "Raag दुर्गा - Mukt Aalap - file A.mp3"
+    },
+    {
+     "kind": "audio",
+     "id": "1m9fOUqB50QUUoI4kh0FvP-NP4j2Em0Yn",
+     "name": "Raag दुर्गा - Mukt Aalap - file B.mp3"
+    },
+    {
      "kind": "video",
      "id": "10TfU6PCFLTtFnuftM2wwrMuSYl8_vXbh",
      "name": "Raag दुर्गा - झप ताल.MOV"
