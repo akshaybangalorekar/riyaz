@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.61.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.62.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -569,8 +569,6 @@
     if (!m) return "";
     return bandishNames(l)[+m[1] - 1] || "";
   }
-  /* Every part a name mentions. A recording called "आरोह औरोह - मुक्त आलाप" belongs to both
-     pages, because that is what its name says - and that is where its offsets were set. */
   function raagSects(x) {
     var t = (x || "").toLowerCase(), out = [];
     if (/aaroh|avroh|pakad|\u0906\u0930\u094b\u0939|\u0905\u0935\u0930\u094b\u0939|\u092a\u0915\u0921/.test(t)) out.push("aaroh");
@@ -969,9 +967,7 @@
     }
     state.mediaIdx = 0;
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
-    /* HARD GUARD: on a part's page the player may only use that part's own recordings. A
-       remembered position, or one carried in from a favourite, is honoured only if it belongs
-       here - otherwise the bandish video would play on the aaroh or mukt page. */
+    /* a part's page may only ever play that part's own recordings */
     var allowed = part ? part.media : null;
     var ok = (mIdx != null && mIdx >= 0 && l.media[mIdx] && (!allowed || !allowed.length || allowed.indexOf(mIdx) >= 0));
     if (ok) state.mediaIdx = mIdx;
