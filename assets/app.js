@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.58.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.59.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1059,7 +1059,7 @@
       var want = raagSectParts(l, state.raagSect).media;
       var mine = [];
       l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0 && (state.canEdit || m.kind === "video")) mine.push({ m: m, i: i }); });
-      /* no fallback to every recording: a part shows its own and nothing else. Showing
+      /* no fallback to every recording: a part shows its own and nothing else - showing
          everything put the bandish video on the aaroh and mukt pages. */
       tabMs = mine;
     }
@@ -1086,7 +1086,7 @@
     if (l.lines && l.lines.length) {
       html += '<div class="sk-stoprow">' +
         
-        (curVideo || !secHasLines || state.group === "Favourites" ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
+        (curVideo || !secHasLines || state.group === "Favourites" || !state.canEdit ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
         (state.editMode ? ('<button class="sk-editbtn ghost' + (UNDO.length ? "" : " off") + '" id="btnUndo" type="button"' +
         (UNDO.length ? "" : " disabled") + ' title="Put back the last change">\u21b6 Undo</button>') : "") +
         "</div>";
@@ -1119,7 +1119,12 @@
     var m = l.media[state.mediaIdx];
     var p = $("#player");
     p.classList.remove("bare");
-    if (!m) { p.innerHTML = '<div class="sk-dim">No audio or video for this lesson.</div>'; return; }
+    if (!m) {
+      /* A lesson with recordings is not "no audio or video": they are there, held back until
+         editing, so saying otherwise would be untrue. */
+      p.innerHTML = (l.media && l.media.length) ? "" : '<div class="sk-dim">No audio or video for this lesson.</div>';
+      return;
+    }
     if (m.missing) { p.innerHTML = '<div class="sk-missing">🎧 <b>' + esc(m.name.replace(/\.[a-z0-9]+$/i, "")) + '</b> &mdash; we don&rsquo;t have this mp3 file yet.</div>'; return; }
     if (m.kind === "video") {
       p.innerHTML =
