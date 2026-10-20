@@ -41,7 +41,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.47.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.48.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1040,15 +1040,25 @@
     if (l.sub && l.group !== "Taal") html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";
 
     // media tabs — an alankar page shows no Komal/Shuddha tabs (the rail picks those)
+    /* The tabs are taken from the same list the page itself uses to find a section's
+       recordings, rather than worked out a second time. Two separate judgements about which
+       recordings belong to a part is how they came to disagree and leave the row empty. */
     var tabMs = [];
-    l.media.forEach(function (m, i) {
-      if (state.raagSect === "bandish") return;                      // page 5 is an index only
-      if (!pageEditing(l) && m.kind !== "video" && !m.file) return;   // audio is an editing-time choice
-      /* An alankar's komal and shuddha takes are both recordings of the same lesson, so they
-         belong as tabs, the way every other page shows its recordings. */
-      if (!m.file && l.group === "Raag" && state.raagSect && raagSect(m.name) !== state.raagSect) return;
-      tabMs.push({ m: m, i: i });
-    });
+    if (state.raagSect !== "bandish") {                       // page 5 is an index only
+      var want = raagSectParts(l, state.raagSect).media;      // the page's own answer
+      l.media.forEach(function (m, i) {
+        if (m.file) return;                                   // your own files are added below
+        if (want.indexOf(i) < 0) return;
+        tabMs.push({ m: m, i: i });
+      });
+      fileMedia(l).forEach(function (fm, k) {
+        var idx = -1;
+        for (var i = 0; i < l.media.length; i++) {
+          if (l.media[i] === fm || (l.media[i].file && l.media[i].src === fm.src && l.media[i].name === fm.name)) { idx = i; break; }
+        }
+        tabMs.push({ m: (idx >= 0 ? l.media[idx] : fm), i: (idx >= 0 ? idx : -1) });
+      });
+    }
     /* your own files come first in the row, so they are easy to pick and time. The list order
        itself is left alone, because the saved offsets are keyed by a recording's position. */
     tabMs.sort(function (a, b) { return (b.m.file ? 1 : 0) - (a.m.file ? 1 : 0); });
