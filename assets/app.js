@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.67.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.71.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -575,7 +575,7 @@
     var t = (x || "").toLowerCase(), out = [];
     if (/aaroh|avroh|pakad|\u0906\u0930\u094b\u0939|\u0905\u0935\u0930\u094b\u0939|\u092a\u0915\u0921/.test(t)) out.push("aaroh");
     if (/mukt aalap|\u092e\u0941\u0915\u094d\u0924\s*\u0906\u0932\u093e\u092a/.test(t)) out.push("mukt");
-    if (/laikari|\u0932\u092f\u0915\u093e\u0930\u0940/.test(t)) out.push("laikari");
+    if (/laikari|\u0932\u0948\u0915\u093e\u0930\u0940|\u0932\u092f\u0915\u093e\u0930\u0940/.test(t)) out.push("laikari");
     if (/tana|\u0924\u093e\u0928/.test(t)) out.push("tana");
     return out.length ? out : ["bandish"];
   }
@@ -1070,8 +1070,9 @@
         /* the tab reads as the part, not the whole file name: "मुक्त आलाप 1-10" rather than
            "२०२६०८२३ - राग दुर्गा - आरोह औरोह - मुक्त आलाप 1-10" */
         var nm = String(m.name || "").replace(/\.[a-z0-9]+$/i, "").trim();
+        nm = nm.replace(/^[\u0966-\u096f0-9]{6,8}\s*-\s*/, "");   /* drop a leading date */
         var seg = nm.split(" - ");
-        if (seg.length > 1) nm = seg[seg.length - 1].trim();
+        if (seg.length > 2) nm = seg.slice(2).join(" - ");          /* past the raag and the singer */
         nm = esc(nm);
         if (m.missing) return '<button class="sk-mtab miss' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">🎧 ' + nm + ' <b class="sk-mtag">no mp3</b></button>';
         return '<button class="sk-mtab' + (i === state.mediaIdx ? " on" : "") + '" data-i="' + i + '">' +
