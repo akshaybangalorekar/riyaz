@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.72.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.75.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -974,14 +974,18 @@
     var ok = (mIdx != null && mIdx >= 0 && l.media[mIdx] && (!allowed || !allowed.length || allowed.indexOf(mIdx) >= 0));
     if (ok) state.mediaIdx = mIdx;
     else if (part && part.media.length) {
-      var vids = part.media.filter(function (i) { return (l.media[i] || {}).kind === "video"; });
+      var vids = part.media.filter(function (i) { var m2 = l.media[i] || {}; return m2.kind === "video" && !m2.edit; });
       /* Open on the recording this part's lines are actually timed against, if there is one.
          Opening on a video hides the offsets and the play buttons, because a video has no line
          times - which is why भैरवी's लयकारी showed neither. */
-      var timed = part.media.filter(function (i) { return markCountOn(l.id, i) > 0; });
-      if (timed.length) state.mediaIdx = bestOf(part.media, id);
+      /* an editing-only recording is not a candidate while viewing: it must not appear, and
+         it must not be played either - the player would otherwise open on it */
+      var usable = part.media.filter(function (i) { var m2 = l.media[i] || {}; return state.canEdit || !m2.edit; });
+      var timed = usable.filter(function (i) { return markCountOn(l.id, i) > 0; });
+      if (timed.length) state.mediaIdx = bestOf(usable, id);
       else if (!pageEditing(l) && vids.length) state.mediaIdx = vids[0];
-      else state.mediaIdx = bestOf(part.media, id);
+      else if (usable.length) state.mediaIdx = bestOf(usable, id);
+      else state.mediaIdx = -1;                        /* nothing of this part's is viewable now */
     }
     else if (part) {
       var fm = -1;
@@ -1062,7 +1066,7 @@
          only while editing. In view mode the page simply plays. A video keeps its tab. */
       var want = raagSectParts(l, state.raagSect).media;
       var mine = [];
-      l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0 && (state.canEdit || m.kind === "video")) mine.push({ m: m, i: i }); });
+      l.media.forEach(function (m, i) { if (!m.file && want.indexOf(i) >= 0 && (state.canEdit || (m.kind === "video" && !m.edit))) mine.push({ m: m, i: i }); });
       /* no fallback to every recording: a part shows its own and nothing else - showing
          everything put the bandish video on the aaroh and mukt pages. */
       tabMs = mine;

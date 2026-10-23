@@ -3463,12 +3463,14 @@ window.SANGEET = {
     {
      "kind": "video",
      "id": "1zVb5sfhbXqkSiF16T9q-vKiq9tV3ww0n",
-     "name": "भैरवी - Mahadev Maheshwar - Tana - 1-6.mp4"
+     "edit": true,
+     "name": "२०२६०१०७ - भैरवी - महादेव महेश्वर - ताना - १-६.mp4"
     },
     {
      "kind": "video",
      "id": "1EJSUMECYOP_J1-U3t0WvLRbMXnc8i2Su",
-     "name": "भैरवी - Mahadev Maheshwar - Tana - 7-15.mp4"
+     "edit": true,
+     "name": "२०२६०११७ - भैरवी - महादेव महेश्वर - ताना - ७-१५.mp4"
     }
    ]
   },
