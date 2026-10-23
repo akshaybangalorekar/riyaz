@@ -29,7 +29,7 @@
  * still stream normally whenever there is a connection.
  */
 
-var CACHE = "riyaz-shell-v2";
+var CACHE = "riyaz-shell-v3";
 
 var FILES = [
   "./",
@@ -59,7 +59,9 @@ self.addEventListener("activate", function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(keys.map(function (k) {
-        if (k !== CACHE) return caches.delete(k);
+        /* clear every cache this app ever made, whatever it was called - an older worker
+           left one behind and it kept serving the old version of the app */
+        if (k !== CACHE && /^riyaz/.test(k)) return caches.delete(k);
       }));
     }).then(function () { return self.clients.claim(); })
   );
@@ -92,4 +94,10 @@ self.addEventListener("fetch", function (e) {
       return hit || fromNet;
     })
   );
+});
+
+/* The page asks the new worker to take over straight away, so an update does not wait for a
+   second visit. This is what stops the app sitting on an old version. */
+self.addEventListener("message", function (e) {
+  if (e.data && e.data.type === "skip") self.skipWaiting();
 });
