@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.84.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.85.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1042,16 +1042,16 @@
     if (l.group === "Taal" && l.taal) {          // taal name big, matras + file name small
       head = l.taal;
       if (l.sub) meta.push(l.sub);
-      if (fname) meta.push(fname);
+      if (fname && state.canEdit) meta.push(fname);   /* editing only */
     } else if (l.group === "Alankar" || l.group === "Raag") {
       var bnm = (l.group === "Raag") ? bandishNameOfKey(l, state.raagSect) : "";
       if (bnm) head = l.title + ": " + bnm;        // Raag दुर्गा: 1
       if (l.group === "Raag" && state.raagSect) { var sl = raagSectLabel(state.raagSect); if (sl) meta.push(sl); }
-      if (fname) meta.push(fname);
+      if (fname && state.canEdit) meta.push(fname);   /* editing only */
     }
     var html = '<div class="sk-h1">' + esc(head) +
       (meta.length ? ' <span class="sk-file">' + esc(meta.join(" \u00b7 ")) + "</span>" : "") +
-      (mcur.id ? ' <a class="sk-drive" href="https://drive.google.com/file/d/' + mcur.id +
+      (state.canEdit && mcur.id ? ' <a class="sk-drive" href="https://drive.google.com/file/d/' + mcur.id +
         '/view" target="_blank" rel="noopener" title="Open this file in Google Drive">\u2197 Drive</a>' : "") +
       "</div>";
     if (l.sub && l.group !== "Taal") html += '<div class="sk-hsub">' + esc(l.sub) + "</div>";

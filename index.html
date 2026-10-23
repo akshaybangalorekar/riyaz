@@ -64,7 +64,7 @@
 <script src="assets/data.js?v=2.8.0"></script>
 <script src="assets/prompt.js?v=4"></script>
 <script src="assets/tools.js?v=9"></script>
-<script src="assets/app.js?v=2.84.0"></script>
+<script src="assets/app.js?v=2.85.0"></script>
   <script>
   /* Offline practice: store the app's own files on this device so the swars open with no
      internet. Recordings and videos still stream when there is a connection. */
@@ -73,19 +73,6 @@
       navigator.serviceWorker.register("sw.js").catch(function () {});
     });
   }
-  </script>
-  <script>
-  /* When a new worker takes control, load once more so the new version is what is shown.
-     Guarded, so it can never loop. */
-  (function () {
-    if (!("serviceWorker" in navigator)) return;
-    var done = false;
-    navigator.serviceWorker.addEventListener("controllerchange", function () {
-      if (done) return;
-      done = true;
-      location.reload();
-    });
-  })();
   </script>
 </body>
 </html>
