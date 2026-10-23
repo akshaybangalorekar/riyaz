@@ -1,3 +1,19 @@
+  /* The app's own files: try the NETWORK first, so a new version arrives the moment there is
+     a connection - no waiting an extra open for it. When there is no connection the request
+     fails at once and the stored copy is used instead, which is what makes offline work. */
+  e.respondWith(
+    fetch(req).then(function (res) {
+      if (res && res.ok && res.type === "basic") {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, copy); });
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(req).then(function (hit) {
+        return hit || caches.match("index.html");
+      });
+    })
+  );
 /* Offline practice.
  *
  * The app itself is four small files - about 350 KB in all - and the swars live inside
@@ -13,7 +29,7 @@
  * still stream normally whenever there is a connection.
  */
 
-var CACHE = "riyaz-shell-v1";
+var CACHE = "riyaz-shell-v2";
 
 var FILES = [
   "./",
