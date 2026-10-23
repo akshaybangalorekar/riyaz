@@ -1,5 +1,5 @@
 {
- "at": 1792760775554,
+ "at": 1792760778401,
  "list": [
   {
    "id": "rg_bhairavi",
@@ -108,6 +108,18 @@
    "m": 1,
    "sect": "mukt",
    "line": 16
+  },
+  {
+   "id": "rg_durga",
+   "m": 0,
+   "sect": "bandish:1",
+   "line": 17
+  },
+  {
+   "id": "rg_durga",
+   "m": 0,
+   "sect": "bandish:1",
+   "line": 18
   }
  ]
 }
