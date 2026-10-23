@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.78.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.79.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -406,7 +406,9 @@
   function lessonsOf(g) { return D.lessons.filter(function (l) { return l.group === g; }); }
 
   /* ---------- favourites (the programme line-up) ---------- */
-  function favKey(e) { return e.id + "|" + (e.sect || "") + "|" + e.line; }
+  /* A favourite is a PAGE - a raag and one of its parts - not a single line. The programme
+     is a running order, so it lists what will be performed, not every line inside it. */
+  function favKey(e) { return e.id + "|" + (e.sect || ""); }
   var FAVS = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/favs.json";
   function favLoad() {
     try {
@@ -415,6 +417,16 @@
       else if (Array.isArray(raw)) { state.fav = raw; state.favAt = 0; }
       else { state.fav = []; state.favAt = 0; }
     } catch (e) { state.fav = []; state.favAt = 0; }
+    /* older lists held one entry per line; fold them to one entry per page */
+    if (state.fav.length) {
+      var seen = {}, kept = [];
+      state.fav.forEach(function (e) {
+        var k = (e.id || "") + "|" + (e.sect || "");
+        if (seen[k]) return;
+        seen[k] = 1; kept.push({ id: e.id, m: e.m, sect: e.sect || null });
+      });
+      if (kept.length !== state.fav.length) { state.fav = kept; favWriteLocal(); }
+    }
   }
   function favWriteLocal() {
     try { localStorage.setItem("sk_fav", JSON.stringify({ at: state.favAt, list: state.fav })); } catch (e) {}
@@ -465,8 +477,6 @@
     var l = lesson(e.id); if (!l) return e.id;
     var bits = [l.title];
     if (e.sect) bits.push(raagSectLabel(e.sect));
-    var ln = favLine(l, e.line);
-    if (ln) bits.push(ln);
     return bits.join(" \u00b7 ");
   }
   function favFirstAudio(l, sect) {
@@ -478,7 +488,7 @@
   function favToggle(id, sect, line, m) {
     var i = favIdx(id, sect, line);
     if (i >= 0) state.fav.splice(i, 1);
-    else state.fav.push({ id: id, m: m, sect: sect || null, line: line });
+    else state.fav.push({ id: id, m: m, sect: sect || null });
     favSave(); renderList();
   }
   function favClear() { state.fav = []; favSave(); renderList(); }
@@ -517,10 +527,10 @@
     var list = scopeLines(scope), all = scopeAllFav(scope);
     if (all) {
       state.fav = state.fav.filter(function (e) {
-        return !list.some(function (x) { return x.id === e.id && x.sect === (e.sect || null) && x.line === e.line; });
+        return !list.some(function (x) { return x.id === e.id && x.sect === (e.sect || null); });
       });
     } else {
-      list.forEach(function (e) { if (!favHas(e.id, e.sect, e.line)) state.fav.push(e); });
+      list.forEach(function (e) { if (!favHas(e.id, e.sect)) state.fav.push({ id: e.id, m: e.m, sect: e.sect || null }); });
     }
     favSave(); renderList();
   }
@@ -943,7 +953,7 @@
       '<div class="sk-dim" style="margin-top:6px">' +
       (state.fav.length
         ? state.fav.length + " item" + (state.fav.length > 1 ? "s" : "") +
-          " lined up. Tap one in the rail to open it and play it straight away."
+          " lined up. Tap one in the rail to open that page. Nothing plays here."
         : "Nothing lined up yet \u2014 tap a \u2600 beside a heading in the rail, or beside a line on the page.") +
       "</div>";
   }
@@ -951,8 +961,9 @@
   function openFav(i) {
     var e = state.fav[i];
     if (!e) return;
+    /* The programme is a running order, not a rehearsal: opening an entry takes you to
+       the page and plays NOTHING. */
     open(e.id, e.m, e.sect);
-    setTimeout(function () { playLine(e.line); }, 120);
   }
 
   function open(id, mIdx, sect) {
