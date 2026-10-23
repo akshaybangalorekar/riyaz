@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.76.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.78.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1696,11 +1696,12 @@
         /* The row shows its offset and nothing else. The recording a line is timed against is
            not named here - that chip was noise, and it appeared in place of the time. A line
            with no saved time yet simply shows nothing. */
-        var _seg = segsOf()[li];
+        /* ONE answer for the row: the line's time read from the recording that line is timed
+           on. The row and the playback must never disagree about where a line ends. */
         var _off = offsetForLine(l, li);
-        var _t = _seg ? _seg.t : (_off ? _off.t : null);
+        var _t = _off ? _off.t : null;
         if (_t != null) {
-          var _end = _seg ? _ends[li] : (_off ? _off.end : null);
+          var _end = _off.end;
           var tm = document.createElement("span");
           tm.className = "ln-time";
           tm.textContent = fmtTime(_t) + (_end != null ? " \u2013 " + fmtTime(_end) : "");
@@ -3166,9 +3167,14 @@
            drops it back to 0:00. Resuming naively would then play the top of the file
            while the timestamp on screen still reads correctly. Put the playhead back on
            the line first unless we are genuinely paused inside it. */
-        var s2 = segsOf()[li], e2 = lineEnds();
-        var stop = (e2[li] != null) ? e2[li] : 1e9;
+        var l1 = lesson(state.lessonId);
+        var s2 = segsOf()[li] || (l1 && offsetForLine(l1, li));
+        var stop = l1 ? endForLine(l1, li) : 1e9;
         if (s2 && (au.currentTime < s2.t - 0.25 || au.currentTime >= stop - 0.05)) seekTo(au, s2.t);
+        /* re-arm: a finished segment clears segPlay, so without this the resumed line
+           ran on past its end instead of stopping */
+        state.segPlay = { line: li, start: s2.t, end: stop, loop: state.segLoop };
+        ensureLoop();
         au.play().catch(function () {});
       } else au.pause();
       syncLineBtns();
@@ -3230,11 +3236,24 @@
     state.playingLine = li;
     startSeg(li);                          // 0:00 is a real time, not a missing one
   }
+  /* The end of a line, read from the recording that line is timed on - the SAME answer the
+     row displays. Playback used lineEnds(), which reads only the recording currently loaded,
+     so a line timed on another recording stopped early on screen but played on. */
+  function endForLine(l, li) {
+    var o = offsetForLine(l, li);
+    if (o && o.end != null) return o.end;
+    var e = lineEnds()[li];
+    return (e != null) ? e : 1e9;
+  }
   function startSeg(li) {
-    var au = state.audio, s = segsOf()[li]; if (!au || !s) return;
-    var ends = lineEnds();
+    var l = lesson(state.lessonId);
+    var au = state.audio, s = segsOf()[li];
+    var off = l ? offsetForLine(l, li) : null;
+    if (!s && off) s = { t: off.t };
+    if (!au || !s) return;
+    var stop = l ? endForLine(l, li) : 1e9;
     seekTo(au, s.t);
-    state.segPlay = { line: li, start: s.t, end: (ends[li] != null ? ends[li] : 1e9), loop: state.segLoop };
+    state.segPlay = { line: li, start: s.t, end: stop, loop: state.segLoop };
     ensureLoop();
     au.play().catch(function () {});
     highlightLine(li);
