@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.79.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.80.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -406,9 +406,9 @@
   function lessonsOf(g) { return D.lessons.filter(function (l) { return l.group === g; }); }
 
   /* ---------- favourites (the programme line-up) ---------- */
-  /* A favourite is a PAGE - a raag and one of its parts - not a single line. The programme
-     is a running order, so it lists what will be performed, not every line inside it. */
-  function favKey(e) { return e.id + "|" + (e.sect || ""); }
+  /* A favourite is either a PAGE (the heading sun: id + part, no line) or a single ITEM
+     (a row sun: id + part + that line). The empty line is what marks the whole page. */
+  function favKey(e) { return e.id + "|" + (e.sect || "") + "|" + (e.line == null ? "" : e.line); }
   var FAVS = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/favs.json";
   function favLoad() {
     try {
@@ -417,16 +417,6 @@
       else if (Array.isArray(raw)) { state.fav = raw; state.favAt = 0; }
       else { state.fav = []; state.favAt = 0; }
     } catch (e) { state.fav = []; state.favAt = 0; }
-    /* older lists held one entry per line; fold them to one entry per page */
-    if (state.fav.length) {
-      var seen = {}, kept = [];
-      state.fav.forEach(function (e) {
-        var k = (e.id || "") + "|" + (e.sect || "");
-        if (seen[k]) return;
-        seen[k] = 1; kept.push({ id: e.id, m: e.m, sect: e.sect || null });
-      });
-      if (kept.length !== state.fav.length) { state.fav = kept; favWriteLocal(); }
-    }
   }
   function favWriteLocal() {
     try { localStorage.setItem("sk_fav", JSON.stringify({ at: state.favAt, list: state.fav })); } catch (e) {}
@@ -477,6 +467,7 @@
     var l = lesson(e.id); if (!l) return e.id;
     var bits = [l.title];
     if (e.sect) bits.push(raagSectLabel(e.sect));
+    if (e.line != null) { var ln = favLine(l, e.line); if (ln) bits.push(ln); }
     return bits.join(" \u00b7 ");
   }
   function favFirstAudio(l, sect) {
@@ -488,7 +479,7 @@
   function favToggle(id, sect, line, m) {
     var i = favIdx(id, sect, line);
     if (i >= 0) state.fav.splice(i, 1);
-    else state.fav.push({ id: id, m: m, sect: sect || null });
+    else state.fav.push({ id: id, m: m, sect: sect || null, line: (line == null ? null : line) });
     favSave(); renderList();
   }
   function favClear() { state.fav = []; favSave(); renderList(); }
@@ -523,15 +514,16 @@
     if (!list.length) return false;
     return list.every(function (e) { return favHas(e.id, e.sect, e.line); });
   }
+  /* The heading sun adds the PAGE itself, as one entry. A row sun adds that one item. */
   function favToggleScope(scope) {
-    var list = scopeLines(scope), all = scopeAllFav(scope);
-    if (all) {
-      state.fav = state.fav.filter(function (e) {
-        return !list.some(function (x) { return x.id === e.id && x.sect === (e.sect || null); });
-      });
-    } else {
-      list.forEach(function (e) { if (!favHas(e.id, e.sect)) state.fav.push({ id: e.id, m: e.m, sect: e.sect || null }); });
-    }
+    var list = scopeLines(scope);
+    if (!list.length) return;
+    var head = list[0];
+    var e = { id: head.id, m: head.m, sect: head.sect || null, line: null };
+    var k = favKey(e), i = -1;
+    for (var j = 0; j < state.fav.length; j++) { if (favKey(state.fav[j]) === k) { i = j; break; } }
+    if (i >= 0) state.fav.splice(i, 1);
+    else state.fav.push(e);
     favSave(); renderList();
   }
 
@@ -1697,7 +1689,7 @@
         ctl.appendChild(mb);
       }
       var sunb = document.createElement("button");
-      sunb.className = "ln-btn sunb" + (favHas(l.id, secKey, li) ? " on" : "");
+      sunb.className = "ln-btn sunb" + (favHas(l.id, secKey, li) ? " on" : "");   // this item
       sunb.type = "button"; sunb.textContent = "\u2600";
       sunb.title = "Add this line to favourites";
       sunb.onclick = function () { favToggle(l.id, secKey, li, state.mediaIdx); renderNotation(l); };
@@ -2503,7 +2495,7 @@
         state.lineBtns[li] = rpb;
         lab.appendChild(rpb);
         var rsn = document.createElement("button");
-        rsn.className = "ln-btn sunb" + (favHas(l.id, state.raagSect, li) ? " on" : "");
+        rsn.className = "ln-btn sunb" + (favHas(l.id, state.raagSect, li) ? " on" : "");   // this tana
         rsn.type = "button"; rsn.textContent = "\u2600";
         rsn.title = "Add this tana to favourites";
         rsn.onclick = function () { favToggle(l.id, state.raagSect, li, state.mediaIdx); renderNotation(l); };
