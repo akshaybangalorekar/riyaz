@@ -5,7 +5,7 @@
   "use strict";
   var D = window.SANGEET || { lessons: [] };
   var GROUPS = ["Alankar", "Taal", "Raag"];
-  var TABS = ["Favourites"].concat(GROUPS);
+  var TABS = ["Favourites", "मंच"].concat(GROUPS);
 
   var state = {
     group: localStorage.getItem("sk_group") || "Alankar",
@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.85.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.86.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -385,6 +385,212 @@
     return audioSources(m)[0];
   }
 
+
+  /* ---------- मंच: the performance record ----------
+     Each entry is one past performance: { id (the YouTube video), name, by, date, place, at }.
+     Stored on this device and pushed to the repo exactly like the favourites, so it reaches
+     every device and survives a cleared browser. */
+  var MANCH = "https://api.github.com/repos/akshaybangalorekar/riyaz/contents/manch.json";
+  function manchLoad() {
+    try {
+      var raw = JSON.parse(localStorage.getItem("sk_manch") || "null");
+      if (raw && raw.list) { state.manch = raw.list || []; state.manchAt = raw.at || 0; }
+      else { state.manch = []; state.manchAt = 0; }
+    } catch (e) { state.manch = []; state.manchAt = 0; }
+    try { state.manchSort = localStorage.getItem("sk_manch_sort") || "date"; } catch (e) { state.manchSort = "date"; }
+  }
+  function manchWriteLocal() {
+    try { localStorage.setItem("sk_manch", JSON.stringify({ at: state.manchAt, list: state.manch })); } catch (e) {}
+  }
+  function manchSave() { state.manchAt = Date.now(); manchWriteLocal(); manchSchedulePush(); }
+  var manchTimer = 0;
+  function manchSchedulePush() {
+    if (!getToken() || manchTimer) return;
+    manchTimer = setTimeout(function () { manchTimer = 0; manchPush(); }, 2500);
+  }
+  function manchPush(cb) {
+    var tok = getToken();
+    if (!tok) { if (cb) cb("no-token"); return; }
+    ghGet(tok, MANCH).then(function (cur) {
+      if (!cur.ok) { if (cb) cb("unreadable"); return; }
+      var body = { message: "Update मंच", branch: "main",
+        content: b64(JSON.stringify({ at: state.manchAt || Date.now(), list: state.manch }, null, 1)) };
+      if (cur.sha) body.sha = cur.sha;
+      var h = ghHdr(tok); h["Content-Type"] = "application/json";
+      return fetch(MANCH, { method: "PUT", keepalive: true, cache: "no-store", headers: h, body: JSON.stringify(body) });
+    }).then(function (r) { if (r && r.ok) noteSavedAt(Date.now()); if (cb) cb(r && r.ok ? "ok" : "fail"); })
+      .catch(function () { if (cb) cb("net"); });
+  }
+  function manchPull(cb) {
+    var tok = getToken();
+    var p = tok ? ghGet(tok, MANCH).then(function (c) { return c.data; })
+                : fetchPublic("manch.json?t=" + Date.now());
+    p.then(function (j) {
+      if (!j || typeof j !== "object" || !j.list) { if (cb) cb("fail"); return; }
+      noteSavedAt(j.at);
+      if ((j.at || 0) > (state.manchAt || 0)) {
+        state.manch = j.list || []; state.manchAt = j.at || 0;
+        manchWriteLocal();
+        if (state.group === "मंच") { renderList(); renderManchStage(); }
+      }
+      if (cb) cb("ok");
+    }).catch(function () { if (cb) cb("fail"); });
+  }
+
+  /* the video id out of any shape of YouTube link */
+  function ytId(u) {
+    u = String(u || "").trim();
+    var m1 = u.match(/[?&]v=([A-Za-z0-9_-]{6,})/);
+    if (m1) return m1[1];
+    var m2 = u.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/);
+    if (m2) return m2[1];
+    var m3 = u.match(/\/embed\/([A-Za-z0-9_-]{6,})/);
+    if (m3) return m3[1];
+    var m4 = u.match(/\/shorts\/([A-Za-z0-9_-]{6,})/);
+    if (m4) return m4[1];
+    return /^[A-Za-z0-9_-]{11}$/.test(u) ? u : "";
+  }
+
+  /* the year of an entry's date, for grouping. Anything unreadable sorts last. */
+  function manchYear(e) {
+    var m = String(e.date || "").match(/(\d{4})/);
+    return m ? m[1] : "";
+  }
+  function manchSortKey(e) {
+    if (state.manchSort === "place") return (e.place || "").toLowerCase() + "|" + (e.date || "");
+    return (e.date || "9999") + "|" + (e.name || "").toLowerCase();
+  }
+  function manchSorted() {
+    return state.manch.slice().sort(function (a, b) {
+      var ka = manchSortKey(a), kb = manchSortKey(b);
+      if (ka < kb) return -1; if (ka > kb) return 1; return 0;
+    });
+  }
+  /* grouped by year, newest first when sorting by date */
+  function manchGroups() {
+    var list = manchSorted(), out = [], seen = {};
+    list.forEach(function (e) {
+      var y = manchYear(e) || "—";
+      if (!seen[y]) { seen[y] = { year: y, items: [] }; out.push(seen[y]); }
+      seen[y].items.push(e);
+    });
+    if (state.manchSort === "date") out.sort(function (a, b) { return (a.year < b.year) ? 1 : -1; });
+    return out;
+  }
+  function manchSetSort(how) {
+    state.manchSort = how;
+    try { localStorage.setItem("sk_manch_sort", how); } catch (e) {}
+    renderList(); renderManchStage();
+  }
+  function manchAdd(link, name, by, date, place) {
+    var id = ytId(link);
+    if (!id) { mkMsg("That does not look like a YouTube link."); return; }
+    state.manch.push({ id: id, name: name || "", by: by || "", date: date || "", place: place || "", at: Date.now() });
+    manchSave(); renderList(); renderManchStage();
+  }
+  function manchRemove(i) { state.manch.splice(i, 1); manchSave(); renderList(); renderManchStage(); }
+  function manchSet(i, field, val) {
+    var e = state.manch[i]; if (!e) return;
+    e[field] = val; manchSave();
+  }
+  /* ask YouTube for the title and the channel - it allows this app's address to read them */
+  function manchFetchTitle(id, then) {
+    fetch("https://www.youtube.com/oembed?url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + id) + "&format=json")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (then) then(j || null); })
+      .catch(function () { if (then) then(null); });
+  }
+
+  /* the page: a player for the chosen performance, then the list grouped by year */
+  function renderManchStage() {
+    var st = $("#stage"); if (!st) return;
+    var gs = manchGroups(), html = '<div class="sk-h1">मंच</div>';
+    var cur = state.manchIdx != null ? state.manch[state.manchIdx] : null;
+    if (!state.manch.length) {
+      html += '<div class="sk-dim" style="margin-top:6px">No performances yet.' +
+        (state.canEdit ? " Add one below \u2014 paste a YouTube link." : "") + "</div>";
+    } else {
+      html += '<div class="sk-dim" style="margin-top:6px">' + state.manch.length +
+        " performance" + (state.manch.length > 1 ? "s" : "") + "</div>";
+    }
+    html += '<div class="mn-sort">Sort by ' +
+      '<button class="sk-btn mn-s' + (state.manchSort === "date" ? " on" : "") + '" data-s="date">date</button>' +
+      '<button class="sk-btn mn-s' + (state.manchSort === "place" ? " on" : "") + '" data-s="place">location</button></div>';
+    if (cur) {
+      html += '<div class="mn-vid"><iframe src="https://www.youtube.com/embed/' + cur.id +
+        '?rel=0" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>' +
+        '<div class="mn-now">' + esc(cur.name || "") + (cur.by ? " \u00b7 " + esc(cur.by) : "") +
+        (cur.date ? " \u00b7 " + esc(cur.date) : "") + (cur.place ? " \u00b7 " + esc(cur.place) : "") + "</div>";
+    }
+    if (state.canEdit) {
+      html += '<div class="mn-add">' +
+        '<input class="sk-file-in mn-in" id="mnLink" type="url" placeholder="paste a YouTube link">' +
+        '<input class="sk-file-in mn-in mn-sm" id="mnDate" type="text" placeholder="date, e.g. 12 Aug 2024">' +
+        '<input class="sk-file-in mn-in mn-sm" id="mnPlace" type="text" placeholder="where">' +
+        '<button class="sk-btn" id="mnGo">Add</button></div>' +
+        '<div class="sk-dim mn-hint">The name and the performer are read from YouTube when you paste a link.</div>';
+    }
+    gs.forEach(function (g) {
+      html += '<div class="sk-sec"><div class="sk-sec-h">' + esc(g.year) + "</div>" +
+        g.items.map(function (e) {
+          var i = state.manch.indexOf(e);
+          return '<div class="mn-row">' +
+            '<button class="sk-item mn-open" data-i="' + i + '">' + esc(e.name || "(no name yet)") +
+            (e.by ? ' <span class="mn-by">' + esc(e.by) + "</span>" : "") +
+            ' <span class="mn-meta">' + esc([e.date, e.place].filter(Boolean).join(" \u00b7 ")) + "</span></button>" +
+            (state.canEdit ? '<button class="sk-file-x mn-x" data-i="' + i + '" title="Remove">\u2715</button>' : "") +
+            "</div>";
+        }).join("") + "</div>";
+    });
+    st.innerHTML = html;
+
+    Array.prototype.forEach.call(st.querySelectorAll(".mn-s"), function (b) {
+      b.onclick = function () { manchSetSort(b.dataset.s); };
+    });
+    Array.prototype.forEach.call(st.querySelectorAll(".mn-open"), function (b) {
+      b.onclick = function () { state.manchIdx = +b.dataset.i; renderManchStage(); };
+    });
+    Array.prototype.forEach.call(st.querySelectorAll(".mn-x"), function (b) {
+      b.onclick = function () { manchRemove(+b.dataset.i); };
+    });
+    var go = $("#mnGo");
+    if (go) go.onclick = function () {
+      var link = ($("#mnLink") || {}).value || "";
+      var date = ($("#mnDate") || {}).value || "";
+      var place = ($("#mnPlace") || {}).value || "";
+      var id = ytId(link);
+      if (!id) { mkMsg("That does not look like a YouTube link."); return; }
+      /* add it straight away so nothing is lost, then fill in the name when YouTube answers */
+      state.manch.push({ id: id, name: "", by: "", date: date, place: place, at: Date.now() });
+      var i = state.manch.length - 1;
+      manchSave(); renderList(); renderManchStage();
+      manchFetchTitle(id, function (j) {
+        if (!j) return;
+        state.manch[i].name = j.title || ""; state.manch[i].by = j.author_name || "";
+        manchSave(); renderList(); renderManchStage();
+      });
+    };
+  }
+  function renderManchRail() {
+    var el = $("#list"); if (!el) return;
+    el.classList.add("sections");
+    if (!state.manch.length) {
+      el.innerHTML = '<div class="sk-sec"><div class="sk-empty" style="padding:24px 8px">No performances yet.' +
+        (state.canEdit ? "<br><span class=\"sk-dim\">Add one on the page.</span>" : "") + "</div></div>";
+      return;
+    }
+    el.innerHTML = manchGroups().map(function (g) {
+      return '<div class="sk-sec"><div class="sk-sec-h">' + esc(g.year) + "</div>" +
+        g.items.map(function (e) {
+          var i = state.manch.indexOf(e);
+          return '<div class="sk-row"><button class="sk-item' + (state.manchIdx === i ? " on" : "") +
+            '" data-i="' + i + '">' + esc(e.name || "(no name yet)") + "</button></div>";
+        }).join("") + "</div>";
+    }).join("");
+    Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
+      b.onclick = function () { state.manchIdx = +b.dataset.i; renderManchStage(); };
+    });
+  }
   /* ---------- chrome ---------- */
   function renderTabs() {
     var el = $("#tabs");
@@ -397,6 +603,7 @@
         localStorage.setItem("sk_group", state.group);
         renderTabs();
         renderList();
+        if (state.group === "मंच") { renderManchStage(); return; }
         if (state.group === "Favourites") { renderFavStage(); return; }
         var first = lessonsOf(state.group)[0];
         if (first) open(first.id);
@@ -451,6 +658,7 @@
         state.fav = j.list || []; state.favAt = j.at || 0;
         favWriteLocal();
         renderList();
+        if (state.group === "मंच") renderManchStage();
         if (state.group === "Favourites") renderFavStage();
       }
       if (cb) cb("ok");
@@ -679,6 +887,7 @@
   }
   function renderList() {
     var el = $("#list");
+    if (state.group === "मंच") { renderManchRail(); return; }
     if (state.group === "Favourites") {
       el.classList.add("sections");
       if (!state.fav.length) {
@@ -3692,6 +3901,7 @@
     if (tm) { state.vadyaOpen = true; }
   })();
   favLoad();
+  manchLoad();
   favLoad();
   loadAllLocal();
   loadSharedCache();
@@ -3701,7 +3911,7 @@
   renderSyncNote();
   renderTabs();
   pullMarks();
-  favPull();
+  favPull(); manchPull();;
   pullEdits();
   setInterval(autoSaveTick, 60000);    // background save + push every minute
   document.addEventListener("visibilitychange", function () {
@@ -3820,6 +4030,7 @@
   showSavedAt();
   showVersion();
   renderList();
+  if (state.group === "मंच") { renderList(); renderManchStage(); }
   if (state.group === "Favourites") { renderList(); renderFavStage(); }
   else {
     var start = state.lessonId && lesson(state.lessonId) ? state.lessonId : (lessonsOf(state.group)[0] || {}).id;
