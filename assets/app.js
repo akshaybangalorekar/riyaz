@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.82.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.83.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3711,6 +3711,10 @@
   window.addEventListener("pagehide", function () { saveAllLocal(); saveEdits(); flushPush(); flushEdits(); });
   window.addEventListener("online", function () { flushPush(); });
   var railBtn = $("#btnRail"); if (railBtn) railBtn.onclick = toggleRail;
+  /* On a phone the rail is a drawer over the page, so it starts CLOSED - otherwise it would
+     cover the notation on the very first load. On a tablet or laptop it starts open, as before.
+     Only a first impression: the pull tab opens it, and the choice is not overridden later. */
+  try { if (window.matchMedia("(max-width: 640px)").matches) setRail(true); } catch (e) {}
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
     var hp = $("#skHelp"); if (hp) hp.classList.remove("on"); var hpb = $("#btnHelp"); if (hpb) hpb.classList.remove("on");
     var b = $("#skSettings");

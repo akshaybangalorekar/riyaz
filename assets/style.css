@@ -997,3 +997,109 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 /* three short rows: play and sun, then the five-second buttons, then the offset */
 .ln-ctl .mark, .ln-ctl .penb{order:4; grid-column:auto; justify-self:start}
 .ln-ctl .ln-take, .ln-ctl .ln-addtake, .ln-ctl .ln-time{order:5; grid-column:1 / -1; justify-self:start}
+
+/* ============================================================================
+   Device adaptation - phone, tablet, laptop.
+   The rail, the pull tab and the paddings are sized for the screen the app is
+   opened on. Before this, a phone got a cramped horizontal strip and a pull tab
+   still positioned 290px from the left - the width of the laptop rail - so on a
+   390px iPhone the tab sat mid-screen and jumped sideways when tapped.
+   ============================================================================ */
+
+/* ---------- PHONE (up to 640px): the rail becomes a drawer over the page -------- */
+@media (max-width: 640px) {
+
+  /* the rail slides in over the content instead of squeezing it */
+  .sk-list {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 60;
+    flex: 0 0 auto;
+    width: min(86vw, 330px);
+    max-width: none;
+    max-height: none;
+    border-radius: 0 16px 16px 0;
+    padding: calc(12px + var(--safe-t)) 10px calc(12px + var(--safe-b));
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(0);
+    transition: transform .26s ease;
+    box-shadow: 4px 0 22px rgba(0, 0, 0, .5);
+  }
+  .sk-list.sections { display: block; max-height: none; overflow-y: auto; }
+
+  /* hidden means slid right off the screen */
+  .sk-main.rail-hidden .sk-list { transform: translateX(-105%); }
+
+  /* a dim behind the open drawer, so it reads as a layer over the page */
+  .sk-main:not(.rail-hidden)::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, .55);
+  }
+
+  /* the pull tab: at the screen edge, vertically centred, and big enough to hit */
+  .rail-tab,
+  .sk-main.rail-hidden ~ .rail-tab {
+    left: 0 !important;
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translateY(-50%) !important;
+    z-index: 65;
+    width: 30px;
+    height: 66px;
+    font-size: 18px;
+    border-radius: 0 14px 14px 0;
+  }
+
+  /* the page itself gets the full width, and a little more breathing room */
+  .sk-main { flex-direction: column; gap: 10px; width: 100%;
+    padding: 0 10px calc(14px + var(--safe-b)); }
+  /* the rail is out of the flow on a phone, so the page must take the whole width */
+  .sk-main > *:not(.sk-list) { width: 100%; max-width: none; min-width: 0; flex: 1 1 auto; }
+  .sk-stage, .sk-notation, .sk-tblwrap { width: 100%; max-width: none; }
+  .sk-stage { padding: 12px 12px; border-radius: 12px; }
+  .sk-h1 { font-size: 19px; }
+
+  /* tables and grids scroll sideways rather than squashing the swars */
+  .sk-tblwrap, .tb-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* the sticky video gets a sensible height on a phone */
+  .vidwrap { max-height: 46vh; }
+}
+
+/* very narrow phones - a 320px screen still needs to work */
+@media (max-width: 360px) {
+  .rail-tab { width: 26px; height: 58px; font-size: 16px; }
+  .sk-h1 { font-size: 17px; }
+  .ln-btn { width: 34px; height: 34px; font-size: 13px; }
+}
+
+/* ---------- TABLET (641px to 1024px): a narrower rail, still beside the page --- */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .sk-list { flex: 0 0 232px; width: 232px; }
+  .rail-tab { left: calc(16px + var(--safe-l) + 232px - 1px); }
+  .sk-main.rail-hidden ~ .rail-tab { left: calc(16px + var(--safe-l)); }
+  .sk-stage { padding: 14px 16px; }
+  .sk-h1 { font-size: 21px; }
+}
+
+/* ---------- LAPTOP (above 1024px): the original roomy layout ------------------ */
+@media (min-width: 1025px) {
+  .sk-list { flex: 0 0 290px; width: 290px; }
+  .rail-tab { left: calc(16px + var(--safe-l) + 290px - 1px); }
+  .sk-main.rail-hidden ~ .rail-tab { left: calc(16px + var(--safe-l)); }
+}
+
+/* ---------- a device with no hover: make every control easier to hit ----------- */
+@media (hover: none) {
+  .ln-btn { min-width: 40px; min-height: 40px; }
+  .sk-item { padding-top: 11px; padding-bottom: 11px; }
+  .sk-mtab { padding-top: 9px; padding-bottom: 9px; }
+  .rail-tab { cursor: pointer; }
+}
