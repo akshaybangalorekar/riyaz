@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.71.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.72.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -975,7 +975,13 @@
     if (ok) state.mediaIdx = mIdx;
     else if (part && part.media.length) {
       var vids = part.media.filter(function (i) { return (l.media[i] || {}).kind === "video"; });
-      state.mediaIdx = (!pageEditing(l) && vids.length) ? vids[0] : bestOf(part.media, id);
+      /* Open on the recording this part's lines are actually timed against, if there is one.
+         Opening on a video hides the offsets and the play buttons, because a video has no line
+         times - which is why भैरवी's लयकारी showed neither. */
+      var timed = part.media.filter(function (i) { return markCountOn(l.id, i) > 0; });
+      if (timed.length) state.mediaIdx = bestOf(part.media, id);
+      else if (!pageEditing(l) && vids.length) state.mediaIdx = vids[0];
+      else state.mediaIdx = bestOf(part.media, id);
     }
     else if (part) {
       var fm = -1;
@@ -2911,6 +2917,14 @@
     Object.keys(sh).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
     Object.keys(lo).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
     return trs.filter(function (t) { return l.media && l.media[+t]; });
+  }
+  function markCountOn(lid, tr) {          // how many lines carry a time on this recording
+    var sh = state.sharedMarks && state.sharedMarks[lid] && state.sharedMarks[lid][String(tr)];
+    var lo = state.segments && state.segments[lid] && state.segments[lid][String(tr)];
+    var n = {};
+    Object.keys(sh || {}).forEach(function (k) { n[k] = 1; });
+    Object.keys(lo || {}).forEach(function (k) { n[k] = 1; });
+    return Object.keys(n).length;
   }
   function partTracks(l) {
     var part = state.raagSect ? raagSectParts(l, state.raagSect) : null;
