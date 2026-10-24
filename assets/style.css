@@ -784,7 +784,6 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 /* ---------- the row just added, so a blank row on a blank grid is not invisible ---------- */
 .bnd-row.bnd-fresh{background:rgba(220,162,76,.14); border-radius:8px;
   box-shadow:inset 0 0 0 1px rgba(220,162,76,.45); animation:bndfresh 1.6s ease-out}
-@keyframes bndfresh{0%{background:rgba(220,162,76,.34)}100%{background:rgba(220,162,76,.14)}}
 
 /* ---------- the per-page file links ---------- */
 .sk-files{margin:14px 0 4px; padding-top:10px; border-top:1px solid var(--line)}
@@ -1121,16 +1120,28 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .mn-by{color:var(--lyric);font-size:12px}
 .mn-meta{color:var(--saffron);font-size:12px;opacity:.85}
 
-/* One row of four buttons, under the heading, inside each collapsible.
-   .ln-ctl is kept because that class is what makes a line button visible at all; these rules
-   then undo its two-by-two grid and lay the four out in a single row. */
-.bnd-ctl{display:flex !important; flex-wrap:wrap; align-items:center; gap:6px;
-  grid-template-columns:none !important; margin:2px 0 10px; padding-left:2px}
-.bnd-ctl .ln-btn{order:0 !important; grid-column:auto !important; width:34px; height:34px}
-.bnd-ctl .ln-time{order:0 !important; grid-column:auto !important; margin-left:auto;
-  font-size:11.5px; color:var(--saffron); opacity:.9}
+/* ---------- bandish: ONE line of four buttons, under the heading, inside the collapsible ---
+   Everything here is forced, because the shared line-button styles lay their buttons out in a
+   two-by-two grid and that is what scattered them. On a bandish page the four sit in a single
+   row: back five, forward five, play, sun, with the offset to the right of the row. */
+.bnd-ctl{
+  display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important;
+  align-items:center !important; justify-content:flex-start !important;
+  gap:6px !important; margin:2px 0 10px !important; padding-left:2px;
+  grid-template-columns:none !important; grid-template-rows:none !important;
+}
+.bnd-ctl .ln-btn{
+  display:inline-flex !important; visibility:visible !important; opacity:1 !important;
+  order:0 !important; grid-column:auto !important; grid-row:auto !important;
+  width:34px !important; min-width:34px !important; height:34px !important;
+  font-size:14px !important; padding:0 !important;
+}
+.bnd-ctl .ln-btn.sk5{ font-size:12px !important; color:var(--saffron) !important; }
+.bnd-ctl .ln-time{
+  order:0 !important; grid-column:auto !important; margin-left:auto !important;
+  font-size:11.5px !important; color:var(--saffron) !important; opacity:.9;
+}
 @media(max-width:640px){
-  .bnd-ctl{gap:5px}
-  .bnd-ctl .ln-btn{width:38px; height:38px}
-  .bnd-ctl .ln-time{font-size:11px}
+  .bnd-ctl .ln-btn{ width:38px !important; min-width:38px !important; height:38px !important; }
+  .bnd-ctl .ln-time{ font-size:11px !important; }
 }
