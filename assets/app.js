@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.99.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "3.0.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1553,6 +1553,22 @@
         '<div class="sk-dim' + (state.editMode ? "" : " pl-hidden") + '">🎧 ' + esc(m.name) + "</div>";
       var au = $("#au");
       state.audio = au;
+      /* A page can hold both a video and audio recordings. Once an audio plays, the video is
+         no longer on screen, and the strip of recording tabs is not an obvious way back - so
+         put the way back right here, under the player. */
+      var vidIdx = -1;
+      (l.media || []).forEach(function (mm, i) { if (mm.kind === "video") vidIdx = i; });
+      if (vidIdx >= 0 && String(vidIdx) !== String(state.mediaIdx)) {
+        var sv = document.createElement("div");
+        sv.className = "showvid";
+        var svb = document.createElement("button");
+        svb.className = "sk-btn"; svb.type = "button";
+        svb.textContent = "\ud83c\udfac Show video";
+        svb.title = "Back to the video for this page";
+        svb.onclick = function () { switchMedia(l, vidIdx); };
+        sv.appendChild(svb);
+        p.appendChild(sv);
+      }
       var srcs = audioSources(m), si = 0;
       au.addEventListener("error", function () {
         si++;
