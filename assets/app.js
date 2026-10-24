@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.90.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.91.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3364,15 +3364,16 @@
     });
     return best;
   }
-  function markInOtherFile(l, li) {         // a line timed on another recording of this part
-    if (segsOf()[li]) return null;          // this recording has its own time for the line
-    /* Read it from whichever recording of THIS PART carries it, using the same lookup the
-       offset display uses. markAnywhere only looked at this device's own marks, so a time
-       that came from the synced file - like मुक्त आलाप 11-14, which lives on the second
-       recording - was invisible and the line would not play. */
+  function markInOtherFile(l, li) {         // a line timed on a different recording
+    /* ONE answer, the same one the offset display uses: the recording whose name says it
+       holds this line. The old rule was "if the recording you are on has any time for this
+       line, use it" - and a recording left carrying stale times from an earlier set of files
+       then won, so मुक्त आलाप 11 played from the 1-10 file while the offset beside it showed
+       the right time. */
     var pick = trackForLine(l, li);
-    if (pick && String(pick.t) !== String(state.mediaIdx)) return { track: pick.t };
-    return null;
+    if (!pick) return null;
+    if (String(pick.t) === String(state.mediaIdx)) return null;   // already on the right one
+    return { track: pick.t };
   }
   function switchMedia(l, i, then) {       // move the player to another recording
     if (i == null || i < 0 || !l.media || !l.media[i]) return;
