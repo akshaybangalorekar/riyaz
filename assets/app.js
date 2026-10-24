@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.97.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.99.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2039,7 +2039,11 @@
       sunb.type = "button"; sunb.textContent = "\u2600";
       sunb.title = "Add this line to favourites";
       sunb.onclick = function () { favToggle(l.id, secKey, li, state.mediaIdx); renderNotation(l); };
-      if (tanaRowOf(l, li) === null) ctl.appendChild(sunb);   // a merged तान row keeps the table clean
+      /* A bandish part keeps its own row of four under the heading, so this lone sun is not
+         needed there - it was the only one of the line's buttons that showed, and it sat on
+         its own under the स्थाई heading. */
+      var _bl = (l.lines || [])[li] || {};
+      if (tanaRowOf(l, li) === null && !_bl.bandish) ctl.appendChild(sunb);
       var seg = !curIsVideo ? segsOf()[li] : null;   // a video page shows no times at all
       if (!curIsVideo) {
         /* The row shows its offset and nothing else. The recording a line is timed against is
