@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "3.0.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "3.1.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2671,7 +2671,6 @@
       hpen.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
       head.appendChild(hpen);
     }
-    if (tFirst) wrap.appendChild(head);
     if (!trow && line && line.bandish) {
       var bctl = document.createElement("div");
       bctl.className = "ln-ctl bnd-ctl";
@@ -2707,6 +2706,8 @@
       bctl.appendChild(bs);
       wrap.appendChild(bctl);
     }
+
+    if (tFirst) wrap.appendChild(head);
           // a merged grid has one heading, at the top
 
     function lane(cls) {
