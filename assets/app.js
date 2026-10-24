@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.93.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.95.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -386,6 +386,65 @@
   }
 
 
+  /* ---------- making the right file impossible to get wrong ----------
+     The rule decides which recording a line belongs to; this is the belt to that braces. The
+     saved times themselves are put where they belong, on every device, every time the app
+     opens. A time sitting on a recording whose own name says it does not hold that line is
+     moved to the recording that does. So even if some later version of the app lost the rule,
+     or a device still carried times from an older set of files, the sound and the offset
+     beside it would still agree. Nothing is deleted - a time is only ever moved, and only
+     when another recording's name claims that line. */
+  function tidyMarks() {
+    var moved = 0;
+    Object.keys(state.sharedMarks || {}).forEach(function (lid) {
+      var l = lesson(lid); if (!l) return;
+      var byLesson = state.sharedMarks[lid];
+      Object.keys(byLesson).forEach(function (tr) {
+        var m = l.media[+tr]; if (!m) return;
+        var rng = mnRange(m.name); if (!rng) return;
+        var lines = byLesson[tr];
+        Object.keys(lines).forEach(function (li) {
+          var num = mnLineNo((l.lines[+li] || {}).label);
+          if (num == null) return;
+          if (num >= rng.lo && num <= rng.hi) return;
+          var dest = null;
+          Object.keys(l.media).forEach(function (t2) {
+            var r2 = mnRange((l.media[+t2] || {}).name);
+            if (r2 && num >= r2.lo && num <= r2.hi) dest = t2;
+          });
+          if (dest == null || dest === tr) return;
+          byLesson[dest] = byLesson[dest] || {};
+          if (!byLesson[dest][li]) byLesson[dest][li] = lines[li];
+          delete lines[li];
+          moved++;
+        });
+      });
+    });
+    if (moved) {
+      try { localStorage.setItem("sk_shared_marks", JSON.stringify(state.sharedMarks)); } catch (e) {}
+      try { localStorage.setItem("sk_shared_at", String(Date.now())); } catch (e) {}
+      try { if (typeof marksSchedulePush === "function") marksSchedulePush(); } catch (e) {}
+    }
+    return moved;
+  }
+  /* A quiet check that the rule is doing its job. If मुक्त आलाप 11 is ever found pointing at
+     the wrong recording, it says so plainly rather than playing the wrong file in silence. */
+  function guardCheck() {
+    try {
+      if (typeof trackForLine !== "function") { mkMsg("Warning: the line-to-recording rule is missing."); return; }
+      var l = lesson("rg_durga"); if (!l) return;
+      var li = -1;
+      (l.lines || []).forEach(function (x, i) { if (/Mukt Aalap\s*11/i.test(x.label || "")) li = i; });
+      if (li < 0) return;
+      var p = trackForLine(l, li), want = null;
+      Object.keys(l.media).forEach(function (t) {
+        var r = mnRange((l.media[+t] || {}).name);
+        if (r && 11 >= r.lo && 11 <= r.hi) want = +t;
+      });
+      if (want == null) return;
+      if (!p || p.t !== want) mkMsg("Warning: मुक्त आलाप 11 is pointing at the wrong recording.");
+    } catch (e) {}
+  }
   /* ---------- मंच: the performance record ----------
      Each entry is one past performance: { id (the YouTube video), name, by, date, place, at }.
      Stored on this device and pushed to the repo exactly like the favourites, so it reaches
@@ -1263,6 +1322,30 @@
 
   /* Editing is per page now: a pen beside the heading opens that page's editor, and clicking
      it again closes it. The Settings switch only decides whether the pens are offered. */
+  /* ---------- editing switches itself off ----------
+     Editing is on only while it is being used. Left alone for fifteen minutes it returns to
+     view mode by itself. Any tap, click, keypress or touch restarts the fifteen minutes. */
+  var EDIT_IDLE_MS = 15 * 60 * 1000;
+  var editUntil = 0;
+  function editTouched() { if (state.canEdit) editUntil = Date.now() + EDIT_IDLE_MS; }
+  function editTimedOut() {
+    if (!state.canEdit) return;
+    if (!editUntil) { editTouched(); return; }
+    if (Date.now() < editUntil) return;
+    state.canEdit = false; state.editOpen = {};
+    try { localStorage.setItem("sk_can_edit", "0"); } catch (e) {}
+    try { mkMsg("Editing switched off after fifteen minutes of no use."); } catch (e) {}
+    try { renderTabs(); renderList(); } catch (e) {}
+    var l = lesson(state.lessonId); if (l) { try { renderStage(l); } catch (e) {} }
+  }
+  function editWatchStart() {
+    editUntil = Date.now() + EDIT_IDLE_MS;
+    ["click", "keydown", "touchstart", "input", "pointerdown"].forEach(function (ev) {
+      document.addEventListener(ev, editTouched, true);
+    });
+    setInterval(editTimedOut, 30000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) editTimedOut(); });
+  }
   function editingNow() { return !!state.canEdit; }
   /* View mode is a page with no editor open, even when editing is allowed. Audio and the
      clock belong to editing, so they stay out of the way until a pen is pressed. */
@@ -4016,6 +4099,7 @@
   })();
   favLoad();
   manchLoad();
+  try { tidyMarks(); } catch (e) {}
   favLoad();
   loadAllLocal();
   loadSharedCache();
@@ -4035,6 +4119,8 @@
   window.addEventListener("pagehide", function () { saveAllLocal(); saveEdits(); flushPush(); flushEdits(); });
   window.addEventListener("online", function () { flushPush(); });
   var railBtn = $("#btnRail"); if (railBtn) railBtn.onclick = toggleRail;
+  try { editWatchStart(); } catch (e) {}
+  try { guardCheck(); } catch (e) {}
   /* On a phone the rail is a drawer over the page, so it starts CLOSED - otherwise it would
      cover the notation on the very first load. On a tablet or laptop it starts open, as before.
      Only a first impression: the pull tab opens it, and the choice is not overridden later. */
