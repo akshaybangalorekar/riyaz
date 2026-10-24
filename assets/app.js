@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.91.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.92.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2557,7 +2557,7 @@
       : "");
     var trow = tRow;                              // null unless this is a tana in a merged grid
     var tFirst = (trow === null || trow === 0);   // the first carries the grid's furniture
-    var head = document.createElement("div"); head.className = "bnd-head";
+    var head = document.createElement("div"); head.className = "bnd-head bnd-head-ctl";
     head.innerHTML = '<b>' + esc(b.taal || "") + '</b><span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e</span>';
     if (state.canEdit) {                       // a pen on the bandish grid itself
       var hpen = document.createElement("button");
@@ -2567,6 +2567,44 @@
       hpen.title = state.editOpen[li] ? "Close the editor" : "Edit this part";
       hpen.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
       head.appendChild(hpen);
+    }
+    /* The four buttons and the offset sit on the heading of स्थाई and अंतरा, shown in view
+       mode as well as edit mode - these are the parts a learner plays from. A merged तान grid
+       keeps its own row controls, so this is only for a bandish part. */
+    if (!trow && line && line.bandish) {
+      var bctl = document.createElement("div");
+      bctl.className = "ln-ctl bnd-ctl";
+      var off0 = offsetForLine(l, li);
+      if (off0) {
+        var ot = document.createElement("span");
+        ot.className = "ln-time";
+        ot.textContent = fmtTime(off0.t) + (off0.end != null ? " \u2013 " + fmtTime(off0.end) : "");
+        ot.title = "This part's offset";
+        bctl.appendChild(ot);
+      }
+      var bb = document.createElement("button");
+      bb.className = "ln-btn sk5"; bb.type = "button"; bb.textContent = "\u22125";
+      bb.title = "Back 5 seconds";
+      bb.onclick = function () { skipLine(-5); };
+      bctl.appendChild(bb);
+      var bf = document.createElement("button");
+      bf.className = "ln-btn sk5"; bf.type = "button"; bf.textContent = "+5";
+      bf.title = "Forward 5 seconds";
+      bf.onclick = function () { skipLine(5); };
+      bctl.appendChild(bf);
+      var bp = document.createElement("button");
+      bp.className = "ln-btn playb"; bp.type = "button"; bp.textContent = "\u25b6";
+      bp.title = "Play or pause this part";
+      bp.onclick = function () { toggleLine(li); };
+      state.lineBtns[li] = bp;
+      bctl.appendChild(bp);
+      var bs = document.createElement("button");
+      bs.className = "ln-btn sunb" + (favHas(l.id, state.raagSect, li) ? " on" : "");
+      bs.type = "button"; bs.textContent = "\u2600";
+      bs.title = "Add this part to favourites";
+      bs.onclick = function () { favToggle(l.id, state.raagSect, li, state.mediaIdx); renderNotation(l); };
+      bctl.appendChild(bs);
+      head.appendChild(bctl);
     }
     if (tFirst) wrap.appendChild(head);          // a merged grid has one heading, at the top
 
@@ -3187,12 +3225,7 @@
     var lo = (state.segments && state.segments[l.id]) || {};
     Object.keys(sh).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
     Object.keys(lo).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
-    /* a video cannot be timed line by line, so a video track is never a candidate - stale
-       times left on one from an earlier set of files are ignored */
-    return trs.filter(function (t) {
-      var m = l.media && l.media[+t];
-      return m && m.kind !== "video";
-    });
+    return trs.filter(function (t) { return l.media && l.media[+t]; });
   }
   function markCountOn(lid, tr) {          // how many lines carry a time on this recording
     var sh = state.sharedMarks && state.sharedMarks[lid] && state.sharedMarks[lid][String(tr)];
@@ -3214,46 +3247,21 @@
     if (!b) return a;
     return (entryAt(b) >= entryAt(a)) ? b : a;
   }
-  /* Which recording does a line belong to?
-     A recording's name usually states the items it holds - "मुक्त आलाप 1-10" holds 1 to 10,
-     "... 11-14" holds 11 to 14. When several recordings carry a time for the same line, the
-     one whose stated range contains that line is the right one. Without this the app took
-     whichever recording came first, so मुक्त आलाप 11 played from the 1-10 file. */
-  function mnRange(name) {
-    var m = String(name || "").match(/(\d+)\s*[-\u2013]\s*(\d+)/);
-    return m ? { lo: +m[1], hi: +m[2] } : null;
-  }
-  function mnLineNo(label) {
-    var m = String(label || "").match(/(\d+)\s*$/);
-    return m ? +m[1] : null;
-  }
-  function trackForLine(l, li) {
-    var trs = tracksWithData(l), ln = (l.lines || [])[li] || {}, num = mnLineNo(ln.label);
-    var cands = [];
-    trs.forEach(function (t) {
-      var e = entryOn(l, li, t), tk = takesOf(e);
-      if (!(tk && tk.length)) return;
-      cands.push({ t: +t, at: tk[+e.cur || 0].t, rng: mnRange((l.media[+t] || {}).name) });
-    });
-    if (!cands.length) return null;
-    if (num != null) {
-      for (var i = 0; i < cands.length; i++) {
-        var r = cands[i].rng;
-        if (r && num >= r.lo && num <= r.hi) return cands[i];
-      }
-    }
-    return cands[0];
-  }
   function offsetForLine(l, li) {
-    var pick = trackForLine(l, li);
-    if (!pick) return null;
-    var tr = String(pick.t), t = pick.at, lines = l.lines || [], end = null;
-    for (var j = li + 1; j < lines.length; j++) {
-      /* the next line ON THE SAME RECORDING ends this one */
-      var e2 = entryOn(l, j, tr), tk2 = takesOf(e2);
-      if (tk2 && tk2.length && tk2[+e2.cur || 0].t > t + 0.05) { end = tk2[+e2.cur || 0].t; break; }
+    var trs = tracksWithData(l), lines = l.lines || [];
+    for (var i = 0; i < trs.length; i++) {
+      var e = entryOn(l, li, trs[i]), tk = takesOf(e);
+      if (!(tk && tk.length)) continue;
+      var t = tk[+e.cur || 0].t;
+      if (t == null) continue;
+      var end = null;                                  // the next timed line on the same recording
+      for (var j = li + 1; j < lines.length; j++) {
+        var e2 = entryOn(l, j, trs[i]), tk2 = takesOf(e2);
+        if (tk2 && tk2.length && tk2[+e2.cur || 0].t > t + 0.05) { end = tk2[+e2.cur || 0].t; break; }
+      }
+      return { t: t, end: end };
     }
-    return { t: t, end: end, track: pick.t };
+    return null;
   }
   function trackKey() { return String(state.mediaIdx); }
   /* ---------- takes ----------
@@ -3364,16 +3372,19 @@
     });
     return best;
   }
-  function markInOtherFile(l, li) {         // a line timed on a different recording
-    /* ONE answer, the same one the offset display uses: the recording whose name says it
-       holds this line. The old rule was "if the recording you are on has any time for this
-       line, use it" - and a recording left carrying stale times from an earlier set of files
-       then won, so मुक्त आलाप 11 played from the 1-10 file while the offset beside it showed
-       the right time. */
-    var pick = trackForLine(l, li);
-    if (!pick) return null;
-    if (String(pick.t) === String(state.mediaIdx)) return null;   // already on the right one
-    return { track: pick.t };
+  function markInOtherFile(l, li) {         // a line timed on another recording of this part
+    if (segsOf()[li]) return null;          // this recording has its own time for the line
+    /* Read it from whichever recording of THIS PART carries it, using the same lookup the
+       offset display uses. markAnywhere only looked at this device's own marks, so a time
+       that came from the synced file - like मुक्त आलाप 11-14, which lives on the second
+       recording - was invisible and the line would not play. */
+    var trs = tracksWithData(l);
+    for (var i = 0; i < trs.length; i++) {
+      if (String(trs[i]) === String(state.mediaIdx)) continue;
+      var e = entryOn(l, li, trs[i]), tk = takesOf(e);
+      if (tk && tk.length && tk[+e.cur || 0].t != null) return { track: +trs[i] };
+    }
+    return null;
   }
   function switchMedia(l, i, then) {       // move the player to another recording
     if (i == null || i < 0 || !l.media || !l.media[i]) return;
@@ -3507,18 +3518,18 @@
   }
   function playLine(li) {
     var l = lesson(state.lessonId); if (!l) return;
-    if ((l.media[state.mediaIdx] || {}).kind === "video") {
-      if (state.video) { videoLine(li); return; }        // a video we can drive
-      noTimeYet(li, "this recording plays in the player above \u2014 use its own play button");
-      return;
-    }
-    /* A line's time belongs to one recording. If this recording has none but a
-       sibling does (the komal and shuddha takes of an alankar, say), follow it
-       there rather than refusing: that time is real and was set on purpose. */
+    /* A line timed on another recording is followed there first, whatever this page happens
+       to be showing. The bandish page opens on its video, and a video cannot be timed line by
+       line - but स्थाई and अंतरा are timed on the audio, so their buttons must reach it. */
     var elsewhere = markInOtherFile(l, li);
     if (elsewhere) {
       state.playingLine = li;
       switchMedia(l, elsewhere.track, function () { state.playingLine = li; startSeg(li); });
+      return;
+    }
+    if ((l.media[state.mediaIdx] || {}).kind === "video") {
+      if (state.video) { videoLine(li); return; }        // a video we can drive
+      noTimeYet(li, "this recording plays in the player above \u2014 use its own play button");
       return;
     }
     var s = segsOf()[li];
