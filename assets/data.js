@@ -2046,6 +2046,11 @@ window.SANGEET = {
      "kind": "audio",
      "id": "13vw3M-DNPh7eDHUFbVN1DHbEnY2o5H5e",
      "name": "२०२६१००३  - राग दुर्गा - आरोह औरोह - मुक्त आलाप 11-14 .mp3"
+    },
+    {
+     "kind": "audio",
+     "id": "12GRf-Rviv5mZRaIbM71q0dIy3hBuCYOT",
+     "name": "२०२६१००३ - राग दुर्गा - बड़ा खायल.mp3"
     }
                                                 
    ]
