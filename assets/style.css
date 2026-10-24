@@ -1121,10 +1121,16 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .mn-by{color:var(--lyric);font-size:12px}
 .mn-meta{color:var(--saffron);font-size:12px;opacity:.85}
 
-/* the four buttons + the offset on a bandish part's heading */
-.bnd-head-ctl{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-.bnd-head-ctl .bnd-ctl{margin-left:auto; margin-right:0}
-.bnd-ctl{display:inline-grid; grid-template-columns:auto auto; gap:3px; align-items:center}
-.bnd-ctl .playb{order:1} .bnd-ctl .sunb{order:2} .bnd-ctl .sk5{order:3}
-.bnd-ctl .ln-time{order:4; grid-column:1 / -1; justify-self:start; font-size:11.5px}
-@media(max-width:640px){ .bnd-head-ctl .bnd-ctl{margin-left:0} }
+/* One row of four buttons, under the heading, inside each collapsible.
+   .ln-ctl is kept because that class is what makes a line button visible at all; these rules
+   then undo its two-by-two grid and lay the four out in a single row. */
+.bnd-ctl{display:flex !important; flex-wrap:wrap; align-items:center; gap:6px;
+  grid-template-columns:none !important; margin:2px 0 10px; padding-left:2px}
+.bnd-ctl .ln-btn{order:0 !important; grid-column:auto !important; width:34px; height:34px}
+.bnd-ctl .ln-time{order:0 !important; grid-column:auto !important; margin-left:auto;
+  font-size:11.5px; color:var(--saffron); opacity:.9}
+@media(max-width:640px){
+  .bnd-ctl{gap:5px}
+  .bnd-ctl .ln-btn{width:38px; height:38px}
+  .bnd-ctl .ln-time{font-size:11px}
+}

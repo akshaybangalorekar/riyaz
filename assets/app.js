@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.95.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.97.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2640,7 +2640,7 @@
       : "");
     var trow = tRow;                              // null unless this is a tana in a merged grid
     var tFirst = (trow === null || trow === 0);   // the first carries the grid's furniture
-    var head = document.createElement("div"); head.className = "bnd-head bnd-head-ctl";
+    var head = document.createElement("div"); head.className = "bnd-head";
     head.innerHTML = '<b>' + esc(b.taal || "") + '</b><span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e</span>';
     if (state.canEdit) {                       // a pen on the bandish grid itself
       var hpen = document.createElement("button");
@@ -2651,9 +2651,7 @@
       hpen.onclick = function () { state.editOpen[li] = !state.editOpen[li]; renderNotation(l); };
       head.appendChild(hpen);
     }
-    /* The four buttons and the offset sit on the heading of स्थाई and अंतरा, shown in view
-       mode as well as edit mode - these are the parts a learner plays from. A merged तान grid
-       keeps its own row controls, so this is only for a bandish part. */
+    if (tFirst) wrap.appendChild(head);
     if (!trow && line && line.bandish) {
       var bctl = document.createElement("div");
       bctl.className = "ln-ctl bnd-ctl";
@@ -2687,9 +2685,9 @@
       bs.title = "Add this part to favourites";
       bs.onclick = function () { favToggle(l.id, state.raagSect, li, state.mediaIdx); renderNotation(l); };
       bctl.appendChild(bs);
-      head.appendChild(bctl);
+      wrap.appendChild(bctl);
     }
-    if (tFirst) wrap.appendChild(head);          // a merged grid has one heading, at the top
+          // a merged grid has one heading, at the top
 
     function lane(cls) {
       var el = document.createElement("div"); el.className = "bnd-lane " + cls;
