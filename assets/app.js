@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.89.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.90.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3187,7 +3187,12 @@
     var lo = (state.segments && state.segments[l.id]) || {};
     Object.keys(sh).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
     Object.keys(lo).forEach(function (t) { if (trs.indexOf(String(t)) < 0) trs.push(String(t)); });
-    return trs.filter(function (t) { return l.media && l.media[+t]; });
+    /* a video cannot be timed line by line, so a video track is never a candidate - stale
+       times left on one from an earlier set of files are ignored */
+    return trs.filter(function (t) {
+      var m = l.media && l.media[+t];
+      return m && m.kind !== "video";
+    });
   }
   function markCountOn(lid, tr) {          // how many lines carry a time on this recording
     var sh = state.sharedMarks && state.sharedMarks[lid] && state.sharedMarks[lid][String(tr)];
@@ -3209,21 +3214,46 @@
     if (!b) return a;
     return (entryAt(b) >= entryAt(a)) ? b : a;
   }
-  function offsetForLine(l, li) {
-    var trs = tracksWithData(l), lines = l.lines || [];
-    for (var i = 0; i < trs.length; i++) {
-      var e = entryOn(l, li, trs[i]), tk = takesOf(e);
-      if (!(tk && tk.length)) continue;
-      var t = tk[+e.cur || 0].t;
-      if (t == null) continue;
-      var end = null;                                  // the next timed line on the same recording
-      for (var j = li + 1; j < lines.length; j++) {
-        var e2 = entryOn(l, j, trs[i]), tk2 = takesOf(e2);
-        if (tk2 && tk2.length && tk2[+e2.cur || 0].t > t + 0.05) { end = tk2[+e2.cur || 0].t; break; }
+  /* Which recording does a line belong to?
+     A recording's name usually states the items it holds - "मुक्त आलाप 1-10" holds 1 to 10,
+     "... 11-14" holds 11 to 14. When several recordings carry a time for the same line, the
+     one whose stated range contains that line is the right one. Without this the app took
+     whichever recording came first, so मुक्त आलाप 11 played from the 1-10 file. */
+  function mnRange(name) {
+    var m = String(name || "").match(/(\d+)\s*[-\u2013]\s*(\d+)/);
+    return m ? { lo: +m[1], hi: +m[2] } : null;
+  }
+  function mnLineNo(label) {
+    var m = String(label || "").match(/(\d+)\s*$/);
+    return m ? +m[1] : null;
+  }
+  function trackForLine(l, li) {
+    var trs = tracksWithData(l), ln = (l.lines || [])[li] || {}, num = mnLineNo(ln.label);
+    var cands = [];
+    trs.forEach(function (t) {
+      var e = entryOn(l, li, t), tk = takesOf(e);
+      if (!(tk && tk.length)) return;
+      cands.push({ t: +t, at: tk[+e.cur || 0].t, rng: mnRange((l.media[+t] || {}).name) });
+    });
+    if (!cands.length) return null;
+    if (num != null) {
+      for (var i = 0; i < cands.length; i++) {
+        var r = cands[i].rng;
+        if (r && num >= r.lo && num <= r.hi) return cands[i];
       }
-      return { t: t, end: end };
     }
-    return null;
+    return cands[0];
+  }
+  function offsetForLine(l, li) {
+    var pick = trackForLine(l, li);
+    if (!pick) return null;
+    var tr = String(pick.t), t = pick.at, lines = l.lines || [], end = null;
+    for (var j = li + 1; j < lines.length; j++) {
+      /* the next line ON THE SAME RECORDING ends this one */
+      var e2 = entryOn(l, j, tr), tk2 = takesOf(e2);
+      if (tk2 && tk2.length && tk2[+e2.cur || 0].t > t + 0.05) { end = tk2[+e2.cur || 0].t; break; }
+    }
+    return { t: t, end: end, track: pick.t };
   }
   function trackKey() { return String(state.mediaIdx); }
   /* ---------- takes ----------
@@ -3340,12 +3370,8 @@
        offset display uses. markAnywhere only looked at this device's own marks, so a time
        that came from the synced file - like मुक्त आलाप 11-14, which lives on the second
        recording - was invisible and the line would not play. */
-    var trs = tracksWithData(l);
-    for (var i = 0; i < trs.length; i++) {
-      if (String(trs[i]) === String(state.mediaIdx)) continue;
-      var e = entryOn(l, li, trs[i]), tk = takesOf(e);
-      if (tk && tk.length && tk[+e.cur || 0].t != null) return { track: +trs[i] };
-    }
+    var pick = trackForLine(l, li);
+    if (pick && String(pick.t) !== String(state.mediaIdx)) return { track: pick.t };
     return null;
   }
   function switchMedia(l, i, then) {       // move the player to another recording
