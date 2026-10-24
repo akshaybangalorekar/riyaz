@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.86.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.87.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -437,6 +437,46 @@
     }).catch(function () { if (cb) cb("fail"); });
   }
 
+
+  /* A performance video is usually named with everything in it:
+       "Atharv - Bada Khayal - Pune - 12 Aug 2024"
+     So the year, the place and the details can be read from the name itself. */
+  var MN_CITIES = ["pune","mumbai","bombay","bengaluru","bangalore","delhi","new delhi","chennai","madras",
+    "kolkata","calcutta","hyderabad","nashik","nasik","nagpur","kolhapur","indore","bhopal","jaipur",
+    "ahmedabad","surat","lucknow","varanasi","banaras","goa","panaji","kochi","cochin","mysore","mysuru",
+    "thane","aurangabad","sangli","satara","belgaum","belagavi","hubli","mangalore","mangaluru",
+    "coimbatore","madurai","visakhapatnam","vizag","bhubaneswar","patna","ranchi","guwahati","amritsar",
+    "chandigarh","dehradun","shimla","jodhpur","udaipur","gwalior","jabalpur","rajkot","vadodara",
+    "solapur","amravati","akola","latur","nanded","dharwad","davangere","shivamogga","tumkur","kerala",
+    "london","dubai","singapore","toronto","new jersey","california","houston","london uk"];
+  function mnTitleParts(title) {
+    var t = String(title || "");
+    var parts = t.split(/\s*[|\u2022\u00b7\u2013\u2014]\s*|\s+-\s+|\s*,\s*/).map(function (x) { return x.trim(); })
+                 .filter(function (x) { return x.length; });
+    var year = "", place = "", rest = [];
+    parts.forEach(function (p) {
+      var y = p.match(/\b(19|20)\d{2}\b/);
+      if (y && !year) { year = y[0]; }
+      var low = p.toLowerCase();
+      var hit = null;
+      for (var i = 0; i < MN_CITIES.length; i++) {
+        if (low === MN_CITIES[i] || new RegExp("\\b" + MN_CITIES[i] + "\\b").test(low)) { hit = p; break; }
+      }
+      if (hit && !place) {
+        /* when the name has no separators the whole thing matches, so take just the city */
+        var w = low.match(new RegExp("\\b(" + MN_CITIES[i] + ")\\b", "i"));
+        var city = w ? w[1] : (low === MN_CITIES[i] ? p : "");
+        if (city) place = city.charAt(0).toUpperCase() + city.slice(1);
+      }
+      if (!y && !hit) rest.push(p);
+    });
+    /* if no separator was used, still try to pull the year out of the whole name */
+    if (!year) { var m = t.match(/\b(19|20)\d{2}\b/); if (m) year = m[0]; }
+    var name = rest.join(" \u00b7 ") || t;
+    /* the year and the place out of the name itself */
+    name = name.replace(/\b(19|20)\d{2}\b/g, "").replace(/\s{2,}/g, " ").replace(/^[\s\u00b7-]+|[\s\u00b7-]+$/g, "");
+    return { year: year, place: place, name: name || t };
+  }
   /* the video id out of any shape of YouTube link */
   function ytId(u) {
     u = String(u || "").trim();
@@ -517,18 +557,24 @@
       '<button class="sk-btn mn-s' + (state.manchSort === "date" ? " on" : "") + '" data-s="date">date</button>' +
       '<button class="sk-btn mn-s' + (state.manchSort === "place" ? " on" : "") + '" data-s="place">location</button></div>';
     if (cur) {
-      html += '<div class="mn-vid"><iframe src="https://www.youtube.com/embed/' + cur.id +
-        '?rel=0" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>' +
-        '<div class="mn-now">' + esc(cur.name || "") + (cur.by ? " \u00b7 " + esc(cur.by) : "") +
-        (cur.date ? " \u00b7 " + esc(cur.date) : "") + (cur.place ? " \u00b7 " + esc(cur.place) : "") + "</div>";
+      html += '<div class="mn-vid"><iframe id="mnFrame" src="https://www.youtube-nocookie.com/embed/' + cur.id +
+        '?rel=0&modestbranding=1" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" ' +
+        'allowfullscreen loading="lazy"></iframe></div>' +
+        '<div class="mn-now">' + esc(cur.name || "") +
+        (cur.date ? " \u00b7 " + esc(cur.date) : "") + (cur.place ? " \u00b7 " + esc(cur.place) : "") + "</div>" +
+        /* Some uploaders switch embedding off, and YouTube then refuses to play inside a frame.
+           Offer the way through instead of leaving a dead rectangle. */
+        '<div class="mn-open-yt"><a class="sk-btn" href="https://www.youtube.com/watch?v=' + cur.id +
+        '" target="_blank" rel="noopener">Open on YouTube \u2197</a>' +
+        '<span class="sk-dim">if it will not play here, it opens there</span></div>';
     }
     if (state.canEdit) {
       html += '<div class="mn-add">' +
         '<input class="sk-file-in mn-in" id="mnLink" type="url" placeholder="paste a YouTube link">' +
-        '<input class="sk-file-in mn-in mn-sm" id="mnDate" type="text" placeholder="date, e.g. 12 Aug 2024">' +
-        '<input class="sk-file-in mn-in mn-sm" id="mnPlace" type="text" placeholder="where">' +
+        '<input class="sk-file-in mn-in mn-sm" id="mnDate" type="text" placeholder="date (optional)">' +
+        '<input class="sk-file-in mn-in mn-sm" id="mnPlace" type="text" placeholder="place (optional)">' +
         '<button class="sk-btn" id="mnGo">Add</button></div>' +
-        '<div class="sk-dim mn-hint">The name and the performer are read from YouTube when you paste a link.</div>';
+        '<div class="sk-dim mn-hint">The year, the place and the name are read from the video title itself when you paste a link.</div>';
     }
     gs.forEach(function (g) {
       html += '<div class="sk-sec"><div class="sk-sec-h">' + esc(g.year) + "</div>" +
@@ -536,9 +582,8 @@
           var i = state.manch.indexOf(e);
           return '<div class="mn-row">' +
             '<button class="sk-item mn-open" data-i="' + i + '">' + esc(e.name || "(no name yet)") +
-            (e.by ? ' <span class="mn-by">' + esc(e.by) + "</span>" : "") +
             ' <span class="mn-meta">' + esc([e.date, e.place].filter(Boolean).join(" \u00b7 ")) + "</span></button>" +
-            (state.canEdit ? '<button class="sk-file-x mn-x" data-i="' + i + '" title="Remove">\u2715</button>' : "") +
+            (state.canEdit ? '<button class="sk-file-x mn-x" data-i="' + i + '" title="Remove this performance">\u2715</button>' : "") +
             "</div>";
         }).join("") + "</div>";
     });
@@ -565,8 +610,13 @@
       var i = state.manch.length - 1;
       manchSave(); renderList(); renderManchStage();
       manchFetchTitle(id, function (j) {
-        if (!j) return;
-        state.manch[i].name = j.title || ""; state.manch[i].by = j.author_name || "";
+        if (!j || !j.title) return;
+        /* the name carries the year and the place too - read them out of it */
+        var p = mnTitleParts(j.title);
+        state.manch[i].name = p.name || j.title;
+        if (!state.manch[i].date && p.year) state.manch[i].date = p.year;
+        if (!state.manch[i].place && p.place) state.manch[i].place = p.place;
+        state.manch[i].by = "";                 /* who uploaded it is not wanted */
         manchSave(); renderList(); renderManchStage();
       });
     };
