@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "2.87.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "2.88.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1263,6 +1263,35 @@
 
   /* Editing is per page now: a pen beside the heading opens that page's editor, and clicking
      it again closes it. The Settings switch only decides whether the pens are offered. */
+  /* ---------- editing switches itself off ----------
+     Editing is on only while it is being used. Left alone for fifteen minutes it returns to
+     view mode by itself, so a page cannot sit open to changes all day by accident. Any tap,
+     click, keypress or touch starts the fifteen minutes again. A background tab has its
+     timers slowed, so the deadline is checked whenever the app comes back to the front as
+     well as on a timer. */
+  var EDIT_IDLE_MS = 15 * 60 * 1000;
+  var editUntil = 0;
+  function editTouched() { if (state.canEdit) editUntil = Date.now() + EDIT_IDLE_MS; }
+  function editTimedOut() {
+    if (!state.canEdit) return;
+    if (!editUntil) { editTouched(); return; }
+    if (Date.now() < editUntil) return;
+    state.canEdit = false;
+    state.editOpen = {};
+    try { localStorage.setItem("sk_can_edit", "0"); } catch (e) {}
+    try { mkMsg("Editing switched off after fifteen minutes of no use."); } catch (e) {}
+    try { renderTabs(); renderList(); } catch (e) {}
+    var l = lesson(state.lessonId);
+    if (l) { try { renderStage(l); } catch (e) {} }
+  }
+  function editWatchStart() {
+    editUntil = Date.now() + EDIT_IDLE_MS;
+    ["click", "keydown", "touchstart", "input", "pointerdown"].forEach(function (ev) {
+      document.addEventListener(ev, editTouched, true);
+    });
+    setInterval(editTimedOut, 30000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) editTimedOut(); });
+  }
   function editingNow() { return !!state.canEdit; }
   /* View mode is a page with no editor open, even when editing is allowed. Audio and the
      clock belong to editing, so they stay out of the way until a pen is pressed. */
@@ -3866,6 +3895,7 @@
         state.canEdit = cb.checked;
         if (!state.canEdit) state.editOpen = {};      // pens away, every editor closed
         try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
+        if (state.canEdit) editTouched();   /* start the fifteen minutes */
         var l = state.lessonId && lesson(state.lessonId);
         if (l) renderStage(l);
       };
@@ -3971,6 +4001,7 @@
   window.addEventListener("pagehide", function () { saveAllLocal(); saveEdits(); flushPush(); flushEdits(); });
   window.addEventListener("online", function () { flushPush(); });
   var railBtn = $("#btnRail"); if (railBtn) railBtn.onclick = toggleRail;
+  editWatchStart();
   /* On a phone the rail is a drawer over the page, so it starts CLOSED - otherwise it would
      cover the notation on the very first load. On a tablet or laptop it starts open, as before.
      Only a first impression: the pull tab opens it, and the choice is not overridden later. */
