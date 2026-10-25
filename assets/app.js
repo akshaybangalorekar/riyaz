@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.0.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.1.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -700,6 +700,226 @@
       b.onclick = function () { state.manchIdx = +b.dataset.i; renderManchStage(); };
     });
   }
+
+  /* ==========================================================================
+     GUIDED CREATION - adding a raag or a bandish without touching code.
+
+     The one thing a new bandish needs and cannot guess is its taal, because the taal
+     decides the matra count and where the vibhag bars fall. So the app asks. Picking a
+     taal fills in the matras and the vibhag, and both stay editable, because a family's
+     version of a taal can differ from the book's.
+     ========================================================================== */
+  var TAALS = [
+    { n: "तीन ताल",        m: 16, v: [4, 4, 4, 4] },
+    { n: "झप ताल",         m: 10, v: [2, 3, 2, 3] },
+    { n: "एक ताल",         m: 12, v: [4, 4, 4] },
+    { n: "चौ ताल",         m: 12, v: [4, 4, 4] },
+    { n: "आड़ा चौताल",     m: 14, v: [2, 4, 4, 4] },
+    { n: "सूल ताल",        m: 10, v: [2, 2, 2, 2, 2] },
+    { n: "दादरा",          m: 6,  v: [3, 3] },
+    { n: "केहेरवा",        m: 8,  v: [4, 4] },
+    { n: "रूपक",           m: 7,  v: [3, 2, 2] },
+    { n: "तीव्रा",         m: 7,  v: [3, 2, 2] },
+    { n: "पंजाबी",         m: 16, v: [4, 4, 4, 4] },
+    { n: "भजन",            m: 8,  v: [4, 4] }
+  ];
+  function taalByName(n) {
+    for (var i = 0; i < TAALS.length; i++) if (TAALS[i].n === n) return TAALS[i];
+    return null;
+  }
+  function vibhagText(v) { return (v || []).join("+"); }
+  function parseVibhag(t) {
+    var parts = String(t || "").split(/[+,]/).map(function (x) { return parseInt(x, 10); })
+      .filter(function (x) { return x > 0; });
+    var sum = 0;
+    parts.forEach(function (x) { sum += x; });
+    return { parts: parts, sum: sum };
+  }
+
+  /* one modal, used by both flows */
+  function wizardOpen(html) {
+    var m = $("#skWizard");
+    if (!m) {
+      m = document.createElement("div");
+      m.id = "skWizard"; m.className = "sk-modal";
+      m.innerHTML = '<div class="sk-modal-box wiz-box" id="wizBox"></div>';
+      document.body.appendChild(m);
+    }
+    $("#wizBox").innerHTML = html;
+    m.classList.add("on");
+    m.onclick = function (ev) { if (ev.target === m) wizardClose(); };
+    var first = $("#wizBox input, #wizBox select");
+    if (first) setTimeout(function () { try { first.focus(); } catch (e) {} }, 60);
+  }
+  function wizardClose() { var m = $("#skWizard"); if (m) m.classList.remove("on"); }
+
+  function taalOptions(sel) {
+    return TAALS.map(function (t) {
+      return '<option value="' + esc(t.n) + '"' + (t.n === sel ? " selected" : "") + ">" +
+        esc(t.n) + "  \u00b7  " + t.m + " \u092e\u093e\u0924\u094d\u0930\u093e</option>";
+    }).join("");
+  }
+  /* the little line that confirms what will be built */
+  function wizSummary(m, v) {
+    var p = parseVibhag(v);
+    var ok = p.sum === (+m || 0);
+    return '<div class="wiz-sum' + (ok ? "" : " bad") + '" id="wizSum">' +
+      (ok ? "\u2713 " : "\u26a0 ") + p.sum + " of " + m + " matras" +
+      (ok ? "" : " \u2014 the vibhag must add up to the matra count") + "</div>";
+  }
+  function wizWire() {
+    var sel = $("#wizTaal"), mIn = $("#wizMatras"), vIn = $("#wizVibhag"), sum = $("#wizSum");
+    function refresh() {
+      var m = parseInt(mIn.value, 10) || 0;
+      sum.outerHTML = wizSummary(m, vIn.value);
+    }
+    if (sel) sel.onchange = function () {
+      var t = taalByName(sel.value);
+      if (t) { mIn.value = t.m; vIn.value = vibhagText(t.v); }
+      refresh();
+    };
+    if (mIn) mIn.oninput = refresh;
+    if (vIn) vIn.oninput = refresh;
+  }
+
+  /* ---------- Add a bandish ---------- */
+  function askNewBandish(l) {
+    if (!l) return;
+    var sib = null;
+    (l.lines || []).forEach(function (ln) { if (!sib && ln.bandish) sib = ln.bandish; });
+    var startTaal = sib && sib.taal ? sib.taal : "\u0924\u0940\u0928 \u0924\u093e\u0932";
+    var t = taalByName(startTaal) || TAALS[0];
+    var m = sib ? (sib.matras || t.m) : t.m;
+    var v = sib && sib.vibhag && sib.vibhag.length ? sib.vibhag : t.v;
+
+    wizardOpen(
+      '<div class="set-h">Add a bandish</div>' +
+      '<div class="set-lab">Name it, and say which taal it is set to.</div>' +
+      '<label class="wiz-l">Name</label>' +
+      '<input id="wizName" class="set-input" type="text" placeholder="e.g. Sakhi Mori" autocomplete="off">' +
+      '<label class="wiz-l">Taal</label>' +
+      '<select id="wizTaal" class="set-input">' + taalOptions(startTaal) + "</select>" +
+      '<div class="wiz-row">' +
+        '<div><label class="wiz-l">Matras</label>' +
+        '<input id="wizMatras" class="set-input" type="number" min="2" max="64" value="' + m + '"></div>' +
+        '<div><label class="wiz-l">Vibhag</label>' +
+        '<input id="wizVibhag" class="set-input" type="text" value="' + esc(vibhagText(v)) + '"></div>' +
+      "</div>" +
+      wizSummary(m, vibhagText(v)) +
+      '<div class="set-actions">' +
+        '<button class="sk-btn wiz-go" id="wizGo">Create the bandish</button>' +
+        '<button class="sk-btn" id="wizCancel">Cancel</button>' +
+      "</div>" +
+      '<div class="set-msg" id="wizMsg"></div>'
+    );
+    wizWire();
+    $("#wizCancel").onclick = wizardClose;
+    $("#wizGo").onclick = function () {
+      var nm = ($("#wizName").value || "").trim();
+      var mm = parseInt($("#wizMatras").value, 10) || 0;
+      var vv = parseVibhag($("#wizVibhag").value);
+      var msg = $("#wizMsg");
+      if (!nm) { msg.textContent = "Give the bandish a name first."; return; }
+      if (mm < 2) { msg.textContent = "The matra count must be at least 2."; return; }
+      if (vv.sum !== mm) {
+        msg.textContent = "The vibhag adds up to " + vv.sum + ", but you said " + mm + " matras.";
+        return;
+      }
+      var chosenTaal = ($("#wizTaal") || {}).value || startTaal;   // the taal actually picked
+      wizardClose();
+      addBandishWith(l, { name: nm, taalName: chosenTaal, matras: mm, vibhag: vv.parts });
+    };
+  }
+
+  /* build the two parts with the chosen taal */
+  function addBandishWith(l, spec) {
+    spec = spec || {};
+    var nm = spec.name || nextBandishName(l);
+    var taalName = spec.taalName || (spec.taal ? spec.taal.n : "\u0924\u0940\u0928 \u0924\u093e\u0932");
+    var m = spec.matras || 16;
+    var vib = (spec.vibhag && spec.vibhag.length ? spec.vibhag : [4, 4, 4, 4]).slice();
+    ["Sthayi", "Antara"].forEach(function (part) {
+      var idx = nextAddIndex(l.id), sw = [], ly = [];
+      for (var i = 0; i < m; i++) { sw.push("-"); ly.push(""); }
+      setLineEdit(l.id, String(idx), {
+        t: "", label: "Bandish " + nm + " (" + part + ")", sect: "bandish",
+        bd: { taal: taalName, matras: m, vibhag: vib },
+        b: { "0": { swar: sw, lyric: ly } }
+      });
+    });
+    applyAdds(); renderList(); renderStage(l);
+    try { mkMsg("Added \u201c" + nm + "\u201d \u2014 " + m + " matras of " + taalName + "."); } catch (e) {}
+  }
+
+  /* ---------- Add a raag ---------- */
+  function askNewRaag() {
+    var t = TAALS[0];
+    wizardOpen(
+      '<div class="set-h">Add a raag</div>' +
+      '<div class="set-lab">Name it, and choose the taal its bandish will be set to. ' +
+        'All five pages are created for you.</div>' +
+      '<label class="wiz-l">Raag name</label>' +
+      '<input id="wizName" class="set-input" type="text" placeholder="e.g. Bhoopali" autocomplete="off">' +
+      '<label class="wiz-l">Taal for its bandish</label>' +
+      '<select id="wizTaal" class="set-input">' + taalOptions(t.n) + "</select>" +
+      '<div class="wiz-row">' +
+        '<div><label class="wiz-l">Matras</label>' +
+        '<input id="wizMatras" class="set-input" type="number" min="2" max="64" value="' + t.m + '"></div>' +
+        '<div><label class="wiz-l">Vibhag</label>' +
+        '<input id="wizVibhag" class="set-input" type="text" value="' + esc(vibhagText(t.v)) + '"></div>' +
+      "</div>" +
+      wizSummary(t.m, vibhagText(t.v)) +
+      '<div class="wiz-what">You get: \u0906\u0930\u094b\u0939 \u00b7 \u0905\u0935\u0930\u094b\u0939 \u00b7 \u092a\u0915\u0921, ' +
+        '\u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a, \u0932\u092f\u0915\u093e\u0930\u0940, \u0924\u093e\u0928, \u092c\u0902\u0926\u093f\u0936 \u2014 all empty and ready.</div>' +
+      '<div class="set-actions">' +
+        '<button class="sk-btn wiz-go" id="wizGo">Create the raag</button>' +
+        '<button class="sk-btn" id="wizCancel">Cancel</button>' +
+      "</div>" +
+      '<div class="set-msg" id="wizMsg"></div>'
+    );
+    wizWire();
+    $("#wizCancel").onclick = wizardClose;
+    $("#wizGo").onclick = function () {
+      var nm = ($("#wizName").value || "").trim();
+      var mm = parseInt($("#wizMatras").value, 10) || 0;
+      var vv = parseVibhag($("#wizVibhag").value);
+      var msg = $("#wizMsg");
+      if (!nm) { msg.textContent = "Give the raag a name first."; return; }
+      if (mm < 2) { msg.textContent = "The matra count must be at least 2."; return; }
+      if (vv.sum !== mm) {
+        msg.textContent = "The vibhag adds up to " + vv.sum + ", but you said " + mm + " matras.";
+        return;
+      }
+      var sel = $("#wizTaal");
+      wizardClose();
+      addRaagWith(nm, { taalName: sel ? sel.value : t.n, matras: mm, vibhag: vv.parts });
+    };
+  }
+
+  function addRaagWith(title, spec) {
+    spec = spec || {};
+    var id = "my_" + Date.now().toString(36);
+    var list = userRaags();
+    list.push({ id: id, title: title });
+    saveUserRaags(list);
+    var l = raagLesson(id, title);
+    /* the bandish grids get the taal that was chosen */
+    (l.lines || []).forEach(function (ln) {
+      if (ln.bandish) {
+        ln.bandish.taal = spec.taalName || "\u0924\u0940\u0928 \u0924\u093e\u0932";
+        ln.bandish.matras = spec.matras || 16;
+        ln.bandish.vibhag = (spec.vibhag || [4, 4, 4, 4]).slice();
+        var sw = [], ly = [];
+        for (var i = 0; i < ln.bandish.matras; i++) { sw.push("-"); ly.push(""); }
+        ln.bandish.rows = [{ swar: sw, lyric: ly, arc: [] }];
+      }
+    });
+    D.lessons.push(l);
+    state.raagOpen[id] = true;
+    open(id);
+    renderList();
+    try { mkMsg("Added raag \u201c" + title + "\u201d. Its pages are ready to fill."); } catch (e) {}
+  }
   /* ---------- chrome ---------- */
   function renderTabs() {
     var el = $("#tabs");
@@ -1094,7 +1314,7 @@
             '<span class="car">' + (open ? "\u25be" : "\u25b8") + "</span>" + esc(l.title) + "</button>" +
           sunHTML(scopeAllFav({ kind: "raag", id: l.id }), "rail", 'data-scope="' + l.id + '" data-kind="raag"') +
           '<span class="sk-move">' +
-            (l.mine && state.editMode
+            (l.mine && editingNow()
               ? '<button class="mv" data-name="' + l.id + '" title="Rename this raag">\u270e</button>' +
                 '<button class="mv" data-drop="' + l.id + '" title="Remove this raag">\u2715</button>'
               : "") +
@@ -1110,10 +1330,10 @@
                 'data-scope="' + l.id + '" data-sect="' + x.k + '" data-kind="part"') + "</div>";
           }).join("") : "") + "</div>";
       }).join("");
-      if (state.editMode) {                       // adding a raag is an editing job
+      if (editingNow()) {                        // adding a raag is an editing job
         el.innerHTML += '<div class="sk-sec"><button class="sk-btn sk-addraag" id="btnAddRaag" type="button">+ Add Raag</button></div>';
         var ar = el.querySelector("#btnAddRaag");
-        if (ar) ar.onclick = function () { addRaag(); };
+        if (ar) ar.onclick = function () { askNewRaag(); };   /* guided */
       }
       Array.prototype.forEach.call(el.querySelectorAll(".mv"), function (b) {
         b.onclick = function (e) {
@@ -1808,7 +2028,7 @@
   function filesBox(l) { return null; }
 
   function filesBoxRemoved(l) {
-    var list = fileList(l), ed = state.editMode;
+    var list = fileList(l), ed = editingNow();
     var shown = ed ? list : list.filter(function (f) { return f.view && f.url; });
     if (!ed && !shown.length) return null;
     var d = document.createElement("div"); d.className = "sk-files";
@@ -1946,7 +2166,7 @@
       var add = document.createElement("button");
       add.type = "button"; add.className = "ed-addbtn";
       add.textContent = "+ Add a bandish";
-      add.onclick = function () { addBandish(l); };
+      add.onclick = function () { askNewBandish(l); };
       d.appendChild(add);
     }
     return d;
@@ -2143,7 +2363,7 @@
       if (lineEditOpen(l, li)) box.appendChild(notationEditor(l, li));
     });
     // while editing, one more line can be added right after the last one shown
-    if (state.editMode && l.group === "Raag" && state.raagSect) {
+    if (editingNow() && l.group === "Raag" && state.raagSect) {
       if (!/^bandish(:|$)/.test(state.raagSect || "")) {
         /* a bandish needs no button: press Enter in the swar or bol field for another line */
         var addb = document.createElement("button");
@@ -2912,7 +3132,7 @@
           lab.appendChild(reb);
         }
       }
-      if (state.editMode && tFirst) {
+      if (editingNow() && tFirst) {
         /* in edit mode every row can be removed — this takes out that one row only */
         var del = document.createElement("button");
         del.type = "button"; del.className = "bnd-del"; del.textContent = "\u2715";
