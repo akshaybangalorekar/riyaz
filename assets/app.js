@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.2.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.3.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -587,7 +587,15 @@
     state.manch.push({ id: id, name: name || "", by: by || "", date: date || "", place: place || "", at: Date.now() });
     manchSave(); renderList(); renderManchStage();
   }
-  function manchRemove(i) { state.manch.splice(i, 1); manchSave(); renderList(); renderManchStage(); }
+  function manchRemove(i) {
+    var e = state.manch[i] || {};
+    askConfirm("Remove the performance \u201c" + (e.name || "this one") + "\u201d?\n\nYou can put it back with Revert.",
+      function () {
+        pushHistory("removed the performance \u201c" + (e.name || "unnamed") + "\u201d");
+        state.manch.splice(i, 1); manchSave(); renderList(); renderManchStage();
+        mkMsg("Removed \u201c" + (e.name || "that performance") + "\u201d \u2014 press Revert to put it back.");
+      });
+  }
   function manchSet(i, field, val) {
     var e = state.manch[i]; if (!e) return;
     e[field] = val; manchSave();
@@ -846,7 +854,8 @@
     var taalName = spec.taalName || (spec.taal ? spec.taal.n : "\u0924\u0940\u0928 \u0924\u093e\u0932");
     var m = spec.matras || 16;
     var vib = (spec.vibhag && spec.vibhag.length ? spec.vibhag : [4, 4, 4, 4]).slice();
-    ["Sthayi", "Antara"].forEach(function (part) {
+    pushHistory("added the bandish " + nm);
+    histQuiet(function () { ["Sthayi", "Antara"].forEach(function (part) {
       var idx = nextAddIndex(l.id), sw = [], ly = [];
       for (var i = 0; i < m; i++) { sw.push("-"); ly.push(""); }
       setLineEdit(l.id, String(idx), {
@@ -854,7 +863,7 @@
         bd: { taal: taalName, matras: m, vibhag: vib },
         b: { "0": { swar: sw, lyric: ly } }
       });
-    });
+    }); });
     applyAdds();
 
     /* Attach the recordings to THIS bandish only, tagged with its number so no other
@@ -927,6 +936,7 @@
 
   function addRaagWith(title, spec) {
     spec = spec || {};
+    pushHistory("added the raag " + title);
     var id = "my_" + Date.now().toString(36);
     var list = userRaags();
     list.push({ id: id, title: title });
@@ -1485,11 +1495,16 @@
   }
   function removeRaag(id) {
     var l = lesson(id); if (!l) return;
-    if (!window.confirm("Remove " + (l.title || "this raag") + " from the rail?")) return;
-    saveUserRaags(userRaags().filter(function (r) { return r.id !== id; }));
-    D.lessons = D.lessons.filter(function (x) { return x.id !== id; });
-    if (state.lessonId === id) state.lessonId = null;
-    renderList();
+    var _nm = l.title || "this raag";
+    askConfirm("Remove the raag \u201c" + _nm + "\u201d from the rail?\n\nIts pages and notation go with it. You can put it back with Revert.",
+      function () {
+        pushHistory("removed the raag " + _nm);
+        saveUserRaags(userRaags().filter(function (r) { return r.id !== id; }));
+        D.lessons = D.lessons.filter(function (x) { return x.id !== id; });
+        if (state.lessonId === id) state.lessonId = null;
+        renderList();
+        mkMsg("Removed " + _nm + " \u2014 press Revert to put it back.");
+      });
   }
 
   function stopAll() {
@@ -1705,8 +1720,10 @@
       html += '<div class="sk-stoprow">' +
         
         (curVideo || !secHasLines || state.group === "Favourites" || !state.canEdit ? "" : '<span class="sk-hint">Tap <b>\u25b6</b> to play a line \u00b7 <b>\u23f1</b> to set its start.</span>') +
-        (state.editMode ? ('<button class="sk-editbtn ghost' + (UNDO.length ? "" : " off") + '" id="btnUndo" type="button"' +
-        (UNDO.length ? "" : " disabled") + ' title="Put back the last change">\u21b6 Undo</button>') : "") +
+        (state.editMode ? ('<button class="sk-editbtn ghost' + (HISTORY.length ? "" : " off") + '" id="btnUndo" type="button"' +
+        (HISTORY.length ? "" : " disabled") + ' title="' +
+        (HISTORY.length ? "Put back: " + esc(HISTORY[HISTORY.length - 1].label) : "Nothing to put back yet") +
+        '">\u21b6 Revert</button>') : "") +
         "</div>";
     }
 
@@ -2095,7 +2112,15 @@
         var rm = document.createElement("button");
         rm.type = "button"; rm.className = "sk-file-x"; rm.textContent = "\u2715";
         rm.title = "Remove this file";
-        rm.onclick = function () { list.splice(i, 1); saveFiles(); renderStage(l); };
+        rm.onclick = function () {
+          var _f = list[i] || {};
+          askConfirm("Remove this file?\n\n" + (_f.url || "the file") + "\n\nYou can put it back with Revert.",
+            function () {
+              pushHistory("removed a file from this page");
+              list.splice(i, 1); saveFiles(); renderStage(l);
+              mkMsg("File removed \u2014 press Revert to put it back.");
+            });
+        };
         row.appendChild(inp); row.appendChild(lab); row.appendChild(cb); row.appendChild(rm);
         d.appendChild(row);
       } else {
@@ -2158,18 +2183,23 @@
   function removeBandish(l, nm) {
     var names = bandishNames(l);
     if (names.length <= 1) {
-      alert("This raag has only one bandish, so it cannot be removed. A raag needs at least one.");
+      mkMsg("This raag has only one bandish, so it cannot be removed. A raag needs at least one.");
       return;
     }
-    if (!confirm("Remove bandish " + nm + "?\n\nIts \u0938\u094d\u0925\u093e\u0908 and \u0905\u0902\u0924\u0930\u093e will be deleted, and this cannot be undone.")) return;
-    (l.lines || []).forEach(function (ln, i) {
-      var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
-      if (!m) return;
-      if ((m[1].trim() || "1") !== nm) return;
-      var key = (typeof ln.idx === "number") ? String(ln.idx) : String(i);
-      setLineEdit(l.id, key, null);
-    });
-    applyAdds(); renderList(); renderStage(l);
+    askConfirm("Remove the bandish \u201c" + nm + "\u201d?\n\nIts \u0938\u094d\u0925\u093e\u0908 and \u0905\u0902\u0924\u0930\u093e are deleted. You can put it back with Revert.",
+      function () {
+        pushHistory("removed the bandish " + nm);
+        histQuiet(function () {
+        (l.lines || []).forEach(function (ln, i) {
+          var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
+          if (!m) return;
+          if ((m[1].trim() || "1") !== nm) return;
+          var key = (typeof ln.idx === "number") ? String(ln.idx) : String(i);
+          setLineEdit(l.id, key, null);
+        }); });
+        applyAdds(); renderList(); renderStage(l);
+        mkMsg("Removed the bandish \u201c" + nm + "\u201d \u2014 press Revert to put it back.");
+      });
   }
 
   function bandishIndex(l) {
@@ -2644,6 +2674,11 @@
 
   /* Take one row out of a grid and keep the rest, in order. */
   function removeGridRow(l, li, ri) {
+    var _ln = (l.lines || [])[li] || {};
+    askConfirm("Delete this row from " + (_ln.label || "the grid") + "?\n\nYou can put it back with Revert.",
+      function () { pushHistory("deleted a row from " + (_ln.label || "a grid")); removeGridRowDo(l, li, ri); });
+  }
+  function removeGridRowDo(l, li, ri) {
     var rows = bandishRows(l, li);
     if (rows.length <= 1) return;                 // never leave a grid with no rows
     var map = {}, at = 0;
@@ -2666,23 +2701,164 @@
   /* ---------- undo ----------
      Every change takes a copy of the edits first, so the last one can be put back. Kept in
      memory only and capped, so a long session cannot grow without bound. */
-  var UNDO = [], UNDO_MAX = 25;
-  function snapshotEdits() {
-    try { UNDO.push(JSON.stringify(state.edits || {})); } catch (e) { return; }
-    if (UNDO.length > UNDO_MAX) UNDO.shift();
-    /* a Save only redraws the notation, not the whole page, so wake the button here */
+
+  /* ==========================================================================
+     HISTORY - the last 100 things that changed something, each with a plain
+     description so a revert can say what it is putting back.
+
+     The old undo was a stack of bare snapshots: it covered line edits only, kept
+     twenty-five, and could not tell you what it was about to restore. This keeps
+     everything a delete can destroy - the edits, the favourites, the performance
+     record, the files list and the user's own raags - and names each step.
+     ========================================================================== */
+  var HISTORY = [], HISTORY_MAX = 100;
+
+  function snapState() {
+    var o = { edits: state.edits || {}, fav: state.fav || [], manch: state.manch || [],
+              files: state.files || null, raags: null };
+    try { o.raags = JSON.parse(localStorage.getItem("sk_raags") || "[]"); } catch (e) {}
+    try { return JSON.stringify(o); } catch (e) { return null; }
+  }
+
+  /* Call this BEFORE anything destructive, with a description in plain words. */
+  var HIST_SUPPRESS = 0;
+  /* Run fn without letting it add its own steps - one user action should make ONE history
+     entry, named after the action, not three entries saying "an edit". */
+  function histQuiet(fn) {
+    HIST_SUPPRESS++;
+    try { fn(); } finally { HIST_SUPPRESS--; }
+  }
+  function pushHistory(label) {
+    if (HIST_SUPPRESS) return;
+    var snap = snapState();
+    if (!snap) return;
+    HISTORY.push({ label: label || "a change", at: Date.now(), snap: snap });
+    if (HISTORY.length > HISTORY_MAX) HISTORY.shift();
+    historySyncButton();
+  }
+  function historySyncButton() {
     var ub = document.getElementById("btnUndo");
-    if (ub) { ub.disabled = false; ub.className = ub.className.replace(/\s*off/, ""); }
+    if (!ub) return;
+    if (!HISTORY.length) { ub.disabled = true; if (!/\boff\b/.test(ub.className)) ub.className += " off"; return; }
+    ub.disabled = false;
+    ub.className = ub.className.replace(/\s*off/, "");
+    ub.textContent = "\u21b6 Revert";
+    ub.title = "Put back: " + HISTORY[HISTORY.length - 1].label;
   }
-  function doUndo() {
-    if (!UNDO.length) return;
-    try { state.edits = JSON.parse(UNDO.pop()); } catch (e) { return; }
-    saveEdits(); scheduleEditsPush();
-    applyAdds();
-    renderList();
+
+  function restoreState(json) {
+    var o; try { o = JSON.parse(json); } catch (e) { return false; }
+    if (o.edits) state.edits = o.edits;
+    if (o.fav) state.fav = o.fav;
+    if (o.manch) state.manch = o.manch;
+    if (o.files) state.files = o.files;
+    if (o.raags) { try { localStorage.setItem("sk_raags", JSON.stringify(o.raags)); } catch (e) {} }
+    try { saveEdits(); scheduleEditsPush(); } catch (e) {}
+    try { favWriteLocal(); favSchedulePush(); } catch (e) {}
+    try { manchWriteLocal(); manchSchedulePush(); } catch (e) {}
+    try { saveFiles(); } catch (e) {}
+    try { mergeUserRaags(); } catch (e) {}
+    try { applyAdds(); } catch (e) {}
+    try { renderList(); } catch (e) {}
     var l = state.lessonId && lesson(state.lessonId);
-    if (l) renderStage(l);
+    if (l) { try { renderStage(l); } catch (e) {} }
+    return true;
   }
+
+  /* Revert the most recent step, and say what was put back. */
+  function revertLast() {
+    if (!HISTORY.length) { mkMsg("Nothing to revert yet."); return; }
+    var step = HISTORY.pop();
+    if (restoreState(step.snap)) {
+      mkMsg("Put back: " + step.label + ".");
+    } else {
+      mkMsg("Could not put that back.");
+      HISTORY.push(step);
+    }
+    historySyncButton();
+    try { renderHistoryList(); } catch (e) {}
+  }
+
+  /* Revert everything down to (and including) step index i, newest first. */
+  function revertTo(i) {
+    if (i < 0 || i >= HISTORY.length) return;
+    var step = HISTORY[i];
+    HISTORY = HISTORY.slice(0, i);          // drop this step and everything after it
+    if (restoreState(step.snap)) mkMsg("Put back: " + step.label + ".");
+    historySyncButton();
+    try { renderHistoryList(); } catch (e) {}
+  }
+
+  function histWhen(t) {
+    try {
+      var d = new Date(t), n = Date.now(), ago = Math.round((n - t) / 1000);
+      if (ago < 60) return "just now";
+      if (ago < 3600) return Math.round(ago / 60) + " min ago";
+      if (ago < 86400) return Math.round(ago / 3600) + " h ago";
+      return d.getDate() + "/" + (d.getMonth() + 1) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    } catch (e) { return ""; }
+  }
+
+  /* The history, listed in Settings, newest first. */
+  function renderHistoryList() {
+    var box = document.getElementById("histList");
+    if (!box) return;
+    if (!HISTORY.length) {
+      box.innerHTML = '<div class="sk-dim" style="font-size:12.5px">Nothing yet. Deletes and edits will appear here, newest first, up to the last 100.</div>';
+      return;
+    }
+    var out = [];
+    for (var i = HISTORY.length - 1; i >= 0 && out.length < 100; i--) {
+      var h = HISTORY[i];
+      out.push('<div class="hist-row"><span class="hist-l">' + esc(h.label) + '</span>' +
+        '<span class="hist-t">' + esc(histWhen(h.at)) + "</span>" +
+        '<button class="sk-btn hist-b" data-hi="' + i + '">Revert</button></div>');
+    }
+    box.innerHTML = out.join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".hist-b"), function (b) {
+      b.onclick = function () {
+        var h = HISTORY[+b.dataset.hi];
+        if (!h) return;
+        askConfirm("Revert \u201c" + h.label + "\u201d?\n\nEverything after it will also be undone.",
+          function () { revertTo(+b.dataset.hi); });
+      };
+    });
+  }
+
+  /* ------------------------------------------------------------------ 2. the confirm dialog
+     One in-app dialog for every delete, so the wording and the look are the app's own. */
+  function askConfirm(text, onYes, yesWord) {
+    var m = document.getElementById("skConfirm");
+    if (!m) {
+      m = document.createElement("div");
+      m.id = "skConfirm"; m.className = "sk-modal";
+      m.innerHTML = '<div class="sk-modal-box cf-box">' +
+        '<div class="cf-text" id="cfText"></div>' +
+        '<div class="set-actions">' +
+          '<button class="sk-btn cf-yes" id="cfYes">Yes, delete it</button>' +
+          '<button class="sk-btn" id="cfNo">Keep it</button>' +
+        "</div></div>";
+      document.body.appendChild(m);
+    }
+    document.getElementById("cfText").textContent = text;
+    var yes = document.getElementById("cfYes");
+    yes.textContent = yesWord || "Yes, delete it";
+    m.classList.add("on");
+    m.onclick = function (ev) { if (ev.target === m) m.classList.remove("on"); };
+    document.getElementById("cfNo").onclick = function () { m.classList.remove("on"); };
+    yes.onclick = function () {
+      m.classList.remove("on");
+      try { onYes(); } catch (e) { mkMsg("That did not work: " + e.message); }
+    };
+  }
+
+  var UNDO = [], UNDO_MAX = 25;   /* kept for compatibility */
+  /* Every edit goes into the labelled history. The label is filled in by the caller where
+     it knows what is being edited; otherwise it is a plain "an edit". */
+  function snapshotEdits(label) {
+    pushHistory(label || "an edit");
+  }
+  function doUndo() { revertLast(); }
 
   function setLineEdit(id, li, obj) {
     snapshotEdits();
@@ -4317,6 +4493,7 @@
       d.appendChild(cb); d.appendChild(lab);
       box.appendChild(d);
     })();
+    appendHistoryPanel(box);
     appendProjectPrompt(box);
     updateMarksMsg();
   }
@@ -4324,6 +4501,28 @@
   /* ---------- the project prompt ----------
      A full description of the app, kept in assets/prompt.js, so that if anything breaks or
      work moves to a new chat it can simply be copied and pasted to pick up where we left off. */
+  /* The revert history, in Settings. Newest first, each line naming what it was. */
+  function appendHistoryPanel(box) {
+    var d = document.createElement("details");
+    d.className = "set-prompt";
+    var sm = document.createElement("summary");
+    sm.className = "set-prompt-s";
+    sm.textContent = "History \u2014 put back anything, up to 100 steps";
+    d.appendChild(sm);
+    var b = document.createElement("div");
+    b.className = "set-prompt-b";
+    var note = document.createElement("div");
+    note.className = "set-lab";
+    note.textContent = "Every delete and edit is listed here, newest first. Press Revert to put one back \u2014 " +
+      "anything after it is undone too, and the app tells you what it restored.";
+    b.appendChild(note);
+    var list = document.createElement("div");
+    list.id = "histList"; list.className = "hist-list";
+    b.appendChild(list);
+    d.appendChild(b);
+    box.appendChild(d);
+    renderHistoryList();
+  }
   function appendProjectPrompt(box) {
     var txt = window.RIYAZ_PROMPT || "";
     if (!txt) return;

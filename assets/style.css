@@ -1199,3 +1199,15 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .wiz-go:hover{background:var(--gold); border-color:var(--gold)}
 #skWizard .set-input{width:100%; font-family:inherit}
 #skWizard select.set-input{appearance:none; -webkit-appearance:none; cursor:pointer}
+
+/* ---------- confirm dialog + revert history ---------- */
+.cf-box{max-width:430px; width:100%}
+.cf-text{font-size:14.5px; line-height:1.6; white-space:pre-wrap; color:var(--ink); margin-bottom:16px}
+.cf-yes{background:var(--maroon); color:#fff; border-color:var(--maroon); font-weight:700}
+.cf-yes:hover{background:#a83535; border-color:#a83535}
+.hist-list{margin-top:8px; max-height:320px; overflow-y:auto}
+.hist-row{display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--line)}
+.hist-row:last-child{border-bottom:0}
+.hist-l{flex:1 1 auto; min-width:0; font-size:13px; color:var(--ink); overflow-wrap:anywhere}
+.hist-t{flex:0 0 auto; font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums}
+.hist-b{flex:0 0 auto; padding:4px 10px; font-size:12px}
