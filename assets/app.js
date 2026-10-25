@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.1.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.2.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -806,6 +806,11 @@
         '<input id="wizVibhag" class="set-input" type="text" value="' + esc(vibhagText(v)) + '"></div>' +
       "</div>" +
       wizSummary(m, vibhagText(v)) +
+      '<div class="wiz-sep">Recordings for this bandish only \u2014 optional</div>' +
+      '<label class="wiz-l">Video link</label>' +
+      '<input id="wizVideo" class="set-input" type="url" placeholder="YouTube or Drive link \u2014 plays in the app">' +
+      '<label class="wiz-l">Audio link</label>' +
+      '<input id="wizAudio" class="set-input" type="url" placeholder="mp3 link \u2014 this is what sets the offsets">' +
       '<div class="set-actions">' +
         '<button class="sk-btn wiz-go" id="wizGo">Create the bandish</button>' +
         '<button class="sk-btn" id="wizCancel">Cancel</button>' +
@@ -826,8 +831,11 @@
         return;
       }
       var chosenTaal = ($("#wizTaal") || {}).value || startTaal;   // the taal actually picked
+      var vLink = ($("#wizVideo") || {}).value || "";
+      var aLink = ($("#wizAudio") || {}).value || "";
       wizardClose();
-      addBandishWith(l, { name: nm, taalName: chosenTaal, matras: mm, vibhag: vv.parts });
+      addBandishWith(l, { name: nm, taalName: chosenTaal, matras: mm, vibhag: vv.parts,
+                          video: vLink.trim(), audio: aLink.trim() });
     };
   }
 
@@ -847,8 +855,29 @@
         b: { "0": { swar: sw, lyric: ly } }
       });
     });
-    applyAdds(); renderList(); renderStage(l);
-    try { mkMsg("Added \u201c" + nm + "\u201d \u2014 " + m + " matras of " + taalName + "."); } catch (e) {}
+    applyAdds();
+
+    /* Attach the recordings to THIS bandish only, tagged with its number so no other
+       bandish inherits them. The audio is what the offsets are set against; the video
+       plays in the app. */
+    var num = String(bandishNames(l).length);
+    var added = 0;
+    function attach(kind, url) {
+      var id = driveId(url) || url;
+      if (!id) return;
+      l.media = l.media || [];
+      l.media.push({ kind: kind, id: id, name: nm + " (" + kind + ")", bnd: num });
+      added++;
+    }
+    if (spec.video) attach("video", spec.video);
+    if (spec.audio) attach("audio", spec.audio);
+    if (added) { try { if (typeof marksSchedulePush === "function") marksSchedulePush(); } catch (e) {} }
+
+    renderList(); renderStage(l);
+    try {
+      mkMsg("Added \u201c" + nm + "\u201d \u2014 " + m + " matras of " + taalName +
+            (added ? ", with " + added + " recording" + (added > 1 ? "s" : "") : "") + ".");
+    } catch (e) {}
   }
 
   /* ---------- Add a raag ---------- */
@@ -1122,11 +1151,26 @@
   function raagSectParts(l, k) {
     var lines = [], media = [];
     (l.lines || []).forEach(function (ln, i) { if (lineSection(l, ln.label) === k) lines.push(i); });
-    /* The bandish recordings are filed under "bandish" while a bandish sub page asks for
-       "bandish:1", so without this a sub page found no recording at all. */
-    var mk = /^bandish:/.test(k || "") ? "bandish" : k;
-    /* the बंदिश page itself is an index, so it carries no recording at all */
-    if (k !== "bandish") (l.media || []).forEach(function (m, i) { if (raagSects(m.name).indexOf(mk) >= 0) media.push(i); });
+    /* The बंदिश page itself is an index, so it carries no recording at all. */
+    if (k === "bandish") return { lines: lines, media: media };
+
+    /* A bandish sub page ("bandish:2") must show ONLY that bandish's own recordings.
+       Every bandish recording is filed under "bandish" by name, so without the "bnd" tag
+       every sub page saw every recording - adding a second bandish inherited the first
+       one's video and audio. A recording with no tag predates this and belongs to the
+       first bandish. */
+    var bm = /^bandish:(\d+)$/.exec(k || "");
+    if (bm) {
+      var want = bm[1];
+      (l.media || []).forEach(function (m, i) {
+        if (raagSects(m.name).indexOf("bandish") < 0) return;
+        var own = (m.bnd == null ? "1" : String(m.bnd));
+        if (own === want) media.push(i);
+      });
+      return { lines: lines, media: media };
+    }
+
+    (l.media || []).forEach(function (m, i) { if (raagSects(m.name).indexOf(k) >= 0) media.push(i); });
     return { lines: lines, media: media };
   }
   function raagSections(l) {
