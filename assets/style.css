@@ -380,9 +380,29 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .lg.sam{color:var(--saffron);font-weight:700}
 @media(max-width:520px){ .tb-cell{min-width:52px} .tb-cell .tb-bol{font-size:15px} }
 
+
+/* ============================================================================
+   THE BUTTON SYSTEM - read this before adding another .ln-btn rule.
+
+   .ln-btn                 the base square control: 34x34, inline-flex, saffron on bg2.
+   .ln-btn.mark            a timing mark button (gold when the line is marked)
+   .ln-btn.stopb           the stop button
+   .ln-btn.sunb            the favourite sun (dim; saffron when on)
+   .ln-btn.sk5             the five-second buttons (smaller, dim)
+   .ln-btn.penb            the per-item pen (saffron outline; filled when open)
+   .bnd-ctl .ln-btn        a bandish part's row of four - forced, single line
+   .bnd .bnd-lab .ln-btn   a grid row's own buttons - small on purpose, never resized
+
+   Sizes by device: 34px normally, 38px below 520px, 34px below 360px, and at least 40px
+   on a touch device EXCEPT inside a grid row. If you need a new size, add it here - do not
+   append another override at the end of the file. That is what produced 24 competing
+   blocks and the glitches they caused.
+   ============================================================================ */
 /* ---------- per-line playback ---------- */
 .sk-line{padding:3px 6px;border-radius:10px;transition:background .12s,box-shadow .12s}
-.ln-ctl{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-right:8px}
+/* .ln-ctl is a two-by-two grid - defined in full further down. Only these two survive
+   from the original flex rule, so that is all this declares. */
+.ln-ctl{vertical-align:middle;margin-right:8px}
 .ln-btn{border:1px solid var(--line);background:var(--bg2);color:var(--saffron);border-radius:8px;
   width:34px;height:34px;font-size:14px;line-height:1;cursor:pointer;font-family:inherit;padding:0;
   display:inline-flex;align-items:center;justify-content:center}
@@ -927,9 +947,6 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .bnd.merged .bnd-row, .bnd.merged .bnd-lyrwrap{grid-template-columns:126px minmax(0,1fr) 34px}
 .bnd.merged .bnd-lab{font-size:20px; font-weight:700; color:var(--ink);
   flex-wrap:nowrap; gap:5px; justify-content:flex-start; white-space:nowrap}
-.bnd.merged .bnd-lab .ln-btn{width:30px; height:30px; font-size:13px}
-.bnd.merged .bnd-lab .ln-btn.sunb{color:var(--dim)}
-.bnd.merged .bnd-lab .ln-btn.sunb.on{color:var(--saffron); border-color:var(--saffron)}
 .bnd.merged .bnd-row .bnd-lab{justify-content:flex-start}
 
 /* ---------- तान rows: tighter, bigger number ---------- */

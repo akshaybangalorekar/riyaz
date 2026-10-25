@@ -43,7 +43,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "3.1.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.0.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3061,6 +3061,20 @@
   }
   /* Each guide is a folded line: you see what it is about, and open it only if you want it.
      That way the whole of Help fits on one screen. */
+  /* The rules of each page, so a new raag can be built the same way without asking. */
+  function helpPageRules() {
+    return [
+      ["आरोह · अवरोह · पकड़", "Three lines - Aaroh, Avroh, Pakad - each with its own four buttons and offset. Video plays in both modes; audio only while editing."],
+      ["मुक्त आलाप", "Numbered lines. 'Mukt Aalap' is not repeated on every line - just the number and the swars. Each line has its own four buttons and offset. A page may use more than one recording."],
+      ["लयकारी", "Two groups, स्थाई and अंतरा, both closed at first. Plain text lines, each with its own four buttons and offset."],
+      ["तान", "ONE grid for the page. Each तान is a row, with its number, play button and sun on that row. No lyric lane."],
+      ["बंदिश index", "A list only - the bandish names, renaming, and Add a bandish, all while editing. No player."],
+      ["बंदिश page", "Heading reads 'Raag <raag>: <name>'. Two collapsibles, स्थाई and अंतरा, both closed. Each holds one row of four buttons with its offset, then the taal heading, then the grid."],
+      ["On every page", "Video plays in both modes, audio only while editing. No Drive link or file name while viewing. Nothing plays in Favourites. Editing switches off after fifteen minutes."],
+      ["Which recording a line uses", "Decided by the range in the recording's own name - 'मुक्त आलाप 1-10' holds 1 to 10, '... 11-14' holds 11 to 14. Times on the wrong recording are moved to the right one whenever the app opens."],
+      ["दुर्गा is final", "दुर्गा's pages, notation and offsets are finished and are not changed. Only तान and लयकारी will be added, when Atharva's guru teaches them."]
+    ];
+  }
   function helpSection(title, body) {
     var d = document.createElement("details"); d.className = "hp-sec";
     var t = document.createElement("summary"); t.className = "hp-t"; t.textContent = title;
@@ -3115,6 +3129,7 @@
       "(Sthayi Laikari 1\u201310 and Antara Laikari 1\u201310); <b>\u0924\u093e\u0928</b> (Tana 1\u201315); and <b>\u092c\u0902\u0926\u093f\u0936</b> " +
       "(Bandish (Sthayi) and Bandish (Antara)). \u0926\u0941\u0930\u094d\u0917\u093e and \u092d\u0940\u092e\u092a\u0932\u0938\u0940 follow \u092d\u0948\u0930\u0935\u0940\u2019s pattern, and their " +
       "\u0932\u092f\u0915\u093e\u0930\u0940 and \u0924\u093e\u0928 pages stay empty until your guru teaches them."));
+    helpPageRules().forEach(function (r) { box.appendChild(helpSection(r[0], r[1])); });
     box.appendChild(helpSection("Files on a page",
       "Every page can carry its own list of files. In <b>edit mode</b> press <b>+ Add a file</b> and paste a " +
       "Google Drive link, then tick <b>show</b> beside it if it should appear in view mode. <b>\u2715</b> removes that file. " +
