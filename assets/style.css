@@ -1095,9 +1095,11 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   .sk-main.rail-hidden ~ .rail-tab { left: calc(16px + var(--safe-l)); }
 }
 
-/* ---------- a device with no hover: make every control easier to hit ----------- */
+/* ---------- a device with no hover: make every control easier to hit -----------
+   Deliberately NOT applied to buttons inside a grid row: the तान and बंदिश grids size
+   those small on purpose, and forcing 40px on them squashed them into 28x40 rectangles. */
 @media (hover: none) {
-  .ln-btn { min-width: 40px; min-height: 40px; }
+  .ln-btn:not(.bnd .ln-btn) { min-width: 40px; min-height: 40px; }
   .sk-item { padding-top: 11px; padding-bottom: 11px; }
   .sk-mtab { padding-top: 9px; padding-bottom: 9px; }
   .rail-tab { cursor: pointer; }
@@ -1149,3 +1151,18 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 /* the way back to the video when an audio recording is playing */
 .showvid{margin:8px 0 2px; display:flex; gap:8px; flex-wrap:wrap}
 .showvid .sk-btn{font-size:13px; padding:6px 12px}
+
+/* ---------- overflow guards ----------
+   The heading shows a recording's file name while editing, and a long one used to run past
+   the edge of a phone screen and push the whole page sideways. */
+.sk-file{overflow-wrap:anywhere; word-break:break-word; min-width:0; max-width:100%; flex:0 1 auto;
+  white-space:normal}   /* the base rule sets nowrap, which blocks wrapping outright */
+/* the heading is a flex row, so it must be allowed to wrap - otherwise the long file name
+   cannot shrink and pushes the whole page sideways on a phone */
+.sk-h1{overflow-wrap:anywhere; min-width:0; flex-wrap:wrap; align-items:baseline}
+.sk-h1 > *{min-width:0; max-width:100%}
+.sk-hsub{overflow-wrap:anywhere}
+/* a grid row's own buttons keep their designed size, whatever the device */
+.bnd .bnd-lab .ln-btn{min-width:0; min-height:0}
+/* nothing may poke out of the page sideways */
+.sk-main,.sk-stage,#notation,#list{max-width:100%; min-width:0}
