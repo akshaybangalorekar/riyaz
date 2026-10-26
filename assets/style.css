@@ -1314,3 +1314,10 @@ body.boot .sk-foot{animation:ryFadeIn .5s ease both; animation-delay:.20s}
   background:var(--bg2); color:var(--ink); font-family:inherit; font-size:12.5px}
 .mm-go{flex:0 0 auto; background:var(--saffron); color:#20160d; border-color:var(--saffron); font-weight:700}
 .mm-note{font-size:11.5px; margin-top:10px; line-height:1.5}
+
+/* ---------- export: the ask dialog and the rail button ---------- */
+.ex-btn{color:var(--amber)}
+.ex-ask{display:flex; gap:9px; margin:16px 0 10px; flex-wrap:wrap}
+.ex-note{font-size:12px; color:var(--dim); line-height:1.55; margin-top:10px;
+  border-top:1px solid var(--line); padding-top:10px}
+.ex-note b{color:var(--ink)}

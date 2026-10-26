@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.6.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.7.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1321,6 +1321,178 @@
     d.appendChild(body);
     st.appendChild(d);
   }
+
+  /* ==========================================================================
+     EXPORT A RAAG - every page of it in one document, for print or PDF.
+
+     Built with the app's own notation renderer (swarRun), so komal, tivra, saptak
+     dots, murki and meend come out exactly as they look on screen - the export is
+     not a second, simplified way of writing the swars.
+
+     No PDF library: the browser's own print dialog produces the PDF, which keeps the
+     app dependency-free and working offline, and on a phone its share sheet can send
+     the file straight on.
+     ========================================================================== */
+
+  /* one line of plain notation - aaroh, avroh, pakad, a mukt aalap line, a laikari line */
+  function exLine(label, text) {
+    var sw = text ? swarRun(text).outerHTML : '<span class="ex-empty">\u2014</span>';
+    return '<div class="ex-line"><span class="ex-lbl">' + esc(label) + '</span>' +
+           '<span class="ex-sw">' + sw + '</span></div>';
+  }
+
+  /* a grid - tana or bandish - as a table: matra numbers, swars, bols, with the vibhag bars */
+  function exGrid(l, li, title) {
+    var ln = (l.lines || [])[li] || {};
+    var b = ln.bandish || {};
+    var N = b.matras || 16, vib = b.vibhag || [4, 4, 4, 4];
+    var rows = [];
+    try { rows = bandishRows(l, li) || []; } catch (e) { rows = []; }
+    if (!rows.length) return "";
+
+    /* where a vibhag ends, counting from 1 */
+    var ends = {}, run = 0;
+    vib.forEach(function (v) { run += v; ends[run] = 1; });
+
+    var out = '<div class="ex-grid"><div class="ex-gt"><b>' + esc(title || b.taal || "") + '</b>' +
+      '<span>' + N + ' \u092e\u093e\u0924\u094d\u0930\u093e \u00b7 ' + esc((vib || []).join("+")) + '</span></div>';
+    out += '<table class="ex-tbl"><thead><tr><th class="ex-c0"></th>';
+    for (var i = 1; i <= N; i++) out += '<th class="ex-n' + (ends[i] ? " ex-vib" : "") + '">' + i + '</th>';
+    out += '</tr></thead><tbody>';
+    rows.forEach(function (r, ri) {
+      var sw = r.swar || [], ly = r.lyric || [];
+      out += '<tr><td class="ex-c0">' + (rows.length > 1 ? (ri + 1) : "\u0938\u094d\u0935\u0930") + '</td>';
+      for (var c = 0; c < N; c++) {
+        out += '<td class="ex-cell' + (ends[c + 1] ? " ex-vib" : "") + '">' +
+          (sw[c] && sw[c] !== "-" ? swarRun(sw[c]).outerHTML : "") + '</td>';
+      }
+      out += '</tr>';
+      if (ly.some(function (x) { return (x || "").trim(); })) {
+        out += '<tr class="ex-bol"><td class="ex-c0">\u092c\u094b\u0932</td>';
+        for (var c2 = 0; c2 < N; c2++) {
+          out += '<td class="ex-cell ex-lyr' + (ends[c2 + 1] ? " ex-vib" : "") + '">' +
+            esc((ly[c2] || "").replace(/[{}^~_+]/g, "")) + '</td>';
+        }
+        out += '</tr>';
+      }
+    });
+    out += '</tbody></table></div>';
+    return out;
+  }
+
+  /* build the whole document */
+  function exportBuild(l) {
+    var secs = [
+      { k: "aaroh",  t: "\u0906\u0930\u094b\u0939 \u00b7 \u0905\u0935\u0930\u094b\u0939 \u00b7 \u092a\u0915\u0921\u093c" },
+      { k: "mukt",   t: "\u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a" },
+      { k: "laikari",t: "\u0932\u092f\u0915\u093e\u0930\u0940" },
+      { k: "tana",   t: "\u0924\u093e\u0928" }
+    ];
+    var html = '<div class="ex-doc"><div class="ex-head"><h1>' + esc(l.title || "Raag") + '</h1>' +
+      '<div class="ex-sub">Riyaz \u00b7 exported ' + new Date().toLocaleDateString() + '</div></div>';
+
+    secs.forEach(function (sc) {
+      var idx = [];
+      (l.lines || []).forEach(function (ln, i) { if (lineSection(l, ln.label) === sc.k) idx.push(i); });
+      if (!idx.length) return;
+      html += '<section class="ex-sec"><h2>' + sc.t + '</h2>';
+      if (sc.k === "tana") {
+        /* tana is one continuous table: a row per tana */
+        idx.forEach(function (i, n) {
+          html += exGrid(l, i, "\u0924\u093e\u0928 " + (n + 1));
+        });
+      } else {
+        idx.forEach(function (i) {
+          var ln = l.lines[i] || {};
+          var lab = (ln.label || "").replace(/^Raag\s+\S+\s*[-–]\s*/i, "");
+          html += exLine(lab, ln.text || "");
+        });
+      }
+      html += '</section>';
+    });
+
+    /* the bandish, one section per bandish, स्थाई then अंतरा */
+    var names = [];
+    try { names = bandishNames(l) || []; } catch (e) {}
+    if (names.length) {
+      html += '<section class="ex-sec"><h2>\u092c\u0902\u0926\u093f\u0936</h2>';
+      names.forEach(function (nm, bi) {
+        if (names.length > 1) html += '<h3 class="ex-bnd">' + esc(nm) + '</h3>';
+        (l.lines || []).forEach(function (ln, i) {
+          var m = /^\s*bandish\s*(.*?)\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)/i.exec(ln.label || "");
+          if (!m) return;
+          var partName = m[2];
+          var isAntara = /^(antara|\u0905\u0902\u0924\u0930\u093e)$/i.test(partName);
+          html += exGrid(l, i, (isAntara ? "\u0905\u0902\u0924\u0930\u093e" : "\u0938\u094d\u0925\u093e\u0908") +
+            (ln.bandish && ln.bandish.taal ? " \u00b7 " + ln.bandish.taal : ""));
+        });
+      });
+      html += '</section>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  var PRINT_CSS = ''
+    + '.ex-doc{font-family:"Noto Sans Devanagari","Baloo 2",serif;color:#000;background:#fff}'
+    + '.ex-head{border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:18px}'
+    + '.ex-head h1{font-size:26pt;margin:0;line-height:1.1}'
+    + '.ex-sub{font-size:9pt;color:#555;margin-top:4px}'
+    + '.ex-sec{margin:0 0 20px;page-break-inside:avoid}'
+    + '.ex-sec h2{font-size:13pt;margin:0 0 8px;padding-bottom:3px;border-bottom:1px solid #999;text-transform:uppercase;letter-spacing:.06em}'
+    + '.ex-bnd{font-size:11pt;margin:14px 0 6px}'
+    + '.ex-line{display:flex;gap:10px;align-items:baseline;padding:3px 0;border-bottom:1px dotted #ddd}'
+    + '.ex-lbl{flex:0 0 128px;font-size:9.5pt;color:#444}'
+    + '.ex-sw{flex:1 1 auto;font-size:13pt;line-height:1.9}'
+    + '.ex-empty{color:#bbb}'
+    + '.ex-grid{margin:8px 0 14px;page-break-inside:avoid}'
+    + '.ex-gt{font-size:9.5pt;color:#333;margin-bottom:3px;display:flex;gap:8px;align-items:baseline}'
+    + '.ex-gt b{font-size:10.5pt}'
+    + '.ex-tbl{width:100%;border-collapse:collapse;table-layout:fixed}'
+    + '.ex-tbl th,.ex-tbl td{border:1px solid #bbb;text-align:center;padding:1px 0;font-size:9pt;overflow:hidden}'
+    + '.ex-tbl thead th{background:#eee;font-size:7.5pt;color:#333;font-weight:600}'
+    + '.ex-tbl .ex-c0{width:34px;background:#f4f4f4;font-size:7.5pt;color:#555}'
+    + '.ex-tbl .ex-vib{border-left:2px solid #000}'
+    + '.ex-cell{font-size:12pt;line-height:1.5}'
+    + '.ex-bol .ex-lyr{font-size:9pt;color:#333;font-style:italic}'
+    /* the swar spans the app already draws, toned down for paper */
+    + '.ex-doc .sw, .ex-doc .sk-sw{color:#000 !important;font-size:inherit !important}'
+    + '.ex-doc .kan, .ex-doc .mk-grp, .ex-doc .md-grp{color:#000 !important}'
+    + '.ex-doc .mk-grp, .ex-doc .md-grp{border-color:#000 !important}';
+
+  function exportOpen(l) {
+    var w = window.open("", "_blank");
+    if (!w) { mkMsg("Your browser blocked the print window. Allow pop-ups for this site and try again."); return; }
+    var css = PRINT_CSS;
+    var doc = '<!DOCTYPE html><html lang="hi"><head><meta charset="utf-8">' +
+      '<title>' + esc(l.title || "Raag") + ' \u2014 Riyaz</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Baloo+2:wght@400;600;800&display=swap" rel="stylesheet">' +
+      '<style>@page{size:A4;margin:14mm 12mm}' +
+      'body{margin:0;padding:0;background:#fff}' + css + '</style></head><body>' +
+      exportBuild(l) +
+      '<script>window.onload=function(){setTimeout(function(){window.print();},600);};<\/script>' +
+      '</body></html>';
+    w.document.open(); w.document.write(doc); w.document.close();
+  }
+
+  /* the little dialog the rail button opens */
+  function exportAsk(l) {
+    var wiz =
+      '<div class="set-h">Export ' + esc(l.title || "this raag") + '</div>' +
+      '<div class="set-lab">Every page of this raag \u2014 \u0906\u0930\u094b\u0939 \u00b7 \u0905\u0935\u0930\u094b\u0939 \u00b7 \u092a\u0915\u0921, \u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a, ' +
+        '\u0932\u092f\u0915\u093e\u0930\u0940, \u0924\u093e\u0928 and every \u092c\u0902\u0926\u093f\u0936 \u2014 in one document, with the notation, the taal and the matra columns.</div>' +
+      '<div class="ex-ask">' +
+        '<button class="sk-btn wiz-go" id="exGo">Open the print view</button>' +
+        '<button class="sk-btn" id="exCancel">Cancel</button>' +
+      '</div>' +
+      '<div class="set-msg" id="exMsg"></div>' +
+      '<div class="ex-note">A print window opens and your browser asks what to do with it. ' +
+        'Choose <b>Save as PDF</b> to keep the file, or on a phone use the share button to send it on. ' +
+        'Nothing leaves this device.</div>';
+    wizardOpen(wiz);
+    $("#exCancel").onclick = wizardClose;
+    $("#exGo").onclick = function () { wizardClose(); exportOpen(l); };
+  }
   /* ---------- chrome ---------- */
   function renderTabs() {
     var el = $("#tabs");
@@ -1775,6 +1947,9 @@
             '<span class="car">' + (open ? "\u25be" : "\u25b8") + "</span>" + esc(l.title) + "</button>" +
           sunHTML(scopeAllFav({ kind: "raag", id: l.id }), "rail", 'data-scope="' + l.id + '" data-kind="raag"') +
           '<span class="sk-move">' +
+            /* Export belongs on EVERY raag and in both modes: it only reads, it changes
+               nothing, and wanting the notes on paper is not an editing job. */
+            '<button class="mv ex-btn" data-export="' + l.id + '" title="Export this raag as a PDF">\u2913</button>' +
             (l.mine && editingNow()
               ? '<button class="mv" data-name="' + l.id + '" title="Rename this raag">\u270e</button>' +
                 '<button class="mv" data-drop="' + l.id + '" title="Remove this raag">\u2715</button>'
@@ -1799,6 +1974,7 @@
       Array.prototype.forEach.call(el.querySelectorAll(".mv"), function (b) {
         b.onclick = function (e) {
           if (e) e.stopPropagation();
+          if (b.dataset.export) { exportAsk(lesson(b.dataset.export)); return; }
           if (b.dataset.name) { renameRaag(b.dataset.name); return; }
           if (b.dataset.drop) { removeRaag(b.dataset.drop); return; }
           moveRaag(b.dataset.r, +b.dataset.d);
