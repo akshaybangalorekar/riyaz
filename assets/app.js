@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.6.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.6.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -2873,6 +2873,45 @@
   /* Added lines live in the same store as the edits, at index 1000 and up, so they
      ride the same save-and-merge path. Nothing below 1000 is ever an added line. */
   var ADD_BASE = 1000;
+
+  /* A line that says nothing useful - no bandish name, no text - has no business on a
+     bandish page. This removes any such line from the assembled list so the स्थाई and
+     अंतरा are the only things a bandish sub page shows. */
+  function dropStrayFromBandish(l) {
+    if (!l || l.group !== "Raag") return;
+    var lines = l.lines || [];
+    l.lines = lines.filter(function (ln) {
+      if (!ln) return false;
+      var lab = (ln.label || "").trim();
+      if (!lab) return false;                                   // an unnamed line
+      if (/^added line/i.test(lab)) return false;               // the old placeholder
+      if (ln.bandish) return true;                              // a real bandish part
+      if (PART_RE.test(lab)) return true;                       // a named part
+      /* anything else that claims the bandish section but is not a part */
+      if (raagSect(lab) === "bandish") return true;             // a row label inside a grid
+      return true;
+    });
+  }
+
+  /* Once, on load: throw away the junk entries an older version left on this device, so
+     they stop being shown and stop being pushed to the other devices. */
+  function tidyJunkEdits() {
+    var changed = false;
+    Object.keys(state.edits || {}).forEach(function (lid) {
+      var byKey = state.edits[lid] || {};
+      Object.keys(byKey).forEach(function (k) {
+        var v = byKey[k];
+        if (!v || typeof v !== "object" || v.del) return;
+        if (+k < 1000) return;                                  // base-line edits are fine
+        if (v.label) return;                                    // it has a name
+        if (v.t || v.b || v.bd) return;                          // it has real content
+        byKey[k] = { del: true, at: Date.now() };                // nothing in it: tombstone it
+        changed = true;
+      });
+    });
+    if (changed) { try { saveEdits(); scheduleEditsPush(); } catch (e) {} }
+    return changed;
+  }
   function addedKeys(id) {
     var e = state.edits[id] || {};
     return Object.keys(e).filter(function (k) { return +k >= ADD_BASE; })
@@ -2968,8 +3007,14 @@
         var v = state.edits[l.id][k] || {};
         var lab = v.label;
         if (!lab) {
-          // an older entry may have lost its label; put it back in the right part
-          lab = (v.sect ? (raagSectLabel(v.sect) || "Added line") : "Added line") + " (added)";
+          /* An entry with no label is either junk from an older version or a real line
+             whose label was lost. It must never render as the words "Added line (added)" -
+             that placeholder reached a page and there is no way for a reader to know what
+             it means. So: junk (no label, no text, no grid) is dropped below; anything with
+             real content is given a proper name for its section. */
+          if (!v.t && !v.b && !v.bd) return null;
+          var secName = v.sect ? (raagSectLabel(v.sect) || "Line") : "Line";
+          lab = secName;
         }
         var line = { label: lab, text: v.t || "", added: true, idx: +k };
         if (v.bd) {
@@ -2983,6 +3028,7 @@
         }
         return line;
       });
+      extra = extra.filter(Boolean);   // junk entries were dropped
       /* A line that came with the raag keeps its original text unless an edit says otherwise.
          This is what makes a renamed bandish take effect — without it the rename is written
          but never shown. */
@@ -2997,6 +3043,9 @@
         return out;
       });
       try { pairBandishParts(l); } catch (e) {}
+      /* A bandish page lists bandish parts and grid rows. Nothing else belongs there, and
+         an unnamed line must not appear beside the स्थाई and अंतरा. */
+      try { dropStrayFromBandish(l); } catch (e) {}
       try { applyMediaEdits(l); } catch (e) {}
     });
   }
@@ -5024,6 +5073,7 @@
   manchLoad();
   photoLoad();
   mediaEditLoad();
+  try { tidyJunkEdits(); } catch (e) {}
   try { tidyMarks(); } catch (e) {}
   favLoad();
   loadAllLocal();
