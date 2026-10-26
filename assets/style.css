@@ -1255,3 +1255,38 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
   .bnd-row, .bnd-lyrwrap { min-width: 0 }
   .bnd.merged .bnd-row, .bnd.merged .bnd-lyrwrap { min-width: 0 }
 }
+
+/* ============================================================================
+   AESTHETICS PASS
+   Measured against the frontend-aesthetics guide. Typography and palette already
+   passed - 'Baloo 2' with Noto Sans Devanagari is distinctive and right for the
+   material, and the warm brown ground with a saffron accent is committed rather
+   than timid. Two dimensions were thin: the page sat on a flat colour with no
+   atmosphere, and there were eleven transitions but not one keyframe. Both are
+   addressed here. Nothing below touches the notation - it is page shell only.
+   ============================================================================ */
+
+body{
+  background:
+    radial-gradient(120% 70% at 50% -18%, rgba(232,166,62,.075), transparent 62%),
+    radial-gradient(90% 55% at 92% 8%, rgba(143,43,43,.10), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+@keyframes ryFadeUp{ from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:none} }
+@keyframes ryFadeIn{ from{opacity:0} to{opacity:1} }
+body.boot .sk-head{animation:ryFadeIn .34s ease both}
+body.boot .sk-list{animation:ryFadeUp .40s ease both; animation-delay:.04s}
+body.boot .sk-stage{animation:ryFadeUp .46s ease both; animation-delay:.10s}
+body.boot .sk-foot{animation:ryFadeIn .5s ease both; animation-delay:.20s}
+
+.sk-item{transition:background .16s ease, color .16s ease, padding-left .16s ease}
+.sk-item:hover{padding-left:4px}
+.ln-btn{transition:background .14s ease, color .14s ease, border-color .14s ease, transform .1s ease}
+.sk-mtab{transition:background .16s ease, color .16s ease, border-color .16s ease}
+
+@media (prefers-reduced-motion: reduce){
+  body.boot .sk-head, body.boot .sk-list, body.boot .sk-stage, body.boot .sk-foot{animation:none}
+  .sk-item:hover{padding-left:0}
+}
