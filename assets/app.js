@@ -17,6 +17,7 @@
     video: null,     // when the page is showing a video, this is it
     segments: {},     // lessonId -> { lineIndex: {track, t} }   (local overrides)
     photos: {},       // "lessonId|sect" -> data URL of the reference page
+    mediaEdit: {},    // lessonId -> { hidden: [id], added: [recording] }
     segPlay: null,     // {line, start, end, loop}
     /* A line plays from its start to its end and then STOPS. It must not repeat: a line
        heard over and over makes it hard to tell where it finished. */
@@ -44,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.5.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.6.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1124,6 +1125,202 @@
     d.appendChild(body);
     st.appendChild(d);
   }
+
+  /* ==========================================================================
+     A PAGE'S RECORDINGS - add and remove them.
+
+     Removal HIDES a recording rather than deleting it from the list. That is
+     deliberate: saved timings are keyed by a recording's POSITION, so splicing one
+     out would shift every later recording and silently re-point every offset. Hiding
+     leaves every position exactly where it was, so no offset can move. A hidden
+     recording can be brought back, and the whole thing is revertable.
+     ========================================================================== */
+  function mediaEditLoad() {
+    try {
+      var raw = JSON.parse(localStorage.getItem("sk_media_edit") || "null");
+      state.mediaEdit = (raw && typeof raw === "object") ? raw : {};
+    } catch (e) { state.mediaEdit = {}; }
+  }
+  function mediaEditSave() {
+    try { localStorage.setItem("sk_media_edit", JSON.stringify(state.mediaEdit || {})); } catch (e) {}
+  }
+  function mediaEditFor(id) {
+    state.mediaEdit = state.mediaEdit || {};
+    if (!state.mediaEdit[id]) state.mediaEdit[id] = { hidden: [], added: [] };
+    var e = state.mediaEdit[id];
+    if (!e.hidden) e.hidden = [];
+    if (!e.added) e.added = [];
+    return e;
+  }
+  /* put the edits onto the lesson: hidden ones flagged, added ones appended */
+  function applyMediaEdits(l) {
+    if (!l) return l;
+    var e = (state.mediaEdit || {})[l.id];
+    if (!e) return l;
+    (l.media || []).forEach(function (m) { if (m) m.hidden = (e.hidden || []).indexOf(m.id) >= 0; });
+    /* added recordings are appended once, and keep their own flag */
+    var have = {};
+    (l.media || []).forEach(function (m) { if (m) have[m.id] = 1; });
+    (e.added || []).forEach(function (m) {
+      if (!m || !m.id) return;
+      if (have[m.id]) return;
+      var copy = {}; for (var k in m) copy[k] = m[k];
+      l.media = l.media || [];
+      l.media.push(copy);
+      have[m.id] = 1;
+    });
+    return l;
+  }
+  /* the page's recordings, including removed ones, so the panel can offer "Bring back" */
+  function pageMediaAll(l) {
+    var out = [];
+    if (!l) return out;
+    var sect = state.raagSect || "";
+    var bm = /^bandish:(\d+)$/.exec(sect);
+    (l.media || []).forEach(function (m, i) {
+      if (!m) return;
+      if (l.group === "Raag" && sect) {
+        if (sect === "bandish") return;                       // the index carries no recording
+        if (bm) {
+          if (raagSects(m.name).indexOf("bandish") < 0) return;
+          if ((m.bnd == null ? "1" : String(m.bnd)) !== bm[1]) return;
+        } else if (raagSects(m.name).indexOf(sect) < 0) return;
+      }
+      out.push(i);
+    });
+    return out;
+  }
+  function mediaVisible(l) { return (l.media || []).map(function (m, i) { return m && !m.hidden ? i : -1; }).filter(function (i) { return i >= 0; }); }
+
+  function hideMedia(l, idx, label) {
+    var m = (l.media || [])[idx]; if (!m) return;
+    var e = mediaEditFor(l.id);
+    pushHistory("removed the recording " + (label || m.name || ""));
+    if (e.hidden.indexOf(m.id) < 0) e.hidden.push(m.id);
+    /* an added one can simply go */
+    e.added = (e.added || []).filter(function (x) { return x.id !== m.id; });
+    mediaEditSave();
+    if (String(state.mediaIdx) === String(idx)) {
+      var vis = mediaVisible(l);
+      state.mediaIdx = vis.length ? vis[0] : 0;
+    }
+    applyMediaEdits(l);
+    renderList(); renderStage(l);
+    mkMsg("Removed that recording \u2014 press Revert to put it back.");
+  }
+  function unhideMedia(l, idx) {
+    var m = (l.media || [])[idx]; if (!m) return;
+    var e = mediaEditFor(l.id);
+    pushHistory("brought back the recording " + (m.name || ""));
+    e.hidden = e.hidden.filter(function (x) { return x !== m.id; });
+    mediaEditSave();
+    applyMediaEdits(l);
+    renderList(); renderStage(l);
+    mkMsg("Recording restored.");
+  }
+  function addMediaTo(l, kind, url, name) {
+    url = (url || "").trim(); if (!url) return false;
+    var id = (typeof driveId === "function" && driveId(url)) || url;
+    var e = mediaEditFor(l.id);
+    /* which bandish does this belong to, if we are on a bandish page? */
+    var bnd = null;
+    var bm = /^bandish:(\\d+)$/.exec(state.raagSect || "");
+    if (bm) bnd = bm[1];
+    var entry = { kind: kind, id: id, name: name || (url.split("/").pop() || (kind + " recording")) };
+    if (bnd) entry.bnd = bnd;
+    pushHistory("added a " + kind + " recording");
+    e.added.push(entry);
+    mediaEditSave();
+    applyMediaEdits(l);
+    renderList(); renderStage(l);
+    mkMsg("Added the " + kind + " recording.");
+    return true;
+  }
+
+  /* the panel itself, editing only */
+  function appendMediaManager(l) {
+    if (!editingNow()) return;
+    var st = $("#stage"); if (!st) return;
+    var d = document.createElement("details");
+    d.className = "mm-sec";
+    var sm = document.createElement("summary");
+    sm.className = "mm-sum";
+    var pageAll = 0, pageVis = 0;
+    pageMediaAll(l).forEach(function (i) {
+      var m = (l.media || [])[i]; if (!m) return;
+      pageAll++; if (!m.hidden) pageVis++;
+    });
+    sm.textContent = "\ud83c\udfa7 Recordings on this page \u2014 " + pageVis + " of " + pageAll;
+    d.appendChild(sm);
+    var body = document.createElement("div");
+    body.className = "mm-body";
+
+    /* only the recordings that belong to this page - a bandish page lists its own, not
+       every recording the raag owns */
+    var idxList = pageMediaAll(l);
+    idxList.forEach(function (i) {
+      var m = (l.media || [])[i];
+      if (!m) return;
+      var row = document.createElement("div");
+      row.className = "mm-row" + (m.hidden ? " off" : "");
+      var kind = document.createElement("span");
+      kind.className = "mm-kind";
+      kind.textContent = m.kind === "video" ? "\ud83c\udfac" : "\ud83c\udfa7";
+      row.appendChild(kind);
+      var nm = document.createElement("span");
+      nm.className = "mm-name";
+      nm.textContent = m.name || m.id;
+      nm.title = m.name || m.id;
+      row.appendChild(nm);
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "sk-btn mm-btn";
+      if (m.hidden) {
+        b.textContent = "Bring back";
+        b.onclick = function () { unhideMedia(l, i); };
+      } else {
+        b.textContent = "\u2715 Remove";
+        b.className += " mm-rm";
+        b.onclick = function () {
+          askConfirm("Remove this recording from the page?\n\n" + (m.name || m.id) +
+                     "\n\nThe file itself is not deleted, and Revert puts it back.",
+            function () { hideMedia(l, i, m.name); });
+        };
+      }
+      row.appendChild(b);
+      body.appendChild(row);
+    });
+
+    if (!idxList.length) {
+      var none = document.createElement("div");
+      none.className = "sk-dim mm-note";
+      none.textContent = "No recordings on this page yet. Add one below.";
+      body.appendChild(none);
+    }
+
+    var addRow = document.createElement("div");
+    addRow.className = "mm-add";
+    var sel = document.createElement("select");
+    sel.className = "mm-sel";
+    sel.innerHTML = '<option value="video">\ud83c\udfac Video</option><option value="audio">\ud83c\udfa7 Audio</option>';
+    var inp = document.createElement("input");
+    inp.className = "mm-in"; inp.type = "url";
+    inp.placeholder = "Paste a video or mp3 link";
+    var go = document.createElement("button");
+    go.type = "button"; go.className = "sk-btn mm-go"; go.textContent = "Add";
+    go.onclick = function () {
+      if (!addMediaTo(l, sel.value, inp.value, "")) mkMsg("Paste a link first.");
+    };
+    addRow.appendChild(sel); addRow.appendChild(inp); addRow.appendChild(go);
+    body.appendChild(addRow);
+
+    var note = document.createElement("div");
+    note.className = "sk-dim mm-note";
+    note.textContent = "Removing a recording does not delete the file. Timings are kept, so bringing it back restores them too.";
+    body.appendChild(note);
+
+    d.appendChild(body);
+    st.appendChild(d);
+  }
   /* ---------- chrome ---------- */
   function renderTabs() {
     var el = $("#tabs");
@@ -1280,13 +1477,57 @@
      A raag's बंदिश page is an index and nothing else. Each bandish is a sub page of it, and a
      bandish line is named "Bandish One (Sthayi)" / "Bandish One (Antara)" — the middle word is
      the name, edited on the index, and it is what the rail and the page heading show. */
+
+  /* ==========================================================================
+     A bandish is ONE thing made of two parts, स्थाई and अंतरा. Its name lives on
+     both lines. If only one part carries the name - which is what happens when a
+     line's label is edited directly rather than through the bandish index - the two
+     parts look like two different bandishes and the rail grows a second sub-page for
+     the same music. भैरवी's Mahadev Maheshwara did exactly that: the Antara was
+     renamed and the Sthayi was not.
+
+     So after the lines are assembled, each स्थाई part is paired with the अंतरा that
+     follows it and the two are given the same name: the named one if either has a
+     name, otherwise the default. Nothing else about them changes.
+     ========================================================================== */
+  var PART_RE = /^\s*bandish\s*(.*?)\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)\s*$/i;
+  /* "Bandish : Mahadev Maheshwara (Antara)" - the colon was a separator, not part of the
+     name. Strip leading and trailing punctuation so the rail reads cleanly. */
+  function cleanBandishName(n) {
+    return String(n || "").replace(/^[\s:\-\u2013\u2014\u00b7|,]+/, "")
+                          .replace(/[\s:\-\u2013\u2014\u00b7|,]+$/, "").trim();
+  }
+  function isAntaraPart(p) { return /^(antara|\u0905\u0902\u0924\u0930\u093e)$/i.test(p || ""); }
+  function pairBandishParts(l) {
+    var lines = l.lines || [], i, j;
+    for (i = 0; i < lines.length; i++) {
+      var a = PART_RE.exec(lines[i].label || "");
+      if (!a || isAntaraPart(a[2])) continue;              // start from a स्थाई part
+      var aName = cleanBandishName(a[1]);
+      /* find the next अंतरा part, skipping anything else in between */
+      var bIdx = -1, bName = "";
+      for (j = i + 1; j < lines.length; j++) {
+        var b = PART_RE.exec(lines[j].label || "");
+        if (b && isAntaraPart(b[2])) { bIdx = j; bName = cleanBandishName(b[1]); break; }
+      }
+      if (bIdx < 0) continue;
+      /* the name to use: whichever part actually has one */
+      var name = aName || bName;
+      if (!name) continue;                                  // both unnamed: leave the default
+      if (aName === bName) continue;                        // already in step
+      var want = "Bandish " + name + " ";
+      lines[i].label = want + "(" + a[2] + ")";
+      lines[bIdx].label = want + "(" + PART_RE.exec(lines[bIdx].label)[2] + ")";
+    }
+    return l;
+  }
   function bandishNames(l) {
     var out = [];
     function scan(list) {
       (list || []).forEach(function (ln) {
         var m = /^\s*bandish\s*(.*?)\s*\(/i.exec(ln.label || "");
         if (!m) return;
-        var nm = m[1].trim() || "1";      // the unnamed bandish that came with a raag is 1
+        var nm = cleanBandishName(m[1]) || "1";   // the unnamed bandish that came with a raag is 1
         if (out.indexOf(nm) < 0) out.push(nm);
       });
     }
@@ -1338,6 +1579,7 @@
     if (bm) {
       var want = bm[1];
       (l.media || []).forEach(function (m, i) {
+        if (!m || m.hidden) return;                      // a removed recording is not offered
         if (raagSects(m.name).indexOf("bandish") < 0) return;
         var own = (m.bnd == null ? "1" : String(m.bnd));
         if (own === want) media.push(i);
@@ -1345,7 +1587,7 @@
       return { lines: lines, media: media };
     }
 
-    (l.media || []).forEach(function (m, i) { if (raagSects(m.name).indexOf(k) >= 0) media.push(i); });
+    (l.media || []).forEach(function (m, i) { if (m && !m.hidden && raagSects(m.name).indexOf(k) >= 0) media.push(i); });
     return { lines: lines, media: media };
   }
   function raagSections(l) {
@@ -1911,6 +2153,7 @@
 
     renderPlayer(l);
     try { appendPhotoSection(l); } catch (e) {}
+    try { appendMediaManager(l); } catch (e) {}
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
     /* each line carries its own ✎, so there is no page-level one */
     var ubtn = $("#btnUndo");
@@ -2753,6 +2996,8 @@
         if (typeof v.t === "string") out.text = v.t;
         return out;
       });
+      try { pairBandishParts(l); } catch (e) {}
+      try { applyMediaEdits(l); } catch (e) {}
     });
   }
   var SUBHEADS = ["\u0938\u094d\u0925\u093e\u0908", "\u0905\u0902\u0924\u0930\u093e"];
@@ -4778,6 +5023,7 @@
   favLoad();
   manchLoad();
   photoLoad();
+  mediaEditLoad();
   try { tidyMarks(); } catch (e) {}
   favLoad();
   loadAllLocal();
