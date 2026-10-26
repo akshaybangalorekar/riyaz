@@ -44,7 +44,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.4.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.4.3";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1929,7 +1929,7 @@
             '<span class="vtime" id="vTime">0:00 / 0:00</span>' +
           "</div>" +
         "</div>" +
-        '<div class="sk-dim">🎬 ' + esc(m.name) + "</div>";   // outside the wrapper, so the fallback cannot wipe it
+        '<div class="sk-dim' + (state.editMode ? "" : " pl-hidden") + '">🎬 ' + esc(m.name) + "</div>";   // the file name is editing-only, like the audio one below
       var vd = $("#vid"), ctl = $("#vctl"), vfill = $("#vFill"), vtime = $("#vTime"), vtr = $("#vTrack");
       /* A page showing a video must play that video and nothing else. Clearing the
          audio stops a line's play button from reaching for an mp3 left over from
