@@ -16,6 +16,7 @@
     audio: null,
     video: null,     // when the page is showing a video, this is it
     segments: {},     // lessonId -> { lineIndex: {track, t} }   (local overrides)
+    photos: {},       // "lessonId|sect" -> data URL of the reference page
     segPlay: null,     // {line, start, end, loop}
     /* A line plays from its start to its end and then STOPS. It must not repeat: a line
        heard over and over makes it hard to tell where it finished. */
@@ -43,7 +44,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.3.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.4.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -819,6 +820,8 @@
       '<input id="wizVideo" class="set-input" type="url" placeholder="YouTube or Drive link \u2014 plays in the app">' +
       '<label class="wiz-l">Audio link</label>' +
       '<input id="wizAudio" class="set-input" type="url" placeholder="mp3 link \u2014 this is what sets the offsets">' +
+      '<label class="wiz-l">Reference photo (optional)</label>' +
+      '<input id="wizPhoto" class="set-input wiz-file" type="file" accept="image/*">' +
       '<div class="set-actions">' +
         '<button class="sk-btn wiz-go" id="wizGo">Create the bandish</button>' +
         '<button class="sk-btn" id="wizCancel">Cancel</button>' +
@@ -839,11 +842,13 @@
         return;
       }
       var chosenTaal = ($("#wizTaal") || {}).value || startTaal;   // the taal actually picked
+      var phInp = $("#wizPhoto");
+      var phFile = phInp && phInp.files && phInp.files[0];
       var vLink = ($("#wizVideo") || {}).value || "";
       var aLink = ($("#wizAudio") || {}).value || "";
       wizardClose();
       addBandishWith(l, { name: nm, taalName: chosenTaal, matras: mm, vibhag: vv.parts,
-                          video: vLink.trim(), audio: aLink.trim() });
+                          video: vLink.trim(), audio: aLink.trim(), photo: phFile });
     };
   }
 
@@ -882,6 +887,17 @@
     if (spec.audio) attach("audio", spec.audio);
     if (added) { try { if (typeof marksSchedulePush === "function") marksSchedulePush(); } catch (e) {} }
 
+    if (spec.photo) {
+      var bKey = "bandish:" + num;
+      shrinkPhoto(spec.photo, function (data) {
+        if (!data) return;
+        state.photos = state.photos || {};
+        state.photos[l.id + "|" + bKey] = data;
+        photoSaveLocal();
+        try { renderStage(l); } catch (e) {}
+      });
+    }
+
     renderList(); renderStage(l);
     try {
       mkMsg("Added \u201c" + nm + "\u201d \u2014 " + m + " matras of " + taalName +
@@ -907,6 +923,8 @@
         '<input id="wizVibhag" class="set-input" type="text" value="' + esc(vibhagText(t.v)) + '"></div>' +
       "</div>" +
       wizSummary(t.m, vibhagText(t.v)) +
+      '<label class="wiz-l">Reference photo (optional)</label>' +
+      '<input id="wizPhoto" class="set-input wiz-file" type="file" accept="image/*">' +
       '<div class="wiz-what">You get: \u0906\u0930\u094b\u0939 \u00b7 \u0905\u0935\u0930\u094b\u0939 \u00b7 \u092a\u0915\u0921, ' +
         '\u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a, \u0932\u092f\u0915\u093e\u0930\u0940, \u0924\u093e\u0928, \u092c\u0902\u0926\u093f\u0936 \u2014 all empty and ready.</div>' +
       '<div class="set-actions">' +
@@ -929,8 +947,10 @@
         return;
       }
       var sel = $("#wizTaal");
+      var phInp2 = $("#wizPhoto");
+      var phFile2 = phInp2 && phInp2.files && phInp2.files[0];
       wizardClose();
-      addRaagWith(nm, { taalName: sel ? sel.value : t.n, matras: mm, vibhag: vv.parts });
+      addRaagWith(nm, { taalName: sel ? sel.value : t.n, matras: mm, vibhag: vv.parts, photo: phFile2 });
     };
   }
 
@@ -956,8 +976,144 @@
     D.lessons.push(l);
     state.raagOpen[id] = true;
     open(id);
+    if (spec.photo) {
+      shrinkPhoto(spec.photo, function (data) {
+        if (!data) return;
+        state.photos = state.photos || {};
+        state.photos[id] = data;
+        photoSaveLocal();
+        try { renderStage(l); } catch (e) {}
+      });
+    }
     renderList();
     try { mkMsg("Added raag \u201c" + title + "\u201d. Its pages are ready to fill."); } catch (e) {}
+  }
+
+  /* ==========================================================================
+     REFERENCE PHOTOS - the handwritten page for a raag or a bandish.
+
+     A photo is kept per page, so a bandish's photo does not appear on its sibling.
+     Phone photos are 2-4 MB and the browser's simple storage holds about 5 MB in all,
+     so each one is shrunk to fit before it is kept: longest side 1400px, and if the
+     result is still large it is re-encoded smaller. Readable for practice, not archival.
+     ========================================================================== */
+  var PHOTO_MAX_SIDE = 1400, PHOTO_BUDGET = 900000;   // ~900 KB of data URL per photo
+
+  function photoLoad() {
+    try {
+      var raw = JSON.parse(localStorage.getItem("sk_photos") || "null");
+      state.photos = (raw && typeof raw === "object") ? raw : {};
+    } catch (e) { state.photos = {}; }
+  }
+  function photoSaveLocal() {
+    try { localStorage.setItem("sk_photos", JSON.stringify(state.photos || {})); } catch (e) {}
+  }
+  /* the page a photo belongs to: the raag itself, or one bandish of it */
+  function photoKey(l, sect) {
+    var k = sect || state.raagSect || "";
+    return k ? (l.id + "|" + k) : l.id;
+  }
+  function photoGet(l, sect) { return (state.photos || {})[photoKey(l, sect)] || ""; }
+
+  /* Shrink a chosen file to something that fits, then hand back a data URL. */
+  function shrinkPhoto(file, cb) {
+    var fr = new FileReader();
+    fr.onerror = function () { cb(null, "That file could not be read."); };
+    fr.onload = function () {
+      var img = new Image();
+      img.onerror = function () { cb(null, "That does not look like an image."); };
+      img.onload = function () {
+        var w = img.width, h = img.height, scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(w, h));
+        var tries = [[scale, 0.72], [scale * 0.8, 0.6], [scale * 0.6, 0.5]];
+        var out = null, i = 0;
+        while (i < tries.length) {
+          var cv = document.createElement("canvas");
+          cv.width = Math.round(w * tries[i][0]); cv.height = Math.round(h * tries[i][0]);
+          var cx = cv.getContext("2d");
+          cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+          cx.drawImage(img, 0, 0, cv.width, cv.height);
+          try { out = cv.toDataURL("image/jpeg", tries[i][1]); } catch (e) { out = null; }
+          if (out && out.length <= PHOTO_BUDGET) break;
+          i++;
+        }
+        if (!out) { cb(null, "That image could not be prepared."); return; }
+        if (out.length > PHOTO_BUDGET * 1.6) {
+          cb(null, "That photo is too detailed to keep. Try a smaller one."); return;
+        }
+        cb(out, null);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  }
+
+  function setPhoto(l, sect, dataUrl, label) {
+    pushHistory(label || "attached a photo");
+    state.photos = state.photos || {};
+    if (dataUrl) state.photos[photoKey(l, sect)] = dataUrl;
+    else delete state.photos[photoKey(l, sect)];
+    photoSaveLocal();
+    renderStage(l);
+    mkMsg(dataUrl ? "Photo attached." : "Photo removed \u2014 press Revert to put it back.");
+  }
+
+  /* The photo, as a folded section so it never crowds the notation. */
+  function appendPhotoSection(l) {
+    var url = photoGet(l);
+    if (!url && !editingNow()) return;
+    var st = $("#stage"); if (!st) return;
+    var d = document.createElement("details");
+    d.className = "ph-sec";
+    var sm = document.createElement("summary");
+    sm.className = "ph-sum";
+    sm.textContent = "\ud83d\udcf7 Reference photo" + (url ? "" : " \u2014 none yet");
+    d.appendChild(sm);
+    var body = document.createElement("div");
+    body.className = "ph-body";
+    if (url) {
+      var im = document.createElement("img");
+      im.className = "ph-img"; im.src = url; im.alt = "Reference page";
+      body.appendChild(im);
+      var row = document.createElement("div");
+      row.className = "ph-row";
+      var a = document.createElement("a");
+      a.className = "sk-btn"; a.href = url; a.download = "reference.jpg"; a.textContent = "Save a copy";
+      row.appendChild(a);
+      if (editingNow()) {
+        var rm = document.createElement("button");
+        rm.className = "sk-btn ph-rm"; rm.type = "button"; rm.textContent = "\u2715 Remove photo";
+        rm.onclick = function () {
+          askConfirm("Remove the reference photo from this page?\n\nYou can put it back with Revert.",
+            function () { setPhoto(l, state.raagSect, null, "removed the reference photo"); });
+        };
+        row.appendChild(rm);
+      }
+      body.appendChild(row);
+    }
+    if (editingNow()) {
+      var lab = document.createElement("label");
+      lab.className = "sk-btn ph-add";
+      lab.textContent = url ? "Replace photo" : "Add a photo";
+      var inp = document.createElement("input");
+      inp.type = "file"; inp.accept = "image/*"; inp.className = "ph-in";
+      inp.onchange = function () {
+        var f = inp.files && inp.files[0];
+        if (!f) return;
+        mkMsg("Preparing the photo\u2026");
+        shrinkPhoto(f, function (data, err) {
+          if (err) { mkMsg(err); return; }
+          setPhoto(l, state.raagSect, data, "attached a reference photo");
+        });
+      };
+      lab.appendChild(inp);
+      body.appendChild(lab);
+      var note = document.createElement("div");
+      note.className = "sk-dim ph-note";
+      note.textContent = "Shrunk to fit the device's storage \u2014 readable for practice, not full resolution.";
+      body.appendChild(note);
+    }
+    d.appendChild(body);
+    st.appendChild(d);
   }
   /* ---------- chrome ---------- */
   function renderTabs() {
@@ -1645,6 +1801,7 @@
 
   function renderStage(l) {
     state.editMode = editingNow();
+    state._lastStage = l;
     var s = $("#stage");
     var mcur = l.media[state.mediaIdx] || {};
     var curVideo = mcur.kind === "video";
@@ -1744,6 +1901,7 @@
     });
 
     renderPlayer(l);
+    try { appendPhotoSection(l); } catch (e) {}
     if (l.lines && l.lines.length && secHasLines) { renderNotation(l); if (!curVideo && !bareLesson) wireControls(l); }
     /* each line carries its own ✎, so there is no page-level one */
     var ubtn = $("#btnUndo");
@@ -2715,7 +2873,7 @@
 
   function snapState() {
     var o = { edits: state.edits || {}, fav: state.fav || [], manch: state.manch || [],
-              files: state.files || null, raags: null };
+              files: state.files || null, raags: null, photos: state.photos || {} };
     try { o.raags = JSON.parse(localStorage.getItem("sk_raags") || "[]"); } catch (e) {}
     try { return JSON.stringify(o); } catch (e) { return null; }
   }
@@ -2753,6 +2911,7 @@
     if (o.manch) state.manch = o.manch;
     if (o.files) state.files = o.files;
     if (o.raags) { try { localStorage.setItem("sk_raags", JSON.stringify(o.raags)); } catch (e) {} }
+    if (o.photos) { state.photos = o.photos; photoSaveLocal(); }
     try { saveEdits(); scheduleEditsPush(); } catch (e) {}
     try { favWriteLocal(); favSchedulePush(); } catch (e) {}
     try { manchWriteLocal(); manchSchedulePush(); } catch (e) {}
@@ -4596,6 +4755,7 @@
   })();
   favLoad();
   manchLoad();
+  photoLoad();
   try { tidyMarks(); } catch (e) {}
   favLoad();
   loadAllLocal();
