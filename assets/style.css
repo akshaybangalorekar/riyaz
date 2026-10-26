@@ -1229,3 +1229,29 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 .ph-in{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
 .ph-note{font-size:11.5px; margin-top:8px; line-height:1.5}
 .wiz-file{font-size:12.5px; padding:7px 9px; cursor:pointer}
+
+/* ---------- phone overflow guards, round two ----------
+   Found by measuring every page at 390px. The तान page pushed the whole document 200px
+   sideways because the grid itself had no scroll container: it is a fixed-column grid and
+   simply grew. A grid now scrolls inside itself instead. And a rail label was being clipped
+   rather than wrapped, so a long one was cut off mid-word. */
+/* min-width:0 is the important half: a grid row has a hard 560px min-width, and without
+   this the grid cannot shrink below its content, so it pushed the page 28px sideways on a
+   tablet instead of scrolling inside itself. */
+.bnd{max-width:100%; min-width:0; overflow-x:auto; -webkit-overflow-scrolling:touch}
+.sk-item{white-space:normal; overflow-wrap:anywhere; word-break:break-word}
+@media (max-width: 640px) {
+  .bnd{overflow-x:auto}
+  .bnd-row, .bnd-lane{min-width:0}
+}
+
+/* ---------- a wide grid on a tablet ----------
+   The तान grid is a continuous table: .bnd.merged sets overflow:visible so the rows read as
+   one, and each row carries a hard min-width of 560px. On an 820px screen the page area is
+   about 494px, so those rows pushed the whole document 28px sideways. The row may now shrink;
+   the middle column is already minmax(0,1fr), so the matra cells take the difference and
+   everything stays aligned. */
+@media (max-width: 1024px) {
+  .bnd-row, .bnd-lyrwrap { min-width: 0 }
+  .bnd.merged .bnd-row, .bnd.merged .bnd-lyrwrap { min-width: 0 }
+}
