@@ -2657,6 +2657,12 @@
       if (!v || v.del) return;
       if (v.sect && v.sect !== "bandish") return;            // other sections keep their own lines
       if (v.label && raagSect(v.label) !== "bandish") return;
+      /* A whole bandish part carries its own grid spec (v.bd). That is a NEW bandish, not a
+         row to fold into an existing one - folding it tombstoned it and merged its rows into
+         the first bandish, which is what left empty lines on the index that vanished on a
+         refresh. A row added to an existing grid has no v.bd, so it still folds. */
+      if (v.bd) return;
+      if (/^\s*bandish\s+\S/i.test(v.label || "")) return;   // "Bandish <name> (Sthayi)" is a part
       var head = (v.label && subGroup(v.label)) || SUBHEADS[0];
       var at = headLineIndex(l, head);
       if (at < 0) return;
