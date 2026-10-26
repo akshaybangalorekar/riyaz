@@ -1321,3 +1321,17 @@ body.boot .sk-foot{animation:ryFadeIn .5s ease both; animation-delay:.20s}
 .ex-note{font-size:12px; color:var(--dim); line-height:1.55; margin-top:10px;
   border-top:1px solid var(--line); padding-top:10px}
 .ex-note b{color:var(--ink)}
+
+/* ---------- first-run card and editing badge ---------- */
+.fr-card{border:1px solid var(--saffron); border-radius:13px; background:var(--panel);
+  padding:16px 18px; margin:0 0 16px}
+.fr-h{font-family:'Baloo 2',sans-serif; font-size:17px; font-weight:800; color:var(--saffron); margin-bottom:10px}
+.fr-b{display:flex; flex-direction:column; gap:7px}
+.fr-i{font-size:13.5px; color:var(--dim); line-height:1.55}
+.fr-i b{color:var(--ink); font-weight:600}
+.fr-go{margin-top:14px; background:var(--saffron); color:#20160d; border-color:var(--saffron); font-weight:700}
+.edit-badge{position:fixed; right:14px; bottom:14px; z-index:70;
+  background:var(--saffron); color:#20160d; font-family:'Noto Sans Devanagari',system-ui,sans-serif;
+  font-size:11.5px; font-weight:700; letter-spacing:.04em; padding:6px 11px; border-radius:20px;
+  box-shadow:0 3px 14px rgba(0,0,0,.4); pointer-events:none; opacity:.94}
+@media (max-width:640px){ .edit-badge{right:10px; bottom:calc(10px + var(--safe-b))} }

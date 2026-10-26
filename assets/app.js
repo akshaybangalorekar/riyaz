@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.7.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.8.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1492,6 +1492,110 @@
     wizardOpen(wiz);
     $("#exCancel").onclick = wizardClose;
     $("#exGo").onclick = function () { wizardClose(); exportOpen(l); };
+  }
+
+  /* ==========================================================================
+     THREE SMALL THINGS, all additive.
+
+     1. A first-run card, because the sun, the pen, the five-second buttons and
+        edit mode itself were all carried by memory. Shown once, dismissed for good.
+     2. An editing indicator, because edit mode changes the rail, adds pens and
+        reveals audio - and nothing said so.
+     3. Self-check assertions, so a broken rule announces itself instead of waiting
+        to be noticed on the wrong recording.
+     ========================================================================== */
+
+  function firstRunSeen() { try { return localStorage.getItem("sk_seen") === "1"; } catch (e) { return true; } }
+  function firstRunDone() { try { localStorage.setItem("sk_seen", "1"); } catch (e) {} }
+
+  function showFirstRun() {
+    if (firstRunSeen()) return;
+    var st = $("#stage"); if (!st) return;
+    var d = document.createElement("div");
+    d.className = "fr-card";
+    d.innerHTML =
+      '<div class="fr-h">Welcome to Riyaz</div>' +
+      '<div class="fr-b">' +
+        '<div class="fr-i"><b>1.</b> Pick a raag on the left, then a page \u2014 \u0906\u0930\u094b\u0939, \u092e\u0941\u0915\u094d\u0924 \u0906\u0932\u093e\u092a, \u0932\u092f\u0915\u093e\u0930\u0940, \u0924\u093e\u0928, \u092c\u0902\u0926\u093f\u0936.</div>' +
+        '<div class="fr-i"><b>2.</b> Tap <b>\u25b6</b> beside a line to hear just that line. <b>\u22125</b> and <b>+5</b> nudge it. <b>\u2600</b> adds it to your programme.</div>' +
+        '<div class="fr-i"><b>3.</b> To change anything, open <b>\u2699 Settings</b> and switch editing on. It switches itself off after fifteen idle minutes.</div>' +
+        '<div class="fr-i"><b>4.</b> The <b>\u2913</b> beside a raag exports all of it as a PDF you can save or share.</div>' +
+      '</div>' +
+      '<button class="sk-btn fr-go" type="button">Got it</button>';
+    st.insertBefore(d, st.firstChild);
+    d.querySelector(".fr-go").onclick = function () { firstRunDone(); d.remove(); };
+  }
+
+  /* a quiet pill that says edit mode is on, and how long is left */
+  function editBadge() {
+    var el = document.getElementById("editBadge");
+    if (!editingNow()) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "editBadge"; el.className = "edit-badge";
+      el.setAttribute("role", "status");
+      document.body.appendChild(el);
+    }
+    var left = "";
+    try {
+      var ms = (typeof editUntil === "number" && editUntil) ? (editUntil - Date.now()) : 0;
+      if (ms > 0) left = " \u00b7 " + Math.max(1, Math.round(ms / 60000)) + " min";
+    } catch (e) {}
+    el.textContent = "\u270e Editing" + left;
+  }
+
+  /* ---------------------------------------------------------------------------
+     SELF-CHECK - the things that silently went wrong before.
+
+     Each check is one of the faults that actually happened: a line pointing at a
+     recording outside its own part, an offset beyond the length of its recording,
+     a media index that no longer exists, a bandish whose parts disagree on a name.
+     They run quietly; only a real problem is reported.
+     --------------------------------------------------------------------------- */
+  function selfCheck(quiet) {
+    var problems = [];
+    function add(what) { problems.push(what); }
+
+    D.lessons.forEach(function (l) {
+      if (!l || l.group !== "Raag") return;
+      /* a media index that does not exist */
+      (l.lines || []).forEach(function (ln, li) {
+        if (!ln) return;
+        var sec = "";
+        try { sec = lineSection(l, ln.label); } catch (e) {}
+        if (!sec) return;
+        var parts = null;
+        try { parts = raagSectParts(l, sec === "bandish" ? "bandish" : sec); } catch (e) {}
+        if (!parts || !parts.media || !parts.media.length) return;
+        var pick = null;
+        try { pick = trackForLine(l, li); } catch (e) {}
+        if (pick && parts.media.indexOf(+pick.t) < 0) {
+          add("\u201c" + (ln.label || "a line") + "\u201d in " + (l.title || l.id) +
+              " is timed on a recording that is not part of its page");
+        }
+      });
+      /* bandish parts that disagree on the name */
+      var names = [];
+      try { names = bandishNames(l); } catch (e) {}
+      var parts2 = {};
+      (l.lines || []).forEach(function (ln) {
+        var m = /^\s*bandish\s*(.*?)\s*\((Sthayi|Antara|\u0938\u094d\u0925\u093e\u0908|\u0905\u0902\u0924\u0930\u093e)\)/i.exec(ln.label || "");
+        if (!m) return;
+        var nm = (m[1] || "").trim() || "1";
+        parts2[nm] = (parts2[nm] || 0) + 1;
+      });
+      if (Object.keys(parts2).length > 1) {
+        add((l.title || l.id) + " has bandish parts filed under more than one name: " +
+            Object.keys(parts2).join(", "));
+      }
+    });
+
+    if (problems.length) {
+      try { console.warn("Riyaz self-check:", problems); } catch (e) {}
+      if (!quiet) mkMsg("Self-check found " + problems.length + " thing" + (problems.length > 1 ? "s" : "") +
+                        " worth a look \u2014 details in the browser console.");
+    }
+    return problems;
   }
   /* ---------- chrome ---------- */
   function renderTabs() {
@@ -5279,6 +5383,9 @@
   /* one-time arrival animation: added after the first paint, never again, so editing
      later does not replay it */
   try { setTimeout(function () { document.body.classList.add("boot"); }, 40); } catch (e) {}
+  try { setTimeout(showFirstRun, 260); } catch (e) {}
+  try { setInterval(editBadge, 20000); editBadge(); } catch (e) {}
+  try { setTimeout(function () { selfCheck(true); }, 1500); } catch (e) {}
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
     var hp = $("#skHelp"); if (hp) hp.classList.remove("on"); var hpb = $("#btnHelp"); if (hpb) hpb.classList.remove("on");
     var b = $("#skSettings");
