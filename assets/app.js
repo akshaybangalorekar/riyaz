@@ -44,7 +44,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.4.3";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.5.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -65,6 +65,15 @@
     var el = document.getElementById("savedAt");
     if (!el) return;
     var t = savedAtValue();
+    var offline = false;
+    try { offline = (navigator.onLine === false); } catch (e) {}
+    var key = activeProblem();
+    if (key && benignSync(key)) offline = true;
+    if (offline) {
+      el.textContent = "Offline \u00b7 using the timings saved here";
+      el.title = "No connection. Your timings are safe on this device and will sync when you are back online.";
+      return;
+    }
     el.textContent = t ? ("Last saved " + melbTime(t)) : "Not saved to GitHub yet";
     el.title = t ? ("Last push to GitHub: " + new Date(t).toISOString()) : "Nothing has been pushed from this device yet";
   }
@@ -2386,11 +2395,11 @@
         del.title = "Remove this bandish";
         del.onclick = function () { removeBandish(l, nm); };
         row.appendChild(del);
-        var ok = document.createElement("button");
-        ok.type = "button"; ok.className = "bndx-ok"; ok.textContent = "\u2713";
-        ok.title = "Save this name";
-        ok.onclick = function () { renameBandish(l, nm, inp.value.trim()); };
-        row.appendChild(ok);
+        /* The tick is gone: the name field already saves when it loses focus or you press
+           Enter, so a separate confirm button was a third control doing the same job. */
+        inp.onkeydown = function (ev) {
+          if (ev.key === "Enter") { ev.preventDefault(); inp.blur(); }
+        };
       }
       d.appendChild(row);
     });
@@ -4381,12 +4390,19 @@
   function activeProblem() { return state.pushProblem || state.pullProblem || null; }
 
   // a slim note under the header, shown only when something is wrong
+  /* Being offline is not a fault - the app is built to work offline. It used to raise a
+     full-width amber bar across the top saying so, while the footer said "Not saved to
+     GitHub yet" at the same time: two messages about one fact, one of them shouting. A
+     benign offline state now says nothing in the header; the footer carries it quietly.
+     A REAL problem - a save that failed, a pull that could not be read - still raises the bar. */
+  function benignSync(key) { return key === "noreach" || key === "noread"; }
   function renderSyncNote() {
     var host = document.querySelector(".sk-head");
     if (!host) return;
     var el = document.getElementById("syncNote");
     var key = activeProblem();
-    if (!key) { if (el && el.parentNode) el.parentNode.removeChild(el); return; }
+    try { showSavedAt(); } catch (e) {}
+    if (!key || benignSync(key)) { if (el && el.parentNode) el.parentNode.removeChild(el); return; }
     if (!el) {
       el = document.createElement("div");
       el.id = "syncNote"; el.className = "sk-syncnote"; el.setAttribute("role", "status");
@@ -4788,6 +4804,9 @@
      cover the notation on the very first load. On a tablet or laptop it starts open, as before.
      Only a first impression: the pull tab opens it, and the choice is not overridden later. */
   try { if (window.matchMedia("(max-width: 640px)").matches) setRail(true); } catch (e) {}
+  /* one-time arrival animation: added after the first paint, never again, so editing
+     later does not replay it */
+  try { setTimeout(function () { document.body.classList.add("boot"); }, 40); } catch (e) {}
   var gear = $("#btnSettings"); if (gear) gear.onclick = function () {
     var hp = $("#skHelp"); if (hp) hp.classList.remove("on"); var hpb = $("#btnHelp"); if (hpb) hpb.classList.remove("on");
     var b = $("#skSettings");
