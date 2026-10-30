@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.9.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "5.0.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1504,6 +1504,67 @@
      3. Self-check assertions, so a broken rule announces itself instead of waiting
         to be noticed on the wrong recording.
      ========================================================================== */
+
+
+  /* --------------------------------------------------------------------------
+     THEME - Slate & saffron for dark, Cream & vermilion for light.
+
+     Three choices, not two: Dark, Light, and Auto. Auto follows the device and
+     keeps following it, so a phone that dims itself at night takes the app with it.
+     The choice is remembered on this device.
+     -------------------------------------------------------------------------- */
+  var THEMES = ["auto", "dark", "light"];
+  function themePref() {
+    var t = "auto";
+    try { t = localStorage.getItem("sk_theme") || "auto"; } catch (e) {}
+    return THEMES.indexOf(t) >= 0 ? t : "auto";
+  }
+  function themeResolved() {
+    var p = themePref();
+    if (p !== "auto") return p;
+    try { return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; } catch (e) { return "dark"; }
+  }
+  function applyTheme() {
+    var r = themeResolved();
+    document.documentElement.setAttribute("data-theme", r);
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute("content", r === "light" ? "#faf5ec" : "#14171a");
+    var i = document.getElementById("themePick");
+    if (i) [].slice.call(i.querySelectorAll("button")).forEach(function (b) {
+      b.classList.toggle("on", b.dataset.theme === themePref());
+    });
+  }
+  function setTheme(t) {
+    try { localStorage.setItem("sk_theme", t); } catch (e) {}
+    applyTheme();
+    mkMsg("Theme: " + (t === "auto" ? "follows your device" : t));
+  }
+  function themePicker() {
+    var cur = themePref();
+    return '<div class="set-lab">Theme</div>' +
+      '<div class="theme-pick" id="themePick">' +
+        ['auto', 'dark', 'light'].map(function (t) {
+          return '<button type="button" class="theme-btn' + (t === cur ? ' on' : '') +
+            '" data-theme="' + t + '">' +
+            (t === 'auto' ? 'Auto' : t === 'dark' ? 'Dark' : 'Light') + '</button>';
+        }).join('') +
+      '</div>';
+  }
+  /* one listener for the whole document: the settings box is rebuilt on every open,
+     so wiring each render would leave dead handlers behind */
+  try {
+    document.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest(".theme-btn") : null;
+      if (b && b.dataset && b.dataset.theme) { ev.preventDefault(); setTheme(b.dataset.theme); }
+    });
+  } catch (e) {}
+  function wireThemePicker() {
+    var i = document.getElementById("themePick");
+    if (!i) return;
+    [].slice.call(i.querySelectorAll("button")).forEach(function (b) {
+      b.onclick = function () { setTheme(b.dataset.theme); };
+    });
+  }
 
   function firstRunSeen() { try { return localStorage.getItem("sk_seen") === "1"; } catch (e) { return true; } }
   function firstRunDone() { try { localStorage.setItem("sk_seen", "1"); } catch (e) {} }
@@ -5178,6 +5239,7 @@
     var box = $("#skSettingsBox"); if (!box) return;
     box.innerHTML =
       '<div class="set-h">Settings</div>' +
+      themePicker() +
       '<div class="set-lab">GitHub token &mdash; stored only in this browser</div>' +
       '<input id="setToken" class="set-input" type="password" autocomplete="off" placeholder="github_pat_\u2026">' +
       '<div class="set-actions">' +
@@ -5392,6 +5454,12 @@
   /* one-time arrival animation: added after the first paint, never again, so editing
      later does not replay it */
   try { setTimeout(function () { document.body.classList.add("boot"); }, 40); } catch (e) {}
+  try { applyTheme(); } catch (e) {}
+  try {
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () {
+      if (themePref() === "auto") applyTheme();
+    });
+  } catch (e) {}
   try { setTimeout(showFirstRun, 260); } catch (e) {}
   try { setInterval(editBadge, 20000); editBadge(); } catch (e) {}
   try { setTimeout(function () { selfCheck(true); }, 1500); } catch (e) {}
