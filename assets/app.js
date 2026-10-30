@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "4.8.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "4.9.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -3113,13 +3113,22 @@
         return;
       }
       var unit = line.unit || 0, noteN = 0, mk = null;
+      /* The swars get their own lane. A run of notation must never break across two
+         visual rows: the kan sits above its swar and the murki below it by absolute
+         position, so a wrap left them stranded - the kan of a wrapped swar landed at
+         the left edge, under the buttons, looking like it belonged to the swar beside
+         it. The lane scrolls sideways instead of wrapping, which keeps every swar,
+         its kan and its murki together. */
+      var run = document.createElement("span");
+      run.className = "sk-run";
+      row.appendChild(run);
       tokenize(lineText(l, li)).forEach(function (tk) {
-        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); mk.setAttribute("data-mark", tk.mdOpen ? "\u092e\u0940\u0902\u0921" : "\u092e\u0941\u0930\u094d\u0915\u0940"); row.appendChild(mk); }
+        if (tk.mkOpen || tk.mdOpen) { mk = document.createElement("span"); mk.className = (tk.mdOpen ? "md-grp" : "mk-grp"); mk.setAttribute("data-mark", tk.mdOpen ? "\u092e\u0940\u0902\u0921" : "\u092e\u0941\u0930\u094d\u0915\u0940"); run.appendChild(mk); }
         if (tk.sep) {
           if ((tk.mkClose || tk.mdClose) && mk) mk = null;   // a bar right after the brace sits outside the curve
-          (mk || row).appendChild(sepEl(tk.t));
+          (mk || run).appendChild(sepEl(tk.t));
         } else if (tk.t) {
-          (mk || row).appendChild(swarEl(tk, unit, noteN)); noteN++;
+          (mk || run).appendChild(swarEl(tk, unit, noteN)); noteN++;
           if ((tk.mkClose || tk.mdClose) && mk) mk = null;   // the last swar of the group is inside it
         } else if ((tk.mkClose || tk.mdClose) && mk) { mk = null; }
       });

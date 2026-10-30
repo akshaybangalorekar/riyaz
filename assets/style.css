@@ -1335,3 +1335,30 @@ body.boot .sk-foot{animation:ryFadeIn .5s ease both; animation-delay:.20s}
   font-size:11.5px; font-weight:700; letter-spacing:.04em; padding:6px 11px; border-radius:20px;
   box-shadow:0 3px 14px rgba(0,0,0,.4); pointer-events:none; opacity:.94}
 @media (max-width:640px){ .edit-badge{right:10px; bottom:calc(10px + var(--safe-b))} }
+
+/* ---------- the notation lane must not wrap ----------
+   A swar carries its kan above and its murki below by absolute position. When a run
+   of swars wrapped onto a second visual row, those marks came adrift: the kan of a
+   wrapped swar appeared at the left edge of the row, under the buttons, reading as
+   though it belonged to the swar next to it. The lane now keeps every swar on one
+   row and scrolls sideways when it is wider than the page. The padding is inside the
+   scroll box so the kan and the murki have room and are not clipped. */
+.sk-run{
+  flex:1 1 auto; min-width:0;
+  white-space:nowrap; overflow-x:auto; overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:30px 2px 18px; margin:-30px 0 -18px;
+}
+.sk-run::-webkit-scrollbar{height:6px}
+.sk-run::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px}
+/* and the line itself must not wrap its columns either */
+.sk-line{flex-wrap:nowrap; align-items:flex-start}
+
+/* The line is one row of three columns: the controls, the label, then the notation
+   lane. Without flex the lane dropped to a second row and started at the line's left
+   edge - under the buttons - which is exactly what made it look misaligned. */
+.sk-line{display:flex; align-items:flex-start; gap:8px}
+.sk-line > .ln-ctl{flex:0 0 auto; margin-right:0}
+.sk-line > .sk-lbl{flex:0 0 auto}
+.sk-line > .sk-run{flex:1 1 auto; min-width:0}
+@media(max-width:520px){ .sk-line{gap:5px} }
