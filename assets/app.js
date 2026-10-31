@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "5.1.2";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "5.2.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -468,6 +468,7 @@
       else { state.manch = []; state.manchAt = 0; }
     } catch (e) { state.manch = []; state.manchAt = 0; }
     try { state.manchSort = localStorage.getItem("sk_manch_sort") || "date"; } catch (e) { state.manchSort = "date"; }
+  try { state.manchFilter = localStorage.getItem("sk_manch_filter") || "all"; } catch (e) { state.manchFilter = "all"; }
   }
   function manchWriteLocal() {
     try { localStorage.setItem("sk_manch", JSON.stringify({ at: state.manchAt, list: state.manch })); } catch (e) {}
@@ -620,60 +621,136 @@
   }
 
   /* the page: a player for the chosen performance, then the list grouped by year */
+
+  /* --------------------------------------------------------------------------
+     मंच - the performance shelf.
+
+     The rail is a list of YEARS, not of performances: the page already lists the
+     performances, and showing the same sixteen names twice, once in a narrow column
+     and once on the page, was noise. "All" is the first entry and shows everything;
+     picking a year narrows the shelf to that year.
+     -------------------------------------------------------------------------- */
+  function mnCleanName(n) {
+    /* one title still carried a pasted YouTube address inside it */
+    return String(n || "").replace(/https?:\/\/\S+/gi, "").replace(/\s{2,}/g, " ").trim();
+  }
+  function mnYears() {
+    var seen = {}, out = [];
+    state.manch.forEach(function (e) {
+      var y = manchYear(e);
+      if (y && !seen[y]) { seen[y] = 1; out.push(y); }
+    });
+    out.sort(function (a, b) { return (+b) - (+a); });   // newest first
+    return out;
+  }
+  function mnFilter() { return state.manchFilter || "all"; }
+  function mnFiltered() {
+    var f = mnFilter();
+    if (f === "all") return state.manch.slice();
+    return state.manch.filter(function (e) { return manchYear(e) === f; });
+  }
+  function mnThumb(id) { return "https://img.youtube.com/vi/" + encodeURIComponent(id) + "/mqdefault.jpg"; }
+  function mnSetFilter(y) {
+    state.manchFilter = y;
+    try { localStorage.setItem("sk_manch_filter", y); } catch (e) {}
+    /* a performance from another year is no longer on the shelf */
+    var cur = state.manchIdx != null ? state.manch[state.manchIdx] : null;
+    if (cur && y !== "all" && manchYear(cur) !== y) state.manchIdx = null;
+    renderList(); renderManchStage();
+  }
+
   function renderManchStage() {
     var st = $("#stage"); if (!st) return;
-    var gs = manchGroups(), html = '<div class="sk-h1">मंच</div>';
+    var f = mnFilter();
+    var shown = mnFiltered();
     var cur = state.manchIdx != null ? state.manch[state.manchIdx] : null;
+    if (cur && f !== "all" && manchYear(cur) !== f) cur = null;
+
+    var html = '<div class="mn-head"><div class="mn-h1">\u092e\u0902\u091a</div>' +
+      '<div class="mn-count">' +
+        (f === "all"
+          ? state.manch.length + " performance" + (state.manch.length === 1 ? "" : "s")
+          : shown.length + " in " + f) +
+      '</div></div>';
+
     if (!state.manch.length) {
-      html += '<div class="sk-dim" style="margin-top:6px">No performances yet.' +
+      html += '<div class="mn-empty">No performances yet.' +
         (state.canEdit ? " Add one below \u2014 paste a YouTube link." : "") + "</div>";
-    } else {
-      html += '<div class="sk-dim" style="margin-top:6px">' + state.manch.length +
-        " performance" + (state.manch.length > 1 ? "s" : "") + "</div>";
+      st.innerHTML = html;
+      return;
     }
-    html += '<div class="mn-sort">Sort by ' +
-      '<button class="sk-btn mn-s' + (state.manchSort === "date" ? " on" : "") + '" data-s="date">date</button>' +
-      '<button class="sk-btn mn-s' + (state.manchSort === "place" ? " on" : "") + '" data-s="place">location</button></div>';
+
+    /* the player, when one has been chosen */
     if (cur) {
-      html += '<div class="mn-vid"><iframe id="mnFrame" src="https://www.youtube-nocookie.com/embed/' + cur.id +
-        '?rel=0&modestbranding=1&iv_load_policy=3&playsinline=1" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" ' +
-        'allowfullscreen loading="lazy"></iframe></div>' +
-        '<div class="mn-now">' + esc(cur.name || "") +
-        (cur.date ? " \u00b7 " + esc(cur.date) : "") + (cur.place ? " \u00b7 " + esc(cur.place) : "") + "</div>" +
-        /* Some uploaders switch embedding off, and YouTube then refuses to play inside a frame.
-           Offer the way through instead of leaving a dead rectangle. */
-        '<div class="mn-open-yt"><a class="sk-btn" href="https://www.youtube.com/watch?v=' + cur.id +
-        '" target="_blank" rel="noopener">Open on YouTube \u2197</a>' +
-        '<span class="sk-dim">if it will not play here, it opens there</span></div>';
+      html += '<div class="mn-now-card">' +
+        '<div class="mn-vid"><iframe id="mnFrame" src="https://www.youtube-nocookie.com/embed/' + cur.id +
+          '?rel=0&modestbranding=1&iv_load_policy=3&playsinline=1" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" ' +
+          'allowfullscreen loading="lazy"></iframe></div>' +
+        '<div class="mn-now-meta">' +
+          '<div class="mn-now-t">' + esc(mnCleanName(cur.name) || "Untitled performance") + '</div>' +
+          '<div class="mn-now-s">' + esc([manchYear(cur), cur.place].filter(Boolean).join(" \u00b7 ")) + '</div>' +
+          '<a class="mn-yt" href="https://www.youtube.com/watch?v=' + cur.id +
+            '" target="_blank" rel="noopener">Open on YouTube \u2197</a>' +
+        '</div></div>';
     }
+
     if (state.canEdit) {
       html += '<div class="mn-add">' +
         '<input class="sk-file-in mn-in" id="mnLink" type="url" placeholder="paste a YouTube link">' +
         '<input class="sk-file-in mn-in mn-sm" id="mnDate" type="text" placeholder="date (optional)">' +
         '<input class="sk-file-in mn-in mn-sm" id="mnPlace" type="text" placeholder="place (optional)">' +
         '<button class="sk-btn" id="mnGo">Add</button></div>' +
-        '<div class="sk-dim mn-hint">The year, the place and the name are read from the video title itself when you paste a link.</div>';
+        '<div class="mn-hint">The year, the place and the name are read from the video title when you paste a link.</div>';
     }
-    gs.forEach(function (g) {
-      html += '<div class="sk-sec"><div class="sk-sec-h">' + esc(g.year) + "</div>" +
+
+    /* the shelf: a card per performance, grouped by year when showing everything */
+    var groups = [];
+    if (f === "all") {
+      var seen = {};
+      shown.forEach(function (e) {
+        var y = manchYear(e) || "\u2014";
+        if (!seen[y]) { seen[y] = { year: y, items: [] }; groups.push(seen[y]); }
+        seen[y].items.push(e);
+      });
+      groups.sort(function (a, b) { return (+b.year) - (+a.year); });
+    } else {
+      groups.push({ year: "", items: shown });
+    }
+
+    groups.forEach(function (g) {
+      html += '<section class="mn-sec">' +
+        (g.year ? '<h2 class="mn-yr-h">' + esc(g.year) + '</h2>' : "") +
+        '<div class="mn-grid">' +
         g.items.map(function (e) {
           var i = state.manch.indexOf(e);
-          return '<div class="mn-row">' +
-            '<button class="sk-item mn-open" data-i="' + i + '">' + esc(e.name || "(no name yet)") +
-            ' <span class="mn-meta">' + esc([e.date, e.place].filter(Boolean).join(" \u00b7 ")) + "</span></button>" +
-            (state.canEdit ? '<button class="sk-file-x mn-x" data-i="' + i + '" title="Remove this performance">\u2715</button>' : "") +
-            "</div>";
-        }).join("") + "</div>";
+          var on = (state.manchIdx === i) ? " on" : "";
+          return '<div class="mn-card' + on + '">' +
+            '<button class="mn-hit" data-i="' + i + '" title="Play this performance">' +
+              '<span class="mn-thumb" style="background-image:url(\'' + mnThumb(e.id) + '\')">' +
+                '<span class="mn-play">\u25b6</span></span>' +
+              '<span class="mn-body">' +
+                '<span class="mn-t">' + esc(mnCleanName(e.name) || "Untitled performance") + '</span>' +
+                '<span class="mn-s">' + esc([manchYear(e), e.place].filter(Boolean).join(" \u00b7 ")) + '</span>' +
+              '</span>' +
+            '</button>' +
+            (state.canEdit ? '<button class="mn-del" data-i="' + i + '" title="Remove this performance">\u2715</button>' : "") +
+          '</div>';
+        }).join("") + '</div></section>';
     });
+
     st.innerHTML = html;
 
-    Array.prototype.forEach.call(st.querySelectorAll(".mn-s"), function (b) {
-      b.onclick = function () { manchSetSort(b.dataset.s); };
+    Array.prototype.forEach.call(st.querySelectorAll(".mn-hit"), function (b) {
+      b.onclick = function () {
+        var i = +b.dataset.i;
+        state.manchIdx = (state.manchIdx === i) ? null : i;
+        renderManchStage();
+        if (state.manchIdx != null) {
+          try { $("#stage").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+        }
+      };
     });
-    Array.prototype.forEach.call(st.querySelectorAll(".mn-open"), function (b) {
-      b.onclick = function () { state.manchIdx = +b.dataset.i; renderManchStage(); };
-    });
-    Array.prototype.forEach.call(st.querySelectorAll(".mn-x"), function (b) {
+    Array.prototype.forEach.call(st.querySelectorAll(".mn-del"), function (b) {
       b.onclick = function () { manchRemove(+b.dataset.i); };
     });
     var go = $("#mnGo");
@@ -683,22 +760,21 @@
       var place = ($("#mnPlace") || {}).value || "";
       var id = ytId(link);
       if (!id) { mkMsg("That does not look like a YouTube link."); return; }
-      /* add it straight away so nothing is lost, then fill in the name when YouTube answers */
       state.manch.push({ id: id, name: "", by: "", date: date, place: place, at: Date.now() });
       var i = state.manch.length - 1;
       manchSave(); renderList(); renderManchStage();
       manchFetchTitle(id, function (j) {
         if (!j || !j.title) return;
-        /* the name carries the year and the place too - read them out of it */
         var p = mnTitleParts(j.title);
         state.manch[i].name = p.name || j.title;
         if (!state.manch[i].date && p.year) state.manch[i].date = p.year;
         if (!state.manch[i].place && p.place) state.manch[i].place = p.place;
-        state.manch[i].by = "";                 /* who uploaded it is not wanted */
+        state.manch[i].by = "";
         manchSave(); renderList(); renderManchStage();
       });
     };
   }
+
   function renderManchRail() {
     var el = $("#list"); if (!el) return;
     el.classList.add("sections");
@@ -707,16 +783,20 @@
         (state.canEdit ? "<br><span class=\"sk-dim\">Add one on the page.</span>" : "") + "</div></div>";
       return;
     }
-    el.innerHTML = manchGroups().map(function (g) {
-      return '<div class="sk-sec"><div class="sk-sec-h">' + esc(g.year) + "</div>" +
-        g.items.map(function (e) {
-          var i = state.manch.indexOf(e);
-          return '<div class="sk-row"><button class="sk-item' + (state.manchIdx === i ? " on" : "") +
-            '" data-i="' + i + '">' + esc(e.name || "(no name yet)") + "</button></div>";
-        }).join("") + "</div>";
-    }).join("");
-    Array.prototype.forEach.call(el.querySelectorAll(".sk-item"), function (b) {
-      b.onclick = function () { state.manchIdx = +b.dataset.i; renderManchStage(); };
+    var f = mnFilter(), years = mnYears();
+    var total = state.manch.length;
+    el.innerHTML =
+      '<div class="sk-sec"><div class="sk-sec-h">\u092e\u0902\u091a</div>' +
+        '<div class="sk-row"><button class="sk-item mn-yr' + (f === "all" ? " on" : "") + '" data-y="all">' +
+          'All <span class="mn-yrn">' + total + '</span></button></div>' +
+        years.map(function (y) {
+          var n = state.manch.filter(function (e) { return manchYear(e) === y; }).length;
+          return '<div class="sk-row"><button class="sk-item mn-yr' + (f === y ? " on" : "") +
+            '" data-y="' + y + '">' + esc(y) + ' <span class="mn-yrn">' + n + '</span></button></div>';
+        }).join("") +
+      '</div>';
+    Array.prototype.forEach.call(el.querySelectorAll(".mn-yr"), function (b) {
+      b.onclick = function () { mnSetFilter(b.dataset.y); };
     });
   }
 
