@@ -1405,3 +1405,9 @@ body.boot .sk-foot{animation:ryFadeIn .5s ease both; animation-delay:.20s}
   font-family:inherit; font-size:13px; font-weight:600; transition:background .15s,color .15s,border-color .15s}
 .theme-btn:hover{border-color:var(--saffron); color:var(--ink)}
 .theme-btn.on{background:var(--saffron); color:var(--on-accent); border-color:var(--saffron); font-weight:700}
+
+/* ---------- the PIN row, shown only when editing is switched on ---------- */
+.set-pinrow{margin:10px 0 4px; padding:11px 13px; border:1px solid var(--line);
+  border-radius:10px; background:var(--bg2)}
+.set-pinline{display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-top:7px}
+.set-pinline .set-input{flex:1 1 110px; min-width:0; margin:0}

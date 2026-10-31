@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "5.0.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "5.1.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1443,7 +1443,8 @@
     + '.ex-bnd{font-size:11pt;margin:14px 0 6px}'
     + '.ex-line{display:flex;gap:10px;align-items:baseline;padding:3px 0;border-bottom:1px dotted #ddd}'
     + '.ex-lbl{flex:0 0 128px;font-size:9.5pt;color:#444}'
-    + '.ex-sw{flex:1 1 auto;font-size:13pt;line-height:1.9}'
+    + '.ex-sw{flex:1 1 auto;font-size:13pt;line-height:2.1;white-space:normal}'
+    + '.ex-doc .sk-sw{font-size:inherit}'
     + '.ex-empty{color:#bbb}'
     + '.ex-grid{margin:8px 0 14px;page-break-inside:avoid}'
     + '.ex-gt{font-size:9.5pt;color:#333;margin-bottom:3px;display:flex;gap:8px;align-items:baseline}'
@@ -1456,9 +1457,35 @@
     + '.ex-cell{font-size:12pt;line-height:1.5}'
     + '.ex-bol .ex-lyr{font-size:9pt;color:#333;font-style:italic}'
     /* the swar spans the app already draws, toned down for paper */
-    + '.ex-doc .sw, .ex-doc .sk-sw{color:#000 !important;font-size:inherit !important}'
-    + '.ex-doc .kan, .ex-doc .mk-grp, .ex-doc .md-grp{color:#000 !important}'
-    + '.ex-doc .mk-grp, .ex-doc .md-grp{border-color:#000 !important}';
+    /* ---- the Bhatkhande marks, mirrored from the app so the paper matches the screen ----
+       The export already draws each swar with the app's own renderer, so the classes are
+       all there; what was missing was the rules that give them their marks. Everything is
+       black on paper, where the screen uses the accent colour. */
+    + '.ex-doc .sk-sw{position:relative; display:inline-block; padding:1px 7px}'
+    + '.ex-doc .sk-sw.komal{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px}'
+    + '.ex-doc .sk-sw.tivra::before{content:""; position:absolute; left:3px; right:3px; top:-3px; height:2px; background:currentColor; border-radius:2px}'
+    + '.ex-doc .sk-sw.oct1::after{content:"\u2022"; position:absolute; left:50%; top:-6px; transform:translateX(-50%); font-size:.5em}'
+    + '.ex-doc .sk-sw.octm::before{content:"\u2022"; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); font-size:.5em}'
+    + '.ex-doc .sk-sw.oct1.oct2::after{content:"\u2022\u2022"; letter-spacing:2px; top:-9px}'
+    + '.ex-doc .sk-sw.octm.octm2::before{content:"\u2022\u2022"; letter-spacing:2px; bottom:-11px}'
+    + '.ex-doc .sk-sw.kan-host{padding-top:34px}'
+    + '.ex-doc .sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:10px; padding-bottom:8px; font-size:.62em; line-height:1; font-weight:700; white-space:nowrap; color:#000}'
+    + '.ex-doc .sk-sw .kan.komal{text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:2px}'
+    + '.ex-doc .sk-sw .kan.oct1::after{content:"\u2022"; position:absolute; left:50%; transform:translateX(-50%); top:-9px; font-size:.62em; line-height:1}'
+    + '.ex-doc .sk-sw .kan.octm::before{content:"\u2022"; position:absolute; left:50%; transform:translateX(-50%); bottom:0; font-size:.62em; line-height:1}'
+    + '.ex-doc .sk-sw .kan .kan-p{padding:0 1px}'
+    + '.ex-doc .sk-sw .kan .kan-p.komal{text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:2px}'
+    + '.ex-doc .sk-sw .shr{position:absolute; right:-2px; top:-1px; font-size:8pt; line-height:1; font-weight:700}'
+    + '.ex-doc .sk-sw.orn-host{padding-top:15px}'
+    + '.ex-doc .sk-sw .orn{position:absolute; left:50%; transform:translateX(-50%); top:-3px; font-size:8pt; line-height:1; white-space:nowrap}'
+    + '.ex-doc .mk-grp{position:relative; display:inline-block; padding-bottom:15px}'
+    + '.ex-doc .mk-grp::before{content:""; position:absolute; left:1px; right:1px; bottom:1px; height:11px; border:2px solid #000; border-top:0; border-radius:0 0 11px 11px}'
+    + '.ex-doc .md-grp{position:relative; display:inline-block; padding-top:12px}'
+    + '.ex-doc .md-grp::before{content:""; position:absolute; left:0; right:0; top:2px; height:7px; border-top:2px solid #000; border-radius:50% 50% 0 0 / 100% 100% 0 0}'
+    + '.ex-doc .sk-sep{display:inline-block; padding:1px 6px; color:#444; font-weight:700}'
+    /* the swars inherit the app's own padding, so the gaps between them are the gaps on
+       screen rather than a second, invented spacing */
+    + '.ex-doc .sk-sw, .ex-doc .sk-sep{color:#000}';
 
   function exportOpen(l) {
     var w = window.open("", "_blank");
@@ -5199,11 +5226,14 @@
   var SETTINGS_PIN = "1981";
   var settingsOK = false;
 
+  /* Settings opens freely. Only the switch that ALLOWS EDITING is behind the PIN - that is
+     the one control that can let a page be changed by accident, and it is the only thing the
+     PIN was ever protecting. The theme, the token, the history and the prompt are all
+     harmless to look at and are now reachable without it. */
   function openSettings() {
     var box = $("#skSettingsBox"); if (!box) return;
-    /* asked every single time, even if the PIN was entered a moment ago */
-    settingsOK = false;
-    showPinGate(box);
+    settingsOK = false;                 // the editing door starts shut on every open
+    buildSettings();
   }
 
   function showPinGate(box) {
@@ -5232,6 +5262,47 @@
     $("#setPinGo").onclick = go;
     f.onkeydown = function (e) { if (e.key === "Enter") go(); };
     $("#setPinClose").onclick = closeSettings;
+    setTimeout(function () { try { f.focus(); } catch (e) {} }, 60);
+  }
+
+
+  /* the PIN, asked only when editing is being switched on */
+  function applyEditToggle(on) {
+    state.canEdit = !!on;
+    if (!state.canEdit) state.editOpen = {};          // pens away, every editor closed
+    try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
+    var l = state.lessonId && lesson(state.lessonId);
+    if (l) renderStage(l);
+    try { editBadge(); } catch (e) {}
+  }
+  function askEditPin(onOK) {
+    var row = document.createElement("div");
+    row.className = "set-pinrow";
+    row.innerHTML =
+      '<div class="set-lab">Editing is locked. Enter the PIN to allow it.</div>' +
+      '<div class="set-pinline">' +
+        '<input id="editPin" class="set-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">' +
+        '<button class="sk-btn" id="editPinGo" type="button">Unlock</button>' +
+        '<button class="sk-btn" id="editPinNo" type="button">Cancel</button>' +
+      '</div>' +
+      '<div class="set-msg" id="editPinMsg"></div>';
+    var host = document.querySelector(".set-editrow");
+    if (host && host.parentNode) host.parentNode.insertBefore(row, host.nextSibling);
+    else { var b = $("#skSettingsBox"); if (b) b.appendChild(row); }
+    var f = $("#editPin");
+    function go() {
+      if ((f.value || "").trim() === SETTINGS_PIN) {
+        row.remove();
+        onOK();
+        return;
+      }
+      $("#editPinMsg").textContent = "That is not the right PIN.";
+      f.value = "";
+      try { f.focus(); } catch (e) {}
+    }
+    $("#editPinGo").onclick = go;
+    f.onkeydown = function (e) { if (e.key === "Enter") go(); };
+    $("#editPinNo").onclick = function () { row.remove(); };
     setTimeout(function () { try { f.focus(); } catch (e) {} }, 60);
   }
 
@@ -5310,11 +5381,17 @@
       lab.textContent = "Allow editing \u2014 show the \u270e Edit notation button on each page. " +
         "Leave this off and nothing on a page can be changed by accident.";
       cb.onchange = function () {
-        state.canEdit = cb.checked;
-        if (!state.canEdit) state.editOpen = {};      // pens away, every editor closed
-        try { localStorage.setItem("sk_can_edit", state.canEdit ? "1" : "0"); } catch (e) {}
-        var l = state.lessonId && lesson(state.lessonId);
-        if (l) renderStage(l);
+        if (cb.checked && !settingsOK) {
+          /* switching editing ON is the guarded act: ask for the PIN right here */
+          cb.checked = false;
+          askEditPin(function () {
+            settingsOK = true;
+            cb.checked = true;
+            applyEditToggle(true);
+          });
+          return;
+        }
+        applyEditToggle(cb.checked);
       };
       d.appendChild(cb); d.appendChild(lab);
       box.appendChild(d);
