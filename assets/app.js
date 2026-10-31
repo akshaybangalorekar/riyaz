@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "5.1.0";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "5.1.1";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -5308,6 +5308,45 @@
 
   function buildSettings() {
     var box = $("#skSettingsBox"); if (!box) return;
+    var m = $("#skSettings"); if (m) m.classList.add("on");
+
+    /* Two things in here can change the app or its connection: the switch that allows
+       editing, and the GitHub token. Both sit behind the same PIN. Everything else -
+       the theme, the history, the project prompt - is harmless to look at, so it is
+       reachable without one. */
+    if (!settingsOK) {
+      box.innerHTML =
+        '<div class="set-h">Settings</div>' +
+        themePicker() +
+        '<div class="set-lock">' +
+          '<div class="set-lockh">\ud83d\udd12 Locked</div>' +
+          '<div class="set-lab">Editing and the GitHub token are behind the PIN.</div>' +
+          '<div class="set-pinline">' +
+            '<input id="setPin" class="set-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">' +
+            '<button class="sk-btn" id="setPinGo" type="button">Unlock</button>' +
+          '</div>' +
+          '<div class="set-msg" id="setPinMsg"></div>' +
+        '</div>' +
+        '<div class="set-actions"><button class="sk-btn" id="setClose">Close</button></div>' +
+        '<p class="set-note dim">Build ' + APP_VER + '</p>';
+      var f = $("#setPin");
+      function go() {
+        if ((f.value || "").trim() === SETTINGS_PIN) {
+          settingsOK = true;
+          buildSettings();
+          return;
+        }
+        $("#setPinMsg").textContent = "That is not the right PIN.";
+        f.value = "";
+        try { f.focus(); } catch (e) {}
+      }
+      $("#setPinGo").onclick = go;
+      f.onkeydown = function (e) { if (e.key === "Enter") go(); };
+      $("#setClose").onclick = closeSettings;
+      setTimeout(function () { try { f.focus(); } catch (e) {} }, 60);
+      return;
+    }
+
     box.innerHTML =
       '<div class="set-h">Settings</div>' +
       themePicker() +
@@ -5323,6 +5362,7 @@
       '<div class="set-msg" id="setMsg"></div>' +
       '<p class="set-note">Scope: the <b>riyaz</b> repo only, permission <b>Contents: Read and write</b>. Marks load and save automatically.</p>' +
       '<p class="set-note">Status: <span id="setStatus"></span></p>' +
+      '<p class="set-note dim">Lock this again by closing Settings \u2014 the PIN is asked each time it is opened.</p>' +
       (storageOK() ? '' : '<p class="set-warn">\u26a0 This browser is blocking local storage, so the token and your marks cannot be kept. Leave Private Browsing (or allow cookies for this site), then enter the token again.</p>') +
       '<p class="set-note dim">Build ' + APP_VER + '</p>';
     var m = $("#skSettings"); if (m) m.classList.add("on");
@@ -5380,19 +5420,9 @@
       lab.className = "set-editlab"; lab.htmlFor = "setCanEdit";
       lab.textContent = "Allow editing \u2014 show the \u270e Edit notation button on each page. " +
         "Leave this off and nothing on a page can be changed by accident.";
-      cb.onchange = function () {
-        if (cb.checked && !settingsOK) {
-          /* switching editing ON is the guarded act: ask for the PIN right here */
-          cb.checked = false;
-          askEditPin(function () {
-            settingsOK = true;
-            cb.checked = true;
-            applyEditToggle(true);
-          });
-          return;
-        }
-        applyEditToggle(cb.checked);
-      };
+      /* no PIN here: the lock at the top of Settings already asked for it, and this
+         switch only exists on the far side of that lock */
+      cb.onchange = function () { applyEditToggle(cb.checked); };
       d.appendChild(cb); d.appendChild(lab);
       box.appendChild(d);
     })();

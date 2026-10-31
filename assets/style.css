@@ -1411,3 +1411,10 @@ body.boot .sk-foot{animation:ryFadeIn .5s ease both; animation-delay:.20s}
   border-radius:10px; background:var(--bg2)}
 .set-pinline{display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-top:7px}
 .set-pinline .set-input{flex:1 1 110px; min-width:0; margin:0}
+
+/* ---------- the lock panel: editing and the token ---------- */
+.set-lock{margin:4px 0 14px; padding:13px 15px; border:1px solid var(--line);
+  border-radius:11px; background:var(--bg2)}
+.set-lockh{font-size:13px; font-weight:700; color:var(--saffron); margin-bottom:6px;
+  letter-spacing:.02em}
+.set-lock .set-lab{margin-bottom:9px}
