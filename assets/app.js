@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "5.1.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "5.1.2";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -1468,8 +1468,8 @@
     + '.ex-doc .sk-sw.octm::before{content:"\u2022"; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); font-size:.5em}'
     + '.ex-doc .sk-sw.oct1.oct2::after{content:"\u2022\u2022"; letter-spacing:2px; top:-9px}'
     + '.ex-doc .sk-sw.octm.octm2::before{content:"\u2022\u2022"; letter-spacing:2px; bottom:-11px}'
-    + '.ex-doc .sk-sw.kan-host{padding-top:34px}'
-    + '.ex-doc .sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:10px; padding-bottom:8px; font-size:.62em; line-height:1; font-weight:700; white-space:nowrap; color:#000}'
+    + '.ex-doc .sk-sw.kan-host{padding-top:20px}'
+    + '.ex-doc .sk-sw .kan{position:absolute; left:50%; transform:translateX(-50%); top:16px; padding-bottom:2px; font-size:.62em; line-height:1; font-weight:700; white-space:nowrap; color:#000}'
     + '.ex-doc .sk-sw .kan.komal{text-decoration:underline; text-decoration-thickness:1.5px; text-underline-offset:2px}'
     + '.ex-doc .sk-sw .kan.oct1::after{content:"\u2022"; position:absolute; left:50%; transform:translateX(-50%); top:-9px; font-size:.62em; line-height:1}'
     + '.ex-doc .sk-sw .kan.octm::before{content:"\u2022"; position:absolute; left:50%; transform:translateX(-50%); bottom:0; font-size:.62em; line-height:1}'

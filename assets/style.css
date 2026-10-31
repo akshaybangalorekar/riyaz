@@ -1017,7 +1017,15 @@ select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);bo
 /* the same on a plain notation line, where there is no cell to share the room */
 .sk-notation .sk-line{padding-top:20px}
 .sk-notation .sk-sw.kan-host{padding-top:0; padding-bottom:0}
-.sk-notation .sk-sw .kan{top:-1.15em; bottom:auto}
+/* the kan sits closer to its swar in the line view. It was -1.15em, which at the line's
+   font size left an 8px gap between the bottom of the kan and the top of the swar. The
+   grid keeps -1.15em: there the type is smaller and the same value already puts the kan
+   tight against its swar, so changing it there would push the two into each other. */
+.sk-notation .sk-sw .kan{top:-0.62em; bottom:auto}
+/* ...but not inside a grid: .bnd-swar and .bnd-lyr live inside .sk-notation too, and
+   there the smaller type already puts the kan tight. Put them back where they were. */
+.sk-notation .bnd-swar .sk-sw .kan,
+.sk-notation .bnd-lyr .sk-sw .kan{top:-1.15em}
 
 /* ---------- the kan must not reach the matra numbers ----------
    A later rule cleared the top padding on every merged cell, which took away the room the kan
