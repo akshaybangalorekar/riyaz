@@ -3391,87 +3391,72 @@ window.SANGEET = {
    ],
    "media": [
     {
-     "kind": "audio",
-     "id": "1a8b8KUGgy5PyHxP51MS-h6ZM8KGUf2An",
-     "name": "Raag भैरवी - 5-8 Mukt Aalap.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "1EgpOqP3EbhVMtlpMFu181uZNeRt6Fgga",
-     "name": "Raag भैरवी - Mukt Aalap - file 2.mp3"
-    },
-    {
-     "kind": "audio",
+          "kind": "audio",
      "id": "1VyQW1iy5ilVGyoKWPm71lE9LzdfGsrGv",
-     "name": "Raag भैरवी - Mukt Aalap - file 3.mp3"
+     "name": "Raag भैरवी - Aaroh-Avroh - 1-4.mp3"
     },
     {
-     "kind": "audio",
-     "id": "1EgpOqP3EbhVMtlpMFu181uZNeRt6Fgga",
-     "name": "Raag भैरवी - 9-10 Mukt Aalap.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "1VyQW1iy5ilVGyoKWPm71lE9LzdfGsrGv",
-     "name": "Raag भैरवी - Aaroh-Avroh - 1-4 Mukt Aalap.mp3"
-    },
-    {
-     "kind": "audio",
-     "id": "185KtuSkvvwwnu6rweBq3EKs-l7_5wRS9", "bnd": "1",
+          "kind": "audio",
+     "bnd": "1",
+     "id": "185KtuSkvvwwnu6rweBq3EKs-l7_5wRS9",
      "name": "Raag भैरवी - Mahadev Maheshwar - Antara.mp3"
     },
     {
-     "kind": "audio",
-     "id": "1-or4_XEsVACJQbM_mdLHbOYoB3XUlBWQ", "bnd": "1",
+          "kind": "audio",
+     "bnd": "1",
+     "id": "1-or4_XEsVACJQbM_mdLHbOYoB3XUlBWQ",
      "name": "Raag भैरवी - Mahadev Maheshwar - Chhota Khayal.mp3"
     },
     {
-     "kind": "video",
+          "kind": "video",
      "id": "11zJH84dO_usAMZxfOukiPwkA-qZRLuA1",
      "name": "२०२६०१०७ - भैरवी - महादेव महेश्वर - अन्तर लैकारी.mp4"
     },
     {
-     "kind": "video",
+          "kind": "video",
      "id": "1W5bPEwJOnUN4IQd8XTlarU9z4szyUGwe",
      "name": "२०२६०१०७ - भैरवी - महादेव महेश्वर - स्थाई लैकारी.mp4"
     },
     {
-     "kind": "audio",
+          "kind": "audio",
      "id": "1h8rH0agaZnSSesPjeZiK1-FUgUX2S5Bu",
      "name": "२०२६०३०३ - भैरवी - महादेव महेश्वर - अन्तरा लैकारी - आकार १ - ७.mp3"
     },
     {
-     "kind": "video",
-     "id": "1shAqiKQqIhCr6VIjI3ioWAGT6fnwK1ZE", "bnd": "1",
+          "kind": "video",
+     "bnd": "1",
+     "id": "1shAqiKQqIhCr6VIjI3ioWAGT6fnwK1ZE",
      "name": "Raag भैरवी - Mahadev Maheshwar - Taal.mp4"
     },
     {
-     "kind": "video",
-     "id": "1ASzBrKCaKsQz8bz_r_3KKZcsESpAsnR5", "bnd": "1",
+          "kind": "video",
+     "bnd": "1",
+     "id": "1ASzBrKCaKsQz8bz_r_3KKZcsESpAsnR5",
      "name": "भैरवी - Bandish - Mahadev Maheshwar - Taal 120.mp4"
     },
     {
-     "kind": "video",
-     "id": "1Oe3cpBAYwKLffrFye0_6EWOqRqBj71oe", "bnd": "1",
+          "kind": "video",
+     "bnd": "1",
+     "id": "1Oe3cpBAYwKLffrFye0_6EWOqRqBj71oe",
      "name": "भैरवी - Bandish - Mahadev Maheshwar - Vidushi Apoorva Gokhale.mp4"
     },
     {
-     "kind": "audio",
+          "kind": "audio",
      "id": "11K7NTsKeeRHCdO0e7R-uosq0Dot1xtdj",
      "name": "२०२६०३०३ - भैरवी - महादेव महेश्वर - स्थाई लैकारी - आकार.mp3"
     },
     {
-     "kind": "audio",
+          "kind": "audio",
      "id": "1I3-tqZTv56tNAsVDG3hHwiKe4ZR2gJyr",
      "name": "२०२६०३३० - भैरवी - महादेव महेश्वर - अन्तरा लैकारी - आकार ८ - १०.mp3"
     },
     {
-     "kind": "video",
+          "kind": "video",
      "id": "1zVb5sfhbXqkSiF16T9q-vKiq9tV3ww0n",
      "name": "२०२६०१०७ - भैरवी - महादेव महेश्वर - ताना - १-६.mp4"
     },
     {
-     "kind": "video",
+          "kind": "video",
      "id": "1EJSUMECYOP_J1-U3t0WvLRbMXnc8i2Su",
      "name": "२०२६०११७ - भैरवी - महादेव महेश्वर - ताना - ७-१५.mp4"
     }
