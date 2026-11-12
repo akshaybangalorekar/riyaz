@@ -45,7 +45,7 @@
   function esc(s){ return String(s).replace(/[&<>]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
 
   /* ---------- when was it last saved to GitHub ---------- */
-  var APP_VERSION = "5.3.1";   // major: final alankars, per-line spans, takes, safe playback
+  var APP_VERSION = "5.4.0";   // major: final alankars, per-line spans, takes, safe playback
   var MELB = "Australia/Melbourne";
   function melbTime(ts) {
     try {
@@ -4652,7 +4652,12 @@
       // per-track shape: the value holds line entries (key = track)
       Object.keys(v).forEach(function (k2) {
         var e = v[k2];
-        if (isLine(k2) && e && typeof e === "object" && typeof e.t === "number")
+        /* A deletion has to be recordable, or a time removed on one device simply comes
+           back from another. A tombstone carries no time, so takesOf and segOfEntry both
+           return nothing for it, and its `at` lets it win the merge. */
+        if (isLine(k2) && e && typeof e === "object" && e.del)
+          put(key, k2, { del: true, at: e.at || 0 });
+        else if (isLine(k2) && e && typeof e === "object" && typeof e.t === "number")
           put(key, k2, { t: e.t, at: e.at || 0 });
         else if (isLine(k2) && e && typeof e === "object" && e.takes && e.takes.length)
           put(key, k2, { takes: e.takes.map(function (x) { return { name: x.name || "", t: +x.t || 0, at: +x.at || 0 }; }),
